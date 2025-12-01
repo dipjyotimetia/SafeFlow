@@ -27,31 +27,75 @@ Important guidelines:
 If you don't have enough context to answer a question, ask clarifying questions or suggest what information would be helpful.`,
 
   /**
-   * Transaction categorization prompt
+   * Transaction categorization prompt - Enhanced for Australian merchants
    */
-  categorization: `You are a transaction categorization assistant. Your task is to categorize bank transactions into the most appropriate category.
+  categorization: `You are a transaction categorization assistant for Australian bank transactions.
 
-You will be given:
-1. A transaction description
-2. The transaction amount (positive = income, negative = expense)
-3. A list of available categories
+AVAILABLE CATEGORIES (use exactly these names):
+- Groceries: Supermarkets, food shopping (Woolworths, Coles, Aldi, IGA)
+- Dining Out: Restaurants, cafes, fast food, food delivery (McDonald's, Uber Eats, MenuLog)
+- Transport: Uber, taxis, public transport (Opal, Myki), rideshare, tolls
+- Fuel: Petrol stations (BP, Shell, Caltex, Ampol, 7-Eleven fuel)
+- Utilities: Electricity, gas, water, internet, phone (Telstra, Optus, AGL, Origin)
+- Rent: Rental payments, lease payments
+- Mortgage: Home loan repayments
+- Housing: Strata, body corporate, council rates
+- Insurance: Health, car, home, life insurance (NRMA, AAMI, Allianz, Medibank, Bupa)
+- Healthcare: Pharmacies, doctors, medical expenses, pathology
+- Entertainment: Movies, concerts, events, streaming (Netflix, Spotify, Stan)
+- Subscriptions: Recurring digital services, memberships
+- Shopping: Retail stores, online shopping (Kmart, Target, JB Hi-Fi, Amazon)
+- Travel: Flights, hotels, holiday expenses (Qantas, Airbnb, Booking.com)
+- Education: School fees, courses, TAFE, university, childcare
+- Personal Care: Hairdresser, beauty, grooming, spa
+- Pets: Pet food, vet, pet supplies
+- Fees & Charges: Bank fees, ATM fees, service charges
+- Cash Withdrawal: ATM withdrawals, cash out
+- Salary: Wages, salary deposits, payroll
+- Government Payments: Centrelink, tax refunds, government benefits
+- Interest Income: Bank interest, savings interest
+- Dividends: Share dividends, distributions
+- Transfer: Internal transfers, BPAY, Osko
+- Gambling: TAB, Sportsbet, Lotteries, Casino
+- Gifts: Presents, donations
+- Other Expense: Anything else
 
-Respond with a JSON object containing:
+EXAMPLES:
+"WOOLWORTHS 1234 MELBOURNE" → Groceries (supermarket)
+"UBER *TRIP HELP.UBER.COM" → Transport (rideshare)
+"UBER EATS HELP.UBER.COM" → Dining Out (food delivery)
+"NETFLIX.COM" → Subscriptions (streaming service)
+"BP FUEL 0412" → Fuel (petrol station)
+"COLES EXPRESS" → Fuel (petrol station convenience, primarily fuel)
+"COLES SUPERMARKET" → Groceries (supermarket)
+"MCDONALDS QPS 1234" → Dining Out (fast food)
+"OPAL TOP UP" → Transport (public transit)
+"SALARY ACME PTY LTD" → Salary (income)
+"DIRECT DEBIT ORIGIN ENERGY" → Utilities (electricity/gas)
+"TELSTRA BILL" → Utilities (phone/internet)
+"AGL ELECTRICITY" → Utilities (electricity)
+"TRANSFER TO SAVINGS" → Transfer
+"ATM WITHDRAWAL" → Cash Withdrawal
+"INTEREST" → Interest Income
+"TAX REFUND ATO" → Government Payments
+"CENTRELINK PAYMENT" → Government Payments
+"CHEMIST WAREHOUSE" → Healthcare (pharmacy)
+"SPECSAVERS" → Healthcare (optometry)
+"MEDICARE REBATE" → Healthcare
+"NRMA INSURANCE" → Insurance
+"MEDIBANK PRIVATE" → Insurance (health)
+"SPORTSBET" → Gambling
+"TAB DEBIT" → Gambling
+"JB HI-FI" → Shopping
+"BUNNINGS" → Shopping
+"KMART" → Shopping
+
+Respond with a JSON object ONLY:
 {
-  "categoryId": "the ID of the best matching category",
-  "confidence": 0.0-1.0 (how confident you are in this categorization),
-  "reasoning": "brief explanation of why this category was chosen"
-}
-
-Guidelines:
-- Consider common Australian merchant names and transaction patterns
-- Direct debits often indicate subscriptions or utilities
-- BPAY transactions are typically bill payments
-- Look for keywords like "salary", "wage", "transfer", etc.
-- If uncertain, prefer a general category over a specific one
-- For transfers between accounts, use the "Transfer" category
-
-Only respond with the JSON object, no additional text.`,
+  "categoryId": "category name exactly as listed above",
+  "confidence": 0.0-1.0,
+  "reasoning": "brief explanation"
+}`,
 
   /**
    * Spending analysis prompt
@@ -246,4 +290,84 @@ User's portfolio context:
 ${context}
 
 Please provide investment education and portfolio analysis.`;
+}
+
+/**
+ * Batch categorization prompt for processing multiple transactions at once
+ */
+export const BATCH_CATEGORIZATION_PROMPT = `You are a transaction categorization assistant for Australian bank transactions.
+Categorize EACH transaction into the most appropriate category.
+
+CATEGORIES:
+Groceries, Dining Out, Transport, Fuel, Utilities, Rent, Mortgage, Housing, Insurance,
+Healthcare, Entertainment, Subscriptions, Shopping, Travel, Education, Personal Care,
+Pets, Fees & Charges, Cash Withdrawal, Salary, Government Payments, Interest Income,
+Dividends, Transfer, Gambling, Gifts, Other Expense
+
+AUSTRALIAN MERCHANT EXAMPLES:
+- Woolworths/Coles/Aldi/IGA → Groceries
+- Uber *TRIP/Opal/Myki/DiDi → Transport
+- Uber Eats/MenuLog/DoorDash → Dining Out
+- BP/Shell/Caltex/Ampol → Fuel
+- Coles Express → Fuel (not Groceries)
+- McDonald's/KFC/Hungry Jacks → Dining Out
+- Netflix/Spotify/Stan/Disney → Subscriptions
+- Origin/AGL/Telstra/Optus → Utilities
+- JB Hi-Fi/Kmart/Target/Bunnings → Shopping
+- Chemist Warehouse/Specsavers → Healthcare
+- NRMA/AAMI/Medibank/Bupa → Insurance
+- Salary/Wages/Payroll → Salary
+- Centrelink/ATO Refund → Government Payments
+- Transfer/BPAY/Osko → Transfer
+- Sportsbet/TAB/Lotto → Gambling
+
+Respond with a JSON array ONLY (no other text):
+[
+  {"id": "tx1", "category": "Groceries", "confidence": 0.95, "reasoning": "supermarket"},
+  {"id": "tx2", "category": "Transport", "confidence": 0.90, "reasoning": "rideshare"}
+]`;
+
+/**
+ * Build a batch categorization prompt for multiple transactions
+ */
+export function buildBatchCategorizationPrompt(
+  transactions: Array<{ id: string; description: string; amount: number }>
+): string {
+  const txList = transactions
+    .map((tx) => {
+      const type = tx.amount >= 0 ? 'credit' : 'debit';
+      const amountStr = `$${(Math.abs(tx.amount) / 100).toFixed(2)}`;
+      return `- id:"${tx.id}" | ${tx.description} | ${amountStr} (${type})`;
+    })
+    .join('\n');
+
+  return `${BATCH_CATEGORIZATION_PROMPT}
+
+Transactions to categorize:
+${txList}`;
+}
+
+/**
+ * Parse batch categorization response from AI
+ */
+export function parseBatchCategorizationResponse(
+  response: string
+): Array<{ id: string; category: string; confidence: number; reasoning: string }> | null {
+  try {
+    // Try to extract JSON from the response
+    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return null;
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed)) return null;
+
+    return parsed.map((item) => ({
+      id: String(item.id || ''),
+      category: String(item.category || item.categoryId || ''),
+      confidence: Number(item.confidence) || 0.5,
+      reasoning: String(item.reasoning || ''),
+    }));
+  } catch {
+    return null;
+  }
 }

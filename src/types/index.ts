@@ -349,3 +349,17 @@ export interface FinancialContext {
   portfolioSummary?: string;
   taxSummary?: string;
 }
+
+// Merchant Pattern Learning types
+export interface MerchantPattern {
+  id: string;
+  normalizedName: string;      // Normalized merchant name (e.g., "woolworths")
+  originalExamples: string[];  // Original descriptions that matched
+  categoryId: string;
+  categoryName: string;        // Denormalized for display
+  confidence: number;          // 0.0-1.0, increases with usage
+  usageCount: number;
+  userConfirmed: boolean;      // True if user manually confirmed this mapping
+  lastUsed: Date;
+  createdAt: Date;
+}

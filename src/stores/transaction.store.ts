@@ -134,6 +134,19 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
   },
 
   updateTransaction: async (id, data) => {
+    // If category is being changed, learn from the user correction
+    if (data.categoryId) {
+      const existingTransaction = await db.transactions.get(id);
+      if (existingTransaction && existingTransaction.categoryId !== data.categoryId) {
+        // User is changing the category - learn from this correction
+        try {
+          await categorizationService.learnFromUserCorrection(id, data.categoryId);
+        } catch (error) {
+          console.error('Failed to learn from user correction:', error);
+        }
+      }
+    }
+
     await db.transactions.update(id, {
       ...data,
       updatedAt: new Date(),

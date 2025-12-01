@@ -12,6 +12,7 @@ import type {
   SuperTransaction,
   ChatConversation,
   CategorizationQueueItem,
+  MerchantPattern,
 } from '@/types';
 
 export class SafeFlowDB extends Dexie {
@@ -27,6 +28,7 @@ export class SafeFlowDB extends Dexie {
   superTransactions!: Table<SuperTransaction>;
   chatConversations!: Table<ChatConversation>;
   categorizationQueue!: Table<CategorizationQueueItem>;
+  merchantPatterns!: Table<MerchantPattern>;
 
   constructor() {
     super('safeflow-db');
@@ -71,6 +73,23 @@ export class SafeFlowDB extends Dexie {
       chatConversations: 'id, createdAt, updatedAt',
       categorizationQueue: 'id, transactionId, status, createdAt',
     });
+
+    // Version 4: Add merchant pattern learning table
+    this.version(4).stores({
+      accounts: 'id, type, isActive, createdAt',
+      categories: 'id, type, parentId, atoCode, isActive',
+      transactions: 'id, accountId, categoryId, type, date, importBatchId, [accountId+date]',
+      holdings: 'id, accountId, symbol, type',
+      investmentTransactions: 'id, holdingId, type, date',
+      taxItems: 'id, financialYear, atoCategory, transactionId',
+      syncMetadata: 'id',
+      importBatches: 'id, source, importedAt',
+      superannuationAccounts: 'id, provider, memberNumber, createdAt',
+      superTransactions: 'id, superAccountId, type, date, financialYear, [superAccountId+date]',
+      chatConversations: 'id, createdAt, updatedAt',
+      categorizationQueue: 'id, transactionId, status, createdAt',
+      merchantPatterns: 'id, normalizedName, categoryId, confidence, lastUsed, userConfirmed',
+    });
   }
 }
 
@@ -90,4 +109,5 @@ export type {
   SuperTransaction,
   ChatConversation,
   CategorizationQueueItem,
+  MerchantPattern,
 };
