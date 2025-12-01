@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { db } from '@/lib/db';
+import { categorizationService } from '@/lib/ai/categorization';
 import type { Transaction, TransactionType, FilterOptions } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'sonner';
 
 interface TransactionStore {
   // Filter state
@@ -287,6 +289,20 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
             balance: account.balance + change,
             updatedAt: now,
           });
+        }
+      }
+
+      // Queue uncategorized transactions for AI categorization
+      const uncategorizedIds = recordsToAdd
+        .filter((t) => !t.categoryId)
+        .map((t) => t.id);
+
+      if (uncategorizedIds.length > 0) {
+        try {
+          await categorizationService.queueForCategorization(uncategorizedIds);
+          toast.info(`Queued ${uncategorizedIds.length} transactions for AI categorization`);
+        } catch (error) {
+          console.error('Failed to queue for categorization:', error);
         }
       }
     }

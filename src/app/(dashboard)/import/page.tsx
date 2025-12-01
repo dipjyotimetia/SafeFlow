@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert';
 import { FileUp, FileText, CheckCircle2, AlertCircle, Loader2, Landmark } from 'lucide-react';
 import { FileDropZone, TransactionPreview } from '@/components/import';
+import { CategorizationStatusCard } from '@/components/ai';
 import { usePDFParser, useAccounts, useSuperAccounts } from '@/hooks';
 import { useTransactionStore } from '@/stores/transaction.store';
 import { useSuperannuationStore } from '@/stores/superannuation.store';
@@ -331,6 +332,9 @@ export default function ImportPage() {
           </Badge>
         </div>
 
+        {/* AI Categorization Status - always visible for bank imports */}
+        {importType === 'bank' && <CategorizationStatusCard className="mb-6" />}
+
         {/* Upload Step */}
         {step === 'upload' && importType === 'bank' && (
           <>
@@ -444,36 +448,81 @@ export default function ImportPage() {
             {/* Supported Banks */}
             <Card>
               <CardHeader>
-                <CardTitle>Supported Banks</CardTitle>
+                <CardTitle>Supported Banks & Platforms</CardTitle>
                 <CardDescription>
-                  We currently support these Australian banks
+                  We support these Australian banks and financial platforms
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { name: 'ANZ', supported: true },
-                    { name: 'Commonwealth Bank', supported: false },
-                    { name: 'NAB', supported: false },
-                    { name: 'Westpac', supported: false },
-                  ].map((bank) => (
-                    <div
-                      key={bank.name}
-                      className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50"
-                    >
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{bank.name}</span>
-                      {bank.supported ? (
+              <CardContent className="space-y-4">
+                {/* Big 4 Banks */}
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Big 4 Banks</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { name: 'ANZ', supported: true },
+                      { name: 'Commonwealth Bank', supported: true },
+                      { name: 'Westpac', supported: true },
+                      { name: 'NAB', supported: true },
+                    ].map((bank) => (
+                      <div
+                        key={bank.name}
+                        className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50"
+                      >
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{bank.name}</span>
                         <Badge variant="default" className="ml-auto text-xs">
                           Ready
                         </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="ml-auto text-xs">
-                          Soon
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Digital Banks */}
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Digital Banks</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { name: 'ING Australia', supported: true },
+                      { name: 'Macquarie Bank', supported: true },
+                      { name: 'Up Bank', supported: true },
+                      { name: 'Bendigo Bank', supported: true },
+                    ].map((bank) => (
+                      <div
+                        key={bank.name}
+                        className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50"
+                      >
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{bank.name}</span>
+                        <Badge variant="default" className="ml-auto text-xs">
+                          Ready
                         </Badge>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Investment/Crypto Platforms */}
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Investment & Crypto</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { name: 'Raiz Invest', supported: true },
+                      { name: 'CoinSpot', supported: true },
+                      { name: 'Swyftx', supported: true },
+                    ].map((platform) => (
+                      <div
+                        key={platform.name}
+                        className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50"
+                      >
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{platform.name}</span>
+                        <Badge variant="default" className="ml-auto text-xs">
+                          Ready
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -835,30 +884,33 @@ export default function ImportPage() {
 
         {/* Complete Step */}
         {step === 'complete' && (
-          <Card>
-            <CardContent className="py-12">
-              <div className="text-center space-y-4">
-                <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto" />
-                <h3 className="text-2xl font-semibold">Import Complete!</h3>
-                <p className="text-muted-foreground">
-                  {importType === 'bank'
-                    ? `Successfully imported ${importedCount} transactions`
-                    : importedCount > 0
-                      ? `Successfully imported super account with ${importedCount} transactions`
-                      : 'Successfully imported super account'
-                  }
-                </p>
-                <div className="flex justify-center gap-4 pt-4">
-                  <Button variant="outline" onClick={handleStartOver}>
-                    Import Another
-                  </Button>
-                  <Button onClick={() => (window.location.href = importType === 'bank' ? '/transactions' : '/superannuation')}>
-                    {importType === 'bank' ? 'View Transactions' : 'View Superannuation'}
-                  </Button>
+          <>
+            <Card>
+              <CardContent className="py-12">
+                <div className="text-center space-y-4">
+                  <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto" />
+                  <h3 className="text-2xl font-semibold">Import Complete!</h3>
+                  <p className="text-muted-foreground">
+                    {importType === 'bank'
+                      ? `Successfully imported ${importedCount} transactions`
+                      : importedCount > 0
+                        ? `Successfully imported super account with ${importedCount} transactions`
+                        : 'Successfully imported super account'
+                    }
+                  </p>
+                  <div className="flex justify-center gap-4 pt-4">
+                    <Button variant="outline" onClick={handleStartOver}>
+                      Import Another
+                    </Button>
+                    <Button onClick={() => (window.location.href = importType === 'bank' ? '/transactions' : '/superannuation')}>
+                      {importType === 'bank' ? 'View Transactions' : 'View Superannuation'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+          </>
         )}
       </div>
     </>

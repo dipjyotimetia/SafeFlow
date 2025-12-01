@@ -35,7 +35,23 @@ export interface Category {
 
 // Transaction types
 export type TransactionType = 'income' | 'expense' | 'transfer';
-export type ImportSource = 'manual' | 'pdf' | 'anz-pdf' | 'cba-pdf' | 'raiz-pdf' | 'coinspot-pdf' | 'swyftx-pdf';
+export type ImportSource =
+  | 'manual'
+  | 'pdf'
+  // Big 4 Banks
+  | 'anz-pdf'
+  | 'cba-pdf'
+  | 'westpac-pdf'
+  | 'nab-pdf'
+  // Digital Banks
+  | 'ing-pdf'
+  | 'macquarie-pdf'
+  | 'up-pdf'
+  | 'bendigo-pdf'
+  // Investment/Crypto
+  | 'raiz-pdf'
+  | 'coinspot-pdf'
+  | 'swyftx-pdf';
 
 export interface Transaction {
   id: string;
@@ -278,4 +294,58 @@ export interface FilterOptions {
   dateRange?: DateRange;
   searchQuery?: string;
   isDeductible?: boolean;
+}
+
+// AI types
+export type AIConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+export type ChatMessageRole = 'user' | 'assistant' | 'system';
+
+export interface ChatMessage {
+  id: string;
+  role: ChatMessageRole;
+  content: string;
+  timestamp: Date;
+}
+
+export interface ChatConversation {
+  id: string;
+  title?: string;
+  messages: ChatMessage[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type CategorizationStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface CategorizationQueueItem {
+  id: string;
+  transactionId: string;
+  status: CategorizationStatus;
+  suggestedCategoryId?: string;
+  confidence?: number;
+  reasoning?: string;
+  error?: string;
+  createdAt: Date;
+  processedAt?: Date;
+}
+
+export interface AISettings {
+  ollamaHost: string;
+  model: string;
+  autoCategorize: boolean;
+}
+
+export interface CategorizationResult {
+  categoryId: string;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface FinancialContext {
+  accountsSummary: string;
+  recentSpending: string;
+  topCategories: string;
+  portfolioSummary?: string;
+  taxSummary?: string;
 }

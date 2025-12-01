@@ -1,4 +1,4 @@
-// ANZ Bank Statement Parser
+// Up Bank Statement Parser
 
 import type { BankParser, ParseResult, ParsedTransaction, ParsedTransactionType } from '../types';
 import {
@@ -6,7 +6,6 @@ import {
   extractAmounts,
   extractStatementPeriod,
   analyzeTransaction,
-  cleanDescription,
   shouldSkipLine,
   createTransactionKey,
   toCents,
@@ -14,28 +13,32 @@ import {
 } from '../utils';
 
 /**
- * Parser for ANZ Bank statements (Australia)
+ * Parser for Up Bank statements (Australia)
  *
- * ANZ statement formats vary but typically include:
- * - Date (DD/MM/YYYY or DD MMM YYYY)
- * - Description
- * - Debit amount (money out)
- * - Credit amount (money in)
- * - Balance
+ * Up Bank is a digital neobank with modern statement formats.
+ * Key features:
+ * - Often includes emojis in transaction descriptions
+ * - Clean, modern format
+ * - Round-up transactions
  */
-export class ANZParser implements BankParser {
-  name = 'ANZ Bank';
-  bankCode = 'anz';
+export class UpParser implements BankParser {
+  name = 'Up Bank';
+  bankCode = 'up';
 
-  // Patterns to identify ANZ statements
+  // Patterns to identify Up Bank statements
   private readonly identifiers = [
-    /ANZ/i,
-    /Australia and New Zealand Banking/i,
-    /anz\.com\.au/i,
-    /ANZ Access Advantage/i,
-    /ANZ Online Saver/i,
-    /ANZ Plus/i,
-    /ANZ Save/i,
+    /Up(?:\s+Bank)?/i,
+    /up\.com\.au/i,
+    /Up Banking/i,
+    /Up Saver/i,
+    /Up Everyday/i,
+  ];
+
+  // Additional Up-specific skip patterns
+  private readonly upSkipPatterns = [
+    /^Round\s+Up\s+Transfer/i,
+    /^Instant\s+Transfer/i,
+    /^Cover\s+from/i,
   ];
 
   canParse(text: string): boolean {
@@ -71,7 +74,6 @@ export class ANZParser implements BankParser {
       const transaction = this.parseTransactionLine(line, currentYear);
 
       if (transaction) {
-        // Create a unique key to detect duplicates
         const key = createTransactionKey(transaction.date, transaction.description, transaction.amount);
 
         if (!seenTransactions.has(key)) {
@@ -85,7 +87,7 @@ export class ANZParser implements BankParser {
     transactions.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     if (transactions.length === 0) {
-      errors.push('No transactions found in the document. Please ensure this is a valid ANZ bank statement.');
+      errors.push('No transactions found in the document. Please ensure this is a valid Up Bank statement.');
     }
 
     return {
@@ -106,7 +108,7 @@ export class ANZParser implements BankParser {
     // Try to find account name
     const namePatterns = [
       /Account(?:\s+Name)?[:\s]+([A-Z][A-Za-z\s]+?)(?:\n|Account|BSB)/i,
-      /ANZ\s+(Access Advantage|Online Saver|Plus|Save|Everyday|Smart Choice)/i,
+      /(Up Saver|Up Everyday|Spending|Savers)/i,
     ];
 
     for (const pattern of namePatterns) {
@@ -118,10 +120,11 @@ export class ANZParser implements BankParser {
     }
 
     // Try to find account number (last 4 digits only for privacy)
+    // Up Bank BSB is 633-123
     const numberPatterns = [
       /Account(?:\s+Number)?[:\s]+[\d\s-]*(\d{4})\b/i,
       /Account[:\s]+\*{4,}(\d{4})/i,
-      /(?:BSB[:\s]+\d{3}[\s-]?\d{3}[,\s]+)?(?:Account[:\s]+)?(\d{4})\b/,
+      /BSB[:\s]+633[\s-]?123[\s,]+(?:Account|Acc)[:\s]+\d*(\d{4})\b/i,
     ];
 
     for (const pattern of numberPatterns) {
@@ -141,6 +144,12 @@ export class ANZParser implements BankParser {
       return null;
     }
 
+    // Skip Up-specific non-transaction lines (but not round-up transactions)
+    // Round-ups are valid transactions we want to capture
+    if (this.upSkipPatterns.some((pattern) => pattern.test(line))) {
+      return null;
+    }
+
     // Try to extract date from the beginning of the line
     const dateResult = extractDateFromLine(line, defaultYear);
 
@@ -157,42 +166,32 @@ export class ANZParser implements BankParser {
       return null;
     }
 
-    // Determine debit, credit, and balance based on position and format
-    // ANZ typically shows: Description | Debit | Credit | Balance
+    // Determine transaction amount and balance
     let transactionAmount = new Decimal(0);
     let balance: number | undefined;
-    let hasExplicitIndicator = false;
     let explicitlyDebit = false;
     let explicitlyCredit = false;
 
     if (amounts.length >= 2) {
-      // Multiple amounts - likely has debit/credit and balance
       // Last amount is usually balance
       balance = toCents(amounts[amounts.length - 1].value);
 
-      // Check for debit (money out) vs credit (money in)
+      // First amount(s) are transaction amount(s)
       for (let i = 0; i < amounts.length - 1; i++) {
         const amt = amounts[i];
-        hasExplicitIndicator = hasExplicitIndicator || amt.hasExplicitIndicator;
-
         if (amt.isDebit) {
           transactionAmount = amt.value;
           explicitlyDebit = true;
         } else if (amt.isCredit) {
           transactionAmount = amt.value;
           explicitlyCredit = true;
-        } else if (i === 0 && amounts.length === 3) {
-          // First column in 3-column format is usually debit
-          transactionAmount = amt.value;
-          explicitlyDebit = true;
         } else {
           transactionAmount = amt.value;
         }
       }
     } else if (amounts.length === 1) {
-      // Single amount - will analyze based on description
+      // Single amount
       transactionAmount = amounts[0].value;
-      hasExplicitIndicator = amounts[0].hasExplicitIndicator;
       explicitlyDebit = amounts[0].isDebit;
       explicitlyCredit = amounts[0].isCredit;
     }
@@ -201,8 +200,8 @@ export class ANZParser implements BankParser {
       return null;
     }
 
-    // Extract description
-    const description = cleanDescription(remainingText);
+    // Extract description - preserve emojis for Up Bank
+    const description = this.cleanDescriptionWithEmojis(remainingText);
 
     if (!description) {
       return null;
@@ -225,7 +224,25 @@ export class ANZParser implements BankParser {
       rawText: line,
     };
   }
+
+  /**
+   * Clean description while preserving emojis (Up Bank uses them)
+   */
+  private cleanDescriptionWithEmojis(text: string, maxLength = 200): string {
+    // Remove amounts but keep emojis
+    let description = text
+      .replace(/\$?\s*[\d,]+\.\d{2}\s*(DR|CR|D|C)?/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Truncate if necessary
+    if (description.length > maxLength) {
+      description = description.substring(0, maxLength - 3) + '...';
+    }
+
+    return description;
+  }
 }
 
 // Export singleton instance
-export const anzParser = new ANZParser();
+export const upParser = new UpParser();

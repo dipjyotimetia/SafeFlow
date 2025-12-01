@@ -48,3 +48,8 @@ export {
   useSuperAccountsByProvider,
   useSuperFinancialYears,
 } from './use-superannuation';
+
+export {
+  useCategorization,
+  useCategorizationStatus,
+} from './use-categorization';

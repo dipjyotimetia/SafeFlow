@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
+import { FloatingChatWidget } from '@/components/ai';
 import { initializeDatabase } from '@/lib/db';
 
 export default function DashboardLayout({
@@ -34,6 +35,7 @@ export default function DashboardLayout({
       <main className="md:pl-64">
         {children}
       </main>
+      <FloatingChatWidget />
     </div>
   );
 }

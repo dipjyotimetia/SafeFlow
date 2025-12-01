@@ -1,4 +1,4 @@
-// ANZ Bank Statement Parser
+// Raiz Invest Statement Parser
 
 import type { BankParser, ParseResult, ParsedTransaction, ParsedTransactionType } from '../types';
 import {
@@ -14,28 +14,64 @@ import {
 } from '../utils';
 
 /**
- * Parser for ANZ Bank statements (Australia)
+ * Parser for Raiz Invest statements (Australia)
  *
- * ANZ statement formats vary but typically include:
- * - Date (DD/MM/YYYY or DD MMM YYYY)
- * - Description
- * - Debit amount (money out)
- * - Credit amount (money in)
- * - Balance
+ * Raiz is a micro-investing platform that handles:
+ * - Deposits (money in)
+ * - Withdrawals (money out)
+ * - Investment returns/dividends
+ * - Fees
  */
-export class ANZParser implements BankParser {
-  name = 'ANZ Bank';
-  bankCode = 'anz';
+export class RaizParser implements BankParser {
+  name = 'Raiz Invest';
+  bankCode = 'raiz';
 
-  // Patterns to identify ANZ statements
+  // Patterns to identify Raiz statements
   private readonly identifiers = [
-    /ANZ/i,
-    /Australia and New Zealand Banking/i,
-    /anz\.com\.au/i,
-    /ANZ Access Advantage/i,
-    /ANZ Online Saver/i,
-    /ANZ Plus/i,
-    /ANZ Save/i,
+    /Raiz/i,
+    /Raiz Invest/i,
+    /raizinvest\.com\.au/i,
+    /Raiz Rewards/i,
+    /Round Up/i,
+    /Micro-investing/i,
+  ];
+
+  // Additional Raiz-specific skip patterns
+  private readonly raizSkipPatterns = [
+    /^Portfolio\s+Summary/i,
+    /^Investment\s+Breakdown/i,
+    /^Asset\s+Allocation/i,
+    /^ETF\s+Holdings/i,
+  ];
+
+  // Keywords for investment-specific transactions
+  private readonly depositKeywords = [
+    /deposit/i,
+    /round[\s-]?up/i,
+    /recurring/i,
+    /transfer\s+in/i,
+    /top[\s-]?up/i,
+  ];
+
+  private readonly withdrawalKeywords = [
+    /withdraw/i,
+    /transfer\s+out/i,
+    /redemption/i,
+  ];
+
+  private readonly returnKeywords = [
+    /dividend/i,
+    /distribution/i,
+    /return/i,
+    /interest/i,
+    /rebate/i,
+  ];
+
+  private readonly feeKeywords = [
+    /fee/i,
+    /charge/i,
+    /management/i,
+    /admin/i,
   ];
 
   canParse(text: string): boolean {
@@ -71,7 +107,6 @@ export class ANZParser implements BankParser {
       const transaction = this.parseTransactionLine(line, currentYear);
 
       if (transaction) {
-        // Create a unique key to detect duplicates
         const key = createTransactionKey(transaction.date, transaction.description, transaction.amount);
 
         if (!seenTransactions.has(key)) {
@@ -85,7 +120,7 @@ export class ANZParser implements BankParser {
     transactions.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     if (transactions.length === 0) {
-      errors.push('No transactions found in the document. Please ensure this is a valid ANZ bank statement.');
+      errors.push('No transactions found in the document. Please ensure this is a valid Raiz Invest statement.');
     }
 
     return {
@@ -105,8 +140,9 @@ export class ANZParser implements BankParser {
 
     // Try to find account name
     const namePatterns = [
-      /Account(?:\s+Name)?[:\s]+([A-Z][A-Za-z\s]+?)(?:\n|Account|BSB)/i,
-      /ANZ\s+(Access Advantage|Online Saver|Plus|Save|Everyday|Smart Choice)/i,
+      /Account(?:\s+Name)?[:\s]+([A-Z][A-Za-z\s]+?)(?:\n|Account)/i,
+      /Portfolio[:\s]+([A-Za-z\s]+?)(?:\n|Account)/i,
+      /(Raiz\s+(?:Conservative|Moderately Conservative|Moderate|Moderately Aggressive|Aggressive|Emerald|Sapphire))/i,
     ];
 
     for (const pattern of namePatterns) {
@@ -117,11 +153,11 @@ export class ANZParser implements BankParser {
       }
     }
 
-    // Try to find account number (last 4 digits only for privacy)
+    // Try to find account/member number
     const numberPatterns = [
+      /Member(?:\s+Number)?[:\s]+[\d\s-]*(\d{4})\b/i,
       /Account(?:\s+Number)?[:\s]+[\d\s-]*(\d{4})\b/i,
-      /Account[:\s]+\*{4,}(\d{4})/i,
-      /(?:BSB[:\s]+\d{3}[\s-]?\d{3}[,\s]+)?(?:Account[:\s]+)?(\d{4})\b/,
+      /Customer\s+ID[:\s]+\d*(\d{4})\b/i,
     ];
 
     for (const pattern of numberPatterns) {
@@ -141,6 +177,11 @@ export class ANZParser implements BankParser {
       return null;
     }
 
+    // Skip Raiz-specific non-transaction lines
+    if (this.raizSkipPatterns.some((pattern) => pattern.test(line))) {
+      return null;
+    }
+
     // Try to extract date from the beginning of the line
     const dateResult = extractDateFromLine(line, defaultYear);
 
@@ -157,47 +198,18 @@ export class ANZParser implements BankParser {
       return null;
     }
 
-    // Determine debit, credit, and balance based on position and format
-    // ANZ typically shows: Description | Debit | Credit | Balance
-    let transactionAmount = new Decimal(0);
+    // Determine transaction type and sign based on keywords
     let balance: number | undefined;
-    let hasExplicitIndicator = false;
-    let explicitlyDebit = false;
-    let explicitlyCredit = false;
+    const baseAmount = amounts.length >= 2 ? amounts[0].value : amounts[0].value;
 
     if (amounts.length >= 2) {
-      // Multiple amounts - likely has debit/credit and balance
-      // Last amount is usually balance
+      // Last amount might be balance
       balance = toCents(amounts[amounts.length - 1].value);
-
-      // Check for debit (money out) vs credit (money in)
-      for (let i = 0; i < amounts.length - 1; i++) {
-        const amt = amounts[i];
-        hasExplicitIndicator = hasExplicitIndicator || amt.hasExplicitIndicator;
-
-        if (amt.isDebit) {
-          transactionAmount = amt.value;
-          explicitlyDebit = true;
-        } else if (amt.isCredit) {
-          transactionAmount = amt.value;
-          explicitlyCredit = true;
-        } else if (i === 0 && amounts.length === 3) {
-          // First column in 3-column format is usually debit
-          transactionAmount = amt.value;
-          explicitlyDebit = true;
-        } else {
-          transactionAmount = amt.value;
-        }
-      }
-    } else if (amounts.length === 1) {
-      // Single amount - will analyze based on description
-      transactionAmount = amounts[0].value;
-      hasExplicitIndicator = amounts[0].hasExplicitIndicator;
-      explicitlyDebit = amounts[0].isDebit;
-      explicitlyCredit = amounts[0].isCredit;
     }
 
-    if (transactionAmount.isZero()) {
+    const { signedAmount, type } = this.analyzeRaizTransaction(remainingText, baseAmount);
+
+    if (signedAmount.isZero()) {
       return null;
     }
 
@@ -208,24 +220,52 @@ export class ANZParser implements BankParser {
       return null;
     }
 
-    // Analyze transaction to determine type and sign
-    const analysis = analyzeTransaction(
-      description,
-      transactionAmount,
-      explicitlyDebit,
-      explicitlyCredit
-    );
-
     return {
       date,
       description,
-      amount: toCents(analysis.signedAmount),
-      type: analysis.type,
+      amount: toCents(signedAmount),
+      type,
       balance,
       rawText: line,
     };
   }
+
+  /**
+   * Analyze Raiz transaction to determine type and sign
+   */
+  private analyzeRaizTransaction(text: string, amount: Decimal): { signedAmount: Decimal; type: ParsedTransactionType } {
+    // Deposits are transfers (money moving between accounts)
+    for (const pattern of this.depositKeywords) {
+      if (pattern.test(text)) {
+        return { signedAmount: amount.abs(), type: 'transfer' };
+      }
+    }
+
+    // Returns/dividends are income
+    for (const pattern of this.returnKeywords) {
+      if (pattern.test(text)) {
+        return { signedAmount: amount.abs(), type: 'income' };
+      }
+    }
+
+    // Withdrawals are transfers (money moving out)
+    for (const pattern of this.withdrawalKeywords) {
+      if (pattern.test(text)) {
+        return { signedAmount: amount.negated(), type: 'transfer' };
+      }
+    }
+
+    // Fees are expenses
+    for (const pattern of this.feeKeywords) {
+      if (pattern.test(text)) {
+        return { signedAmount: amount.negated(), type: 'expense' };
+      }
+    }
+
+    // Default to transfer (deposit) for investment platforms
+    return { signedAmount: amount.abs(), type: 'transfer' };
+  }
 }
 
 // Export singleton instance
-export const anzParser = new ANZParser();
+export const raizParser = new RaizParser();

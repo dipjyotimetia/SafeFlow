@@ -1,9 +1,12 @@
 // Parser types for bank statement processing
 
+export type ParsedTransactionType = 'income' | 'expense' | 'transfer';
+
 export interface ParsedTransaction {
   date: Date;
   description: string;
   amount: number; // In cents, positive for credits, negative for debits
+  type?: ParsedTransactionType; // Detected transaction type
   balance?: number; // Running balance if available
   reference?: string;
   rawText?: string; // Original text for debugging

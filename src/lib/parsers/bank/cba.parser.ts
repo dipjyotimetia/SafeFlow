@@ -1,4 +1,4 @@
-// ANZ Bank Statement Parser
+// Commonwealth Bank (CBA) Statement Parser
 
 import type { BankParser, ParseResult, ParsedTransaction, ParsedTransactionType } from '../types';
 import {
@@ -14,28 +14,39 @@ import {
 } from '../utils';
 
 /**
- * Parser for ANZ Bank statements (Australia)
+ * Parser for Commonwealth Bank statements (Australia)
  *
- * ANZ statement formats vary but typically include:
- * - Date (DD/MM/YYYY or DD MMM YYYY)
+ * CBA statement formats typically include:
+ * - Date (DD MMM or DD/MM/YYYY)
  * - Description
- * - Debit amount (money out)
- * - Credit amount (money in)
+ * - Debit/Credit amount
  * - Balance
  */
-export class ANZParser implements BankParser {
-  name = 'ANZ Bank';
-  bankCode = 'anz';
+export class CBAParser implements BankParser {
+  name = 'Commonwealth Bank';
+  bankCode = 'cba';
 
-  // Patterns to identify ANZ statements
+  // Patterns to identify CBA statements
   private readonly identifiers = [
-    /ANZ/i,
-    /Australia and New Zealand Banking/i,
-    /anz\.com\.au/i,
-    /ANZ Access Advantage/i,
-    /ANZ Online Saver/i,
-    /ANZ Plus/i,
-    /ANZ Save/i,
+    /Commonwealth Bank/i,
+    /CommBank/i,
+    /commbank\.com\.au/i,
+    /NetBank/i,
+    /CBA/i,
+    /Smart Access/i,
+    /Goal Saver/i,
+    /NetBank Saver/i,
+    /Everyday Account/i,
+    /Complete Access/i,
+    /Streamline/i,
+  ];
+
+  // Additional CBA-specific skip patterns
+  private readonly cbaSkipPatterns = [
+    /^Transaction\s+Details/i,
+    /^Your\s+Transactions/i,
+    /^Account\s+Summary/i,
+    /^Rewards\s+Points/i,
   ];
 
   canParse(text: string): boolean {
@@ -71,7 +82,6 @@ export class ANZParser implements BankParser {
       const transaction = this.parseTransactionLine(line, currentYear);
 
       if (transaction) {
-        // Create a unique key to detect duplicates
         const key = createTransactionKey(transaction.date, transaction.description, transaction.amount);
 
         if (!seenTransactions.has(key)) {
@@ -85,7 +95,7 @@ export class ANZParser implements BankParser {
     transactions.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     if (transactions.length === 0) {
-      errors.push('No transactions found in the document. Please ensure this is a valid ANZ bank statement.');
+      errors.push('No transactions found in the document. Please ensure this is a valid Commonwealth Bank statement.');
     }
 
     return {
@@ -106,7 +116,7 @@ export class ANZParser implements BankParser {
     // Try to find account name
     const namePatterns = [
       /Account(?:\s+Name)?[:\s]+([A-Z][A-Za-z\s]+?)(?:\n|Account|BSB)/i,
-      /ANZ\s+(Access Advantage|Online Saver|Plus|Save|Everyday|Smart Choice)/i,
+      /(Smart Access|Goal Saver|NetBank Saver|Everyday Account|Complete Access|Streamline)/i,
     ];
 
     for (const pattern of namePatterns) {
@@ -121,7 +131,7 @@ export class ANZParser implements BankParser {
     const numberPatterns = [
       /Account(?:\s+Number)?[:\s]+[\d\s-]*(\d{4})\b/i,
       /Account[:\s]+\*{4,}(\d{4})/i,
-      /(?:BSB[:\s]+\d{3}[\s-]?\d{3}[,\s]+)?(?:Account[:\s]+)?(\d{4})\b/,
+      /BSB[:\s]+\d{3}[\s-]?\d{3}[\s,]+Account[:\s]+\d*(\d{4})\b/i,
     ];
 
     for (const pattern of numberPatterns) {
@@ -141,6 +151,11 @@ export class ANZParser implements BankParser {
       return null;
     }
 
+    // Skip CBA-specific non-transaction lines
+    if (this.cbaSkipPatterns.some((pattern) => pattern.test(line))) {
+      return null;
+    }
+
     // Try to extract date from the beginning of the line
     const dateResult = extractDateFromLine(line, defaultYear);
 
@@ -157,42 +172,32 @@ export class ANZParser implements BankParser {
       return null;
     }
 
-    // Determine debit, credit, and balance based on position and format
-    // ANZ typically shows: Description | Debit | Credit | Balance
+    // Determine transaction amount and balance
     let transactionAmount = new Decimal(0);
     let balance: number | undefined;
-    let hasExplicitIndicator = false;
     let explicitlyDebit = false;
     let explicitlyCredit = false;
 
     if (amounts.length >= 2) {
-      // Multiple amounts - likely has debit/credit and balance
       // Last amount is usually balance
       balance = toCents(amounts[amounts.length - 1].value);
 
-      // Check for debit (money out) vs credit (money in)
+      // First amount(s) are transaction amount(s)
       for (let i = 0; i < amounts.length - 1; i++) {
         const amt = amounts[i];
-        hasExplicitIndicator = hasExplicitIndicator || amt.hasExplicitIndicator;
-
         if (amt.isDebit) {
           transactionAmount = amt.value;
           explicitlyDebit = true;
         } else if (amt.isCredit) {
           transactionAmount = amt.value;
           explicitlyCredit = true;
-        } else if (i === 0 && amounts.length === 3) {
-          // First column in 3-column format is usually debit
-          transactionAmount = amt.value;
-          explicitlyDebit = true;
         } else {
           transactionAmount = amt.value;
         }
       }
     } else if (amounts.length === 1) {
-      // Single amount - will analyze based on description
+      // Single amount
       transactionAmount = amounts[0].value;
-      hasExplicitIndicator = amounts[0].hasExplicitIndicator;
       explicitlyDebit = amounts[0].isDebit;
       explicitlyCredit = amounts[0].isCredit;
     }
@@ -228,4 +233,4 @@ export class ANZParser implements BankParser {
 }
 
 // Export singleton instance
-export const anzParser = new ANZParser();
+export const cbaParser = new CBAParser();

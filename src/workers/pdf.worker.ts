@@ -5,8 +5,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFContent, PDFPageContent, PDFWorkerMessage, PDFWorkerResponse } from '@/lib/parsers/types';
 
 // Set up the worker source for pdfjs-dist
-// In Next.js, we need to use the legacy build for Web Worker compatibility
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Use a local file served from the public folder for reliability
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 // Send a message back to the main thread
 function postMessage(message: PDFWorkerResponse): void {
