@@ -3,7 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import type { Transaction, TransactionType, FilterOptions } from '@/types';
-import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { subMonths } from 'date-fns';
 
 interface UseTransactionsOptions extends FilterOptions {
   limit?: number;
@@ -89,20 +89,27 @@ export function useRecentTransactions(limit: number = 10) {
   };
 }
 
+// Helper to extract year-month as a single number for comparison
+const getYearMonth = (d: Date) => d.getFullYear() * 12 + d.getMonth();
+
 export function useCashflow(months: number = 6) {
   const cashflow = useLiveQuery(async () => {
     const now = new Date();
     const monthsData = [];
 
+    // Get all transactions once and filter in memory
+    // This handles inconsistent date storage formats
+    const allTransactions = await db.transactions.toArray();
+
     for (let i = months - 1; i >= 0; i--) {
       const monthDate = subMonths(now, i);
-      const start = startOfMonth(monthDate);
-      const end = endOfMonth(monthDate);
+      const targetYearMonth = getYearMonth(monthDate);
 
-      const transactions = await db.transactions
-        .where('date')
-        .between(start, end, true, true)
-        .toArray();
+      // Filter transactions by year-month to avoid timezone/time issues
+      const transactions = allTransactions.filter((t) => {
+        const txDate = t.date instanceof Date ? t.date : new Date(t.date);
+        return getYearMonth(txDate) === targetYearMonth;
+      });
 
       const income = transactions
         .filter((t) => t.type === 'income')
@@ -133,13 +140,14 @@ export function useCashflow(months: number = 6) {
 export function useMonthlyTotals() {
   const totals = useLiveQuery(async () => {
     const now = new Date();
-    const start = startOfMonth(now);
-    const end = endOfMonth(now);
+    const currentYearMonth = getYearMonth(now);
 
-    const transactions = await db.transactions
-      .where('date')
-      .between(start, end, true, true)
-      .toArray();
+    // Get all transactions and filter in memory to handle date format inconsistencies
+    const allTransactions = await db.transactions.toArray();
+    const transactions = allTransactions.filter((t) => {
+      const txDate = t.date instanceof Date ? t.date : new Date(t.date);
+      return getYearMonth(txDate) === currentYearMonth;
+    });
 
     const income = transactions
       .filter((t) => t.type === 'income')
@@ -166,14 +174,18 @@ export function useMonthlyTotals() {
 export function useCategoryBreakdown(type: TransactionType = 'expense', months: number = 1) {
   const breakdown = useLiveQuery(async () => {
     const now = new Date();
-    const start = startOfMonth(subMonths(now, months - 1));
-    const end = endOfMonth(now);
+    const currentYearMonth = getYearMonth(now);
+    // Calculate the starting year-month (months back from current)
+    const startYearMonth = currentYearMonth - (months - 1);
 
-    const transactions = await db.transactions
-      .where('date')
-      .between(start, end, true, true)
-      .filter((t) => t.type === type)
-      .toArray();
+    // Get all transactions and filter in memory to handle date format inconsistencies
+    const allTransactions = await db.transactions.toArray();
+    const transactions = allTransactions.filter((t) => {
+      if (t.type !== type) return false;
+      const txDate = t.date instanceof Date ? t.date : new Date(t.date);
+      const txYearMonth = getYearMonth(txDate);
+      return txYearMonth >= startYearMonth && txYearMonth <= currentYearMonth;
+    });
 
     const categories = await db.categories.toArray();
     const categoryMap = new Map(categories.map((c) => [c.id, c]));

@@ -32,7 +32,7 @@ export default function DashboardPage() {
   const { summary } = useAccountsSummary();
   const { totals } = useMonthlyTotals();
   const { cashflow, isLoading: cashflowLoading } = useCashflow(6);
-  const { breakdown, isLoading: breakdownLoading } = useCategoryBreakdown('expense', 1);
+  const { breakdown, isLoading: breakdownLoading } = useCategoryBreakdown('expense', 3);
   const { transactions: recentTransactions, isLoading: transactionsLoading } = useRecentTransactions(5);
   const { categories } = useCategories();
   const { accounts } = useAccounts();
@@ -137,7 +137,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle>Spending by Category</CardTitle>
-              <CardDescription>Where your money goes this month</CardDescription>
+              <CardDescription>Where your money goes (last 3 months)</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
               {breakdownLoading ? (
