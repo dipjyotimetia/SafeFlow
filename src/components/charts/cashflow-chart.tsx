@@ -50,7 +50,7 @@ export function CashflowChart({ data }: CashflowChartProps) {
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
       <BarChart
         data={chartData}
         margin={{ top: 10, right: 10, left: 10, bottom: 10 }}

@@ -92,6 +92,24 @@ export function useRecentTransactions(limit: number = 10) {
 // Helper to extract year-month as a single number for comparison
 const getYearMonth = (d: Date) => d.getFullYear() * 12 + d.getMonth();
 
+/**
+ * Safely parse transaction date, handling both Date objects and ISO strings
+ * Returns epoch (0) for invalid dates which can be filtered out
+ */
+const parseTransactionDate = (date: Date | string | unknown): Date => {
+  if (date instanceof Date && !isNaN(date.getTime())) {
+    return date;
+  }
+  if (typeof date === 'string') {
+    const parsed = new Date(date);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  console.warn('[parseTransactionDate] Invalid date:', date);
+  return new Date(0); // Return epoch as fallback
+};
+
 export function useCashflow(months: number = 6) {
   const cashflow = useLiveQuery(async () => {
     const now = new Date();
@@ -107,7 +125,9 @@ export function useCashflow(months: number = 6) {
 
       // Filter transactions by year-month to avoid timezone/time issues
       const transactions = allTransactions.filter((t) => {
-        const txDate = t.date instanceof Date ? t.date : new Date(t.date);
+        const txDate = parseTransactionDate(t.date);
+        // Skip invalid dates (epoch fallback)
+        if (txDate.getTime() === 0) return false;
         return getYearMonth(txDate) === targetYearMonth;
       });
 
@@ -145,7 +165,9 @@ export function useMonthlyTotals() {
     // Get all transactions and filter in memory to handle date format inconsistencies
     const allTransactions = await db.transactions.toArray();
     const transactions = allTransactions.filter((t) => {
-      const txDate = t.date instanceof Date ? t.date : new Date(t.date);
+      const txDate = parseTransactionDate(t.date);
+      // Skip invalid dates (epoch fallback)
+      if (txDate.getTime() === 0) return false;
       return getYearMonth(txDate) === currentYearMonth;
     });
 
@@ -182,7 +204,9 @@ export function useCategoryBreakdown(type: TransactionType = 'expense', months: 
     const allTransactions = await db.transactions.toArray();
     const transactions = allTransactions.filter((t) => {
       if (t.type !== type) return false;
-      const txDate = t.date instanceof Date ? t.date : new Date(t.date);
+      const txDate = parseTransactionDate(t.date);
+      // Skip invalid dates (epoch fallback)
+      if (txDate.getTime() === 0) return false;
       const txYearMonth = getYearMonth(txDate);
       return txYearMonth >= startYearMonth && txYearMonth <= currentYearMonth;
     });

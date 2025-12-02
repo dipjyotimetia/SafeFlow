@@ -1,11 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   TrendingUp,
   TrendingDown,
@@ -28,11 +36,22 @@ import {
 import { formatAUD } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 
+const PERIOD_OPTIONS = [
+  { value: '3', label: '3 months' },
+  { value: '6', label: '6 months' },
+  { value: '12', label: '1 year' },
+  { value: '24', label: '2 years' },
+  { value: '36', label: '3 years' },
+];
+
 export default function DashboardPage() {
+  const [cashflowMonths, setCashflowMonths] = useState(6);
+  const [categoryMonths, setCategoryMonths] = useState(3);
+
   const { summary } = useAccountsSummary();
   const { totals } = useMonthlyTotals();
-  const { cashflow, isLoading: cashflowLoading } = useCashflow(6);
-  const { breakdown, isLoading: breakdownLoading } = useCategoryBreakdown('expense', 3);
+  const { cashflow, isLoading: cashflowLoading } = useCashflow(cashflowMonths);
+  const { breakdown, isLoading: breakdownLoading } = useCategoryBreakdown('expense', categoryMonths);
   const { transactions: recentTransactions, isLoading: transactionsLoading } = useRecentTransactions(5);
   const { categories } = useCategories();
   const { accounts } = useAccounts();
@@ -115,9 +134,26 @@ export default function DashboardPage() {
         {/* Charts Row */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Monthly Cashflow</CardTitle>
-              <CardDescription>Income vs expenses over time</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="space-y-1">
+                <CardTitle>Monthly Cashflow</CardTitle>
+                <CardDescription>Income vs expenses over time</CardDescription>
+              </div>
+              <Select
+                value={String(cashflowMonths)}
+                onValueChange={(v) => setCashflowMonths(Number(v))}
+              >
+                <SelectTrigger className="w-[110px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIOD_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </CardHeader>
             <CardContent className="h-[300px]">
               {cashflowLoading ? (
@@ -135,9 +171,26 @@ export default function DashboardPage() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Spending by Category</CardTitle>
-              <CardDescription>Where your money goes (last 3 months)</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="space-y-1">
+                <CardTitle>Spending by Category</CardTitle>
+                <CardDescription>Where your money goes</CardDescription>
+              </div>
+              <Select
+                value={String(categoryMonths)}
+                onValueChange={(v) => setCategoryMonths(Number(v))}
+              >
+                <SelectTrigger className="w-[110px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIOD_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </CardHeader>
             <CardContent className="h-[300px]">
               {breakdownLoading ? (

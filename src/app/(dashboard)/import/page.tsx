@@ -112,9 +112,11 @@ export default function ImportPage() {
     setIsImporting(true);
     try {
       // Convert parsed transactions to our transaction format
+      // Use the parser's type field directly - it already analyzes the transaction
+      // Convert 'transfer' type to 'expense' since transfers aren't aggregated in reports
       const transactionsToImport = selectedTransactions.map((t) => ({
         accountId: targetAccountId,
-        type: (t.amount > 0 ? 'income' : 'expense') as TransactionType,
+        type: (t.type === 'transfer' ? 'expense' : t.type) as TransactionType,
         amount: Math.abs(t.amount),
         description: t.description,
         date: t.date.toISOString(),
