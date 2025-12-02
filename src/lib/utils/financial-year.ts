@@ -89,30 +89,31 @@ export function getFinancialQuarters(fy: string): Array<{
   const [startYearStr] = fy.split('-');
   const startYear = parseInt(startYearStr, 10);
 
+  // Use endOfMonth to safely get the last day of each quarter's final month
   return [
     {
       quarter: 1,
       label: 'Q1 (Jul-Sep)',
-      start: new Date(startYear, 6, 1),
-      end: new Date(startYear, 8, 30, 23, 59, 59, 999),
+      start: startOfMonth(new Date(startYear, 6, 1)),
+      end: endOfMonth(new Date(startYear, 8, 1)), // September
     },
     {
       quarter: 2,
       label: 'Q2 (Oct-Dec)',
-      start: new Date(startYear, 9, 1),
-      end: new Date(startYear, 11, 31, 23, 59, 59, 999),
+      start: startOfMonth(new Date(startYear, 9, 1)),
+      end: endOfMonth(new Date(startYear, 11, 1)), // December
     },
     {
       quarter: 3,
       label: 'Q3 (Jan-Mar)',
-      start: new Date(startYear + 1, 0, 1),
-      end: new Date(startYear + 1, 2, 31, 23, 59, 59, 999),
+      start: startOfMonth(new Date(startYear + 1, 0, 1)),
+      end: endOfMonth(new Date(startYear + 1, 2, 1)), // March
     },
     {
       quarter: 4,
       label: 'Q4 (Apr-Jun)',
-      start: new Date(startYear + 1, 3, 1),
-      end: new Date(startYear + 1, 5, 30, 23, 59, 59, 999),
+      start: startOfMonth(new Date(startYear + 1, 3, 1)),
+      end: endOfMonth(new Date(startYear + 1, 5, 1)), // June
     },
   ];
 }

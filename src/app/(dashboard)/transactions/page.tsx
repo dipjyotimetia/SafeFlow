@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, ArrowRightLeft, Filter } from 'lucide-react';
 import { TransactionFormDialog, TransactionList } from '@/components/transactions';
-import { useTransactions, useAccounts, useCategories, useMonthlyTotals } from '@/hooks';
+import { useTransactions, useAccounts, useMonthlyTotals } from '@/hooks';
 import { useTransactionStore } from '@/stores/transaction.store';
 import { formatAUD } from '@/lib/utils/currency';
 import type { Transaction, TransactionType } from '@/types';
@@ -41,7 +41,6 @@ export default function TransactionsPage() {
     accountId: accountFilter !== 'all' ? accountFilter : undefined,
   });
   const { accounts } = useAccounts();
-  const { categories } = useCategories();
   const { totals } = useMonthlyTotals();
   const { deleteTransaction } = useTransactionStore();
 
@@ -154,8 +153,6 @@ export default function TransactionsPage() {
             ) : transactions.length > 0 ? (
               <TransactionList
                 transactions={transactions}
-                categories={categories}
-                accounts={accounts}
                 onEdit={handleEdit}
                 onDelete={setDeletingTransaction}
               />

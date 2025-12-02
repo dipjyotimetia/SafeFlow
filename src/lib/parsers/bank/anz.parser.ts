@@ -1,14 +1,13 @@
 // ANZ Bank Statement Parser
 
-import type { BankParser, ParseResult, ParsedTransaction, ParsedTransactionType } from '../types';
+import { BaseParser } from './base.parser';
+import type { ParsedTransaction } from '../types';
 import {
   extractDateFromLine,
   extractAmounts,
-  extractStatementPeriod,
   analyzeTransaction,
   cleanDescription,
   shouldSkipLine,
-  createTransactionKey,
   toCents,
   Decimal,
 } from '../utils';
@@ -23,119 +22,36 @@ import {
  * - Credit amount (money in)
  * - Balance
  */
-export class ANZParser implements BankParser {
-  name = 'ANZ Bank';
-  bankCode = 'anz';
-
-  // Patterns to identify ANZ statements
-  private readonly identifiers = [
-    /ANZ/i,
-    /Australia and New Zealand Banking/i,
-    /anz\.com\.au/i,
-    /ANZ Access Advantage/i,
-    /ANZ Online Saver/i,
-    /ANZ Plus/i,
-    /ANZ Save/i,
-  ];
-
-  canParse(text: string): boolean {
-    return this.identifiers.some((pattern) => pattern.test(text));
+export class ANZParser extends BaseParser {
+  constructor() {
+    super({
+      name: 'ANZ Bank',
+      bankCode: 'anz',
+      identifiers: [
+        /ANZ/i,
+        /Australia and New Zealand Banking/i,
+        /anz\.com\.au/i,
+        /ANZ Access Advantage/i,
+        /ANZ Online Saver/i,
+        /ANZ Plus/i,
+        /ANZ Save/i,
+      ],
+      accountNamePatterns: [
+        /Account(?:\s+Name)?[:\s]+([A-Z][A-Za-z\s]+?)(?:\n|Account|BSB)/i,
+        /ANZ\s+(Access Advantage|Online Saver|Plus|Save|Everyday|Smart Choice)/i,
+      ],
+      accountNumberPatterns: [
+        /Account(?:\s+Number)?[:\s]+[\d\s-]*(\d{4})\b/i,
+        /Account[:\s]+\*{4,}(\d{4})/i,
+        /(?:BSB[:\s]+\d{3}[\s-]?\d{3}[,\s]+)?(?:Account[:\s]+)?(\d{4})\b/,
+      ],
+    });
   }
 
-  parse(text: string): ParseResult {
-    const transactions: ParsedTransaction[] = [];
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    // Extract account information
-    const accountInfo = this.extractAccountInfo(text);
-
-    // Extract statement period
-    const statementPeriod = extractStatementPeriod(text);
-
-    // Split into lines and process
-    const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
-
-    let currentYear = new Date().getFullYear();
-    if (statementPeriod?.end) {
-      currentYear = statementPeriod.end.getFullYear();
-    }
-
-    // Track for duplicate detection
-    const seenTransactions = new Set<string>();
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Try to parse as transaction line
-      const transaction = this.parseTransactionLine(line, currentYear);
-
-      if (transaction) {
-        // Create a unique key to detect duplicates
-        const key = createTransactionKey(transaction.date, transaction.description, transaction.amount);
-
-        if (!seenTransactions.has(key)) {
-          seenTransactions.add(key);
-          transactions.push(transaction);
-        }
-      }
-    }
-
-    // Sort by date
-    transactions.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-    if (transactions.length === 0) {
-      errors.push('No transactions found in the document. Please ensure this is a valid ANZ bank statement.');
-    }
-
-    return {
-      success: transactions.length > 0,
-      transactions,
-      accountName: accountInfo.name,
-      accountNumber: accountInfo.number,
-      statementPeriod,
-      errors,
-      warnings,
-    };
-  }
-
-  private extractAccountInfo(text: string): { name?: string; number?: string } {
-    let name: string | undefined;
-    let number: string | undefined;
-
-    // Try to find account name
-    const namePatterns = [
-      /Account(?:\s+Name)?[:\s]+([A-Z][A-Za-z\s]+?)(?:\n|Account|BSB)/i,
-      /ANZ\s+(Access Advantage|Online Saver|Plus|Save|Everyday|Smart Choice)/i,
-    ];
-
-    for (const pattern of namePatterns) {
-      const match = text.match(pattern);
-      if (match) {
-        name = match[1].trim();
-        break;
-      }
-    }
-
-    // Try to find account number (last 4 digits only for privacy)
-    const numberPatterns = [
-      /Account(?:\s+Number)?[:\s]+[\d\s-]*(\d{4})\b/i,
-      /Account[:\s]+\*{4,}(\d{4})/i,
-      /(?:BSB[:\s]+\d{3}[\s-]?\d{3}[,\s]+)?(?:Account[:\s]+)?(\d{4})\b/,
-    ];
-
-    for (const pattern of numberPatterns) {
-      const match = text.match(pattern);
-      if (match) {
-        number = match[1];
-        break;
-      }
-    }
-
-    return { name, number };
-  }
-
-  private parseTransactionLine(line: string, defaultYear: number): ParsedTransaction | null {
+  /**
+   * Override parseTransactionLine for ANZ-specific 3-column format handling
+   */
+  protected override parseTransactionLine(line: string, defaultYear: number): ParsedTransaction | null {
     // Skip header lines and non-transaction lines
     if (shouldSkipLine(line)) {
       return null;
@@ -157,11 +73,9 @@ export class ANZParser implements BankParser {
       return null;
     }
 
-    // Determine debit, credit, and balance based on position and format
-    // ANZ typically shows: Description | Debit | Credit | Balance
+    // ANZ-specific: Handle 3-column format (Debit | Credit | Balance)
     let transactionAmount = new Decimal(0);
     let balance: number | undefined;
-    let hasExplicitIndicator = false;
     let explicitlyDebit = false;
     let explicitlyCredit = false;
 
@@ -173,7 +87,6 @@ export class ANZParser implements BankParser {
       // Check for debit (money out) vs credit (money in)
       for (let i = 0; i < amounts.length - 1; i++) {
         const amt = amounts[i];
-        hasExplicitIndicator = hasExplicitIndicator || amt.hasExplicitIndicator;
 
         if (amt.isDebit) {
           transactionAmount = amt.value;
@@ -192,7 +105,6 @@ export class ANZParser implements BankParser {
     } else if (amounts.length === 1) {
       // Single amount - will analyze based on description
       transactionAmount = amounts[0].value;
-      hasExplicitIndicator = amounts[0].hasExplicitIndicator;
       explicitlyDebit = amounts[0].isDebit;
       explicitlyCredit = amounts[0].isCredit;
     }

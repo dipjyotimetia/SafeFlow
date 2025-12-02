@@ -3,7 +3,21 @@
 import { db } from '@/lib/db';
 import { encrypt, decrypt, type EncryptedData, hashPassword, verifyPassword } from './encryption';
 import { uploadData, downloadData, getLastModified, getAuthState } from './google-drive';
-import type { Account, Transaction, Category, Holding, InvestmentTransaction, TaxItem, ImportBatch, SyncMetadata } from '@/types';
+import type {
+  Account,
+  Transaction,
+  Category,
+  Holding,
+  InvestmentTransaction,
+  TaxItem,
+  ImportBatch,
+  SyncMetadata,
+  SuperannuationAccount,
+  SuperTransaction,
+  ChatConversation,
+  CategorizationQueueItem,
+  MerchantPattern,
+} from '@/types';
 
 export interface SyncData {
   version: number;
@@ -15,6 +29,11 @@ export interface SyncData {
   investmentTransactions: InvestmentTransaction[];
   taxItems: TaxItem[];
   importBatches: ImportBatch[];
+  superannuationAccounts: SuperannuationAccount[];
+  superTransactions: SuperTransaction[];
+  chatConversations: ChatConversation[];
+  categorizationQueue: CategorizationQueueItem[];
+  merchantPatterns: MerchantPattern[];
 }
 
 export interface SyncResult {
@@ -25,22 +44,39 @@ export interface SyncResult {
 }
 
 const SYNC_VERSION = 1;
-const SYNC_METADATA_KEY = 'sync-metadata';
+const SYNC_METADATA_ID = 'primary'; // Single record ID for sync metadata
 
 /**
  * Export all data from IndexedDB
  */
 export async function exportData(): Promise<SyncData> {
-  const [accounts, transactions, categories, holdings, investmentTransactions, taxItems, importBatches] =
-    await Promise.all([
-      db.accounts.toArray(),
-      db.transactions.toArray(),
-      db.categories.toArray(),
-      db.holdings.toArray(),
-      db.investmentTransactions.toArray(),
-      db.taxItems.toArray(),
-      db.importBatches.toArray(),
-    ]);
+  const [
+    accounts,
+    transactions,
+    categories,
+    holdings,
+    investmentTransactions,
+    taxItems,
+    importBatches,
+    superannuationAccounts,
+    superTransactions,
+    chatConversations,
+    categorizationQueue,
+    merchantPatterns,
+  ] = await Promise.all([
+    db.accounts.toArray(),
+    db.transactions.toArray(),
+    db.categories.toArray(),
+    db.holdings.toArray(),
+    db.investmentTransactions.toArray(),
+    db.taxItems.toArray(),
+    db.importBatches.toArray(),
+    db.superannuationAccounts.toArray(),
+    db.superTransactions.toArray(),
+    db.chatConversations.toArray(),
+    db.categorizationQueue.toArray(),
+    db.merchantPatterns.toArray(),
+  ]);
 
   return {
     version: SYNC_VERSION,
@@ -52,6 +88,11 @@ export async function exportData(): Promise<SyncData> {
     investmentTransactions,
     taxItems,
     importBatches,
+    superannuationAccounts,
+    superTransactions,
+    chatConversations,
+    categorizationQueue,
+    merchantPatterns,
   };
 }
 
@@ -75,6 +116,11 @@ export async function importData(data: SyncData): Promise<void> {
       db.investmentTransactions,
       db.taxItems,
       db.importBatches,
+      db.superannuationAccounts,
+      db.superTransactions,
+      db.chatConversations,
+      db.categorizationQueue,
+      db.merchantPatterns,
     ],
     async () => {
       // Clear all tables
@@ -86,49 +132,56 @@ export async function importData(data: SyncData): Promise<void> {
         db.investmentTransactions.clear(),
         db.taxItems.clear(),
         db.importBatches.clear(),
+        db.superannuationAccounts.clear(),
+        db.superTransactions.clear(),
+        db.chatConversations.clear(),
+        db.categorizationQueue.clear(),
+        db.merchantPatterns.clear(),
       ]);
 
-      // Import new data
-      if (data.accounts.length) await db.accounts.bulkAdd(data.accounts);
-      if (data.transactions.length) await db.transactions.bulkAdd(data.transactions);
-      if (data.categories.length) await db.categories.bulkAdd(data.categories);
-      if (data.holdings.length) await db.holdings.bulkAdd(data.holdings);
-      if (data.investmentTransactions.length) await db.investmentTransactions.bulkAdd(data.investmentTransactions);
-      if (data.taxItems.length) await db.taxItems.bulkAdd(data.taxItems);
-      if (data.importBatches.length) await db.importBatches.bulkAdd(data.importBatches);
+      // Import new data (handle backward compatibility for older exports)
+      if (data.accounts?.length) await db.accounts.bulkAdd(data.accounts);
+      if (data.transactions?.length) await db.transactions.bulkAdd(data.transactions);
+      if (data.categories?.length) await db.categories.bulkAdd(data.categories);
+      if (data.holdings?.length) await db.holdings.bulkAdd(data.holdings);
+      if (data.investmentTransactions?.length) await db.investmentTransactions.bulkAdd(data.investmentTransactions);
+      if (data.taxItems?.length) await db.taxItems.bulkAdd(data.taxItems);
+      if (data.importBatches?.length) await db.importBatches.bulkAdd(data.importBatches);
+      if (data.superannuationAccounts?.length) await db.superannuationAccounts.bulkAdd(data.superannuationAccounts);
+      if (data.superTransactions?.length) await db.superTransactions.bulkAdd(data.superTransactions);
+      if (data.chatConversations?.length) await db.chatConversations.bulkAdd(data.chatConversations);
+      if (data.categorizationQueue?.length) await db.categorizationQueue.bulkAdd(data.categorizationQueue);
+      if (data.merchantPatterns?.length) await db.merchantPatterns.bulkAdd(data.merchantPatterns);
     }
   );
 }
 
 /**
- * Get sync metadata from local storage
+ * Get sync metadata from IndexedDB
  */
-export function getSyncMetadata(): SyncMetadata | null {
-  const stored = localStorage.getItem(SYNC_METADATA_KEY);
-  if (!stored) return null;
-
+export async function getSyncMetadata(): Promise<SyncMetadata | null> {
   try {
-    return JSON.parse(stored);
+    const metadata = await db.syncMetadata.get(SYNC_METADATA_ID);
+    return metadata || null;
   } catch {
     return null;
   }
 }
 
 /**
- * Save sync metadata to local storage
+ * Save sync metadata to IndexedDB
  */
-export function saveSyncMetadata(metadata: Partial<SyncMetadata>): void {
-  const existing = getSyncMetadata() || {
-    id: crypto.randomUUID(),
-    lastSyncVersion: 0,
-  };
+export async function saveSyncMetadata(metadata: Partial<SyncMetadata>): Promise<void> {
+  const existing = await getSyncMetadata();
 
   const updated: SyncMetadata = {
+    id: SYNC_METADATA_ID,
+    lastSyncVersion: existing?.lastSyncVersion ?? 0,
     ...existing,
     ...metadata,
   };
 
-  localStorage.setItem(SYNC_METADATA_KEY, JSON.stringify(updated));
+  await db.syncMetadata.put(updated);
 }
 
 /**
@@ -137,7 +190,7 @@ export function saveSyncMetadata(metadata: Partial<SyncMetadata>): void {
 export async function setupEncryption(password: string): Promise<void> {
   const { hash, salt } = await hashPassword(password);
 
-  saveSyncMetadata({
+  await saveSyncMetadata({
     encryptionKeyHash: `${salt}:${hash}`,
   });
 }
@@ -146,7 +199,7 @@ export async function setupEncryption(password: string): Promise<void> {
  * Verify encryption password
  */
 export async function verifyEncryptionPassword(password: string): Promise<boolean> {
-  const metadata = getSyncMetadata();
+  const metadata = await getSyncMetadata();
   if (!metadata?.encryptionKeyHash) {
     return false;
   }
@@ -158,8 +211,8 @@ export async function verifyEncryptionPassword(password: string): Promise<boolea
 /**
  * Check if encryption is set up
  */
-export function isEncryptionSetUp(): boolean {
-  const metadata = getSyncMetadata();
+export async function isEncryptionSetUp(): Promise<boolean> {
+  const metadata = await getSyncMetadata();
   return !!metadata?.encryptionKeyHash;
 }
 
@@ -177,7 +230,7 @@ export async function syncWithDrive(password: string): Promise<SyncResult> {
   }
 
   // Verify password
-  if (isEncryptionSetUp()) {
+  if (await isEncryptionSetUp()) {
     const isValid = await verifyEncryptionPassword(password);
     if (!isValid) {
       return {
@@ -191,7 +244,7 @@ export async function syncWithDrive(password: string): Promise<SyncResult> {
     await setupEncryption(password);
   }
 
-  const metadata = getSyncMetadata();
+  const metadata = await getSyncMetadata();
   const localVersion = metadata?.lastSyncVersion || 0;
 
   // Get remote last modified time
@@ -222,7 +275,7 @@ export async function syncWithDrive(password: string): Promise<SyncResult> {
       const encrypted = await encrypt(JSON.stringify(data), password);
       await uploadData(JSON.stringify(encrypted));
 
-      saveSyncMetadata({
+      await saveSyncMetadata({
         lastSyncAt: new Date(),
         lastSyncVersion: localVersion + 1,
       });
@@ -250,7 +303,7 @@ export async function syncWithDrive(password: string): Promise<SyncResult> {
 
       await importData(data);
 
-      saveSyncMetadata({
+      await saveSyncMetadata({
         lastSyncAt: new Date(),
         lastSyncVersion: localVersion + 1,
       });
@@ -291,7 +344,7 @@ export async function forceUpload(password: string): Promise<SyncResult> {
     };
   }
 
-  if (!isEncryptionSetUp()) {
+  if (!(await isEncryptionSetUp())) {
     await setupEncryption(password);
   } else {
     const isValid = await verifyEncryptionPassword(password);
@@ -309,8 +362,8 @@ export async function forceUpload(password: string): Promise<SyncResult> {
     const encrypted = await encrypt(JSON.stringify(data), password);
     await uploadData(JSON.stringify(encrypted));
 
-    const metadata = getSyncMetadata();
-    saveSyncMetadata({
+    const metadata = await getSyncMetadata();
+    await saveSyncMetadata({
       lastSyncAt: new Date(),
       lastSyncVersion: (metadata?.lastSyncVersion || 0) + 1,
     });
@@ -359,8 +412,8 @@ export async function forceDownload(password: string): Promise<SyncResult> {
 
     await importData(data);
 
-    const metadata = getSyncMetadata();
-    saveSyncMetadata({
+    const metadata = await getSyncMetadata();
+    await saveSyncMetadata({
       lastSyncAt: new Date(),
       lastSyncVersion: (metadata?.lastSyncVersion || 0) + 1,
     });

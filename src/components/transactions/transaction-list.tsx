@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { ArrowUpCircle, ArrowDownCircle, ArrowRightLeft, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import {
@@ -19,26 +20,27 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatAUD } from '@/lib/utils/currency';
-import type { Transaction, Category, Account } from '@/types';
+import { useAccounts, useCategories } from '@/hooks';
+import type { Transaction } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface TransactionListProps {
   transactions: Transaction[];
-  categories: Category[];
-  accounts: Account[];
   onEdit: (transaction: Transaction) => void;
   onDelete: (transaction: Transaction) => void;
 }
 
 export function TransactionList({
   transactions,
-  categories,
-  accounts,
   onEdit,
   onDelete,
 }: TransactionListProps) {
-  const categoryMap = new Map(categories.map((c) => [c.id, c]));
-  const accountMap = new Map(accounts.map((a) => [a.id, a]));
+  // Fetch categories and accounts directly instead of prop drilling
+  const { categories } = useCategories();
+  const { accounts } = useAccounts();
+
+  const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
 
   const getTypeIcon = (type: Transaction['type']) => {
     switch (type) {

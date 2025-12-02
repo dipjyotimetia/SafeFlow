@@ -1,9 +1,12 @@
 import { create } from 'zustand';
+import { z } from 'zod';
 import { db } from '@/lib/db';
 import { categorizationService } from '@/lib/ai/categorization';
 import type { Transaction, TransactionType, FilterOptions } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
+import { transactionCreateSchema, transactionUpdateSchema } from '@/lib/schemas';
+import { logError, ErrorCode, SafeFlowError } from '@/lib/errors';
 
 interface TransactionStore {
   // Filter state
@@ -98,59 +101,100 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
   clearSelection: () => set({ selectedIds: new Set() }),
 
   createTransaction: async (data) => {
+    // Validate input data
+    const validationResult = transactionCreateSchema.safeParse(data);
+    if (!validationResult.success) {
+      const errorMessage = z.prettifyError(validationResult.error);
+      throw new SafeFlowError(
+        `Validation failed for createTransaction: ${errorMessage}`,
+        ErrorCode.VALIDATION_FAILED
+      );
+    }
+
+    const validData = validationResult.data;
     const id = uuidv4();
     const now = new Date();
 
-    await db.transactions.add({
-      id,
-      accountId: data.accountId,
-      categoryId: data.categoryId,
-      type: data.type,
-      amount: data.amount,
-      description: data.description,
-      merchantName: data.merchantName,
-      date: data.date,
-      notes: data.notes,
-      isDeductible: data.isDeductible,
-      gstAmount: data.gstAmount,
-      atoCategory: data.atoCategory,
-      importSource: 'manual',
-      isReconciled: false,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Update account balance
-    const account = await db.accounts.get(data.accountId);
-    if (account) {
-      const balanceChange = data.type === 'income' ? data.amount : -data.amount;
-      await db.accounts.update(data.accountId, {
-        balance: account.balance + balanceChange,
+    try {
+      await db.transactions.add({
+        id,
+        accountId: validData.accountId,
+        categoryId: validData.categoryId,
+        type: validData.type,
+        amount: validData.amount,
+        description: validData.description,
+        merchantName: validData.merchantName,
+        date: validData.date,
+        notes: validData.notes,
+        isDeductible: validData.isDeductible,
+        gstAmount: validData.gstAmount,
+        atoCategory: validData.atoCategory,
+        importSource: 'manual',
+        isReconciled: false,
+        createdAt: now,
         updatedAt: now,
       });
-    }
 
-    return id;
+      // Update account balance
+      const account = await db.accounts.get(validData.accountId);
+      if (account) {
+        const balanceChange = validData.type === 'income' ? validData.amount : -validData.amount;
+        await db.accounts.update(validData.accountId, {
+          balance: account.balance + balanceChange,
+          updatedAt: now,
+        });
+      }
+
+      return id;
+    } catch (error) {
+      logError('createTransaction', error);
+      throw new SafeFlowError(
+        'Failed to create transaction',
+        ErrorCode.DB_OPERATION_FAILED,
+        { cause: error instanceof Error ? error : undefined }
+      );
+    }
   },
 
   updateTransaction: async (id, data) => {
-    // If category is being changed, learn from the user correction
-    if (data.categoryId) {
-      const existingTransaction = await db.transactions.get(id);
-      if (existingTransaction && existingTransaction.categoryId !== data.categoryId) {
-        // User is changing the category - learn from this correction
-        try {
-          await categorizationService.learnFromUserCorrection(id, data.categoryId);
-        } catch (error) {
-          console.error('Failed to learn from user correction:', error);
-        }
+    // Validate update data if provided
+    if (Object.keys(data).length > 0) {
+      const validationResult = transactionUpdateSchema.safeParse(data);
+      if (!validationResult.success) {
+        const errorMessage = z.prettifyError(validationResult.error);
+        throw new SafeFlowError(
+          `Validation failed for updateTransaction: ${errorMessage}`,
+          ErrorCode.VALIDATION_FAILED
+        );
       }
     }
 
-    await db.transactions.update(id, {
-      ...data,
-      updatedAt: new Date(),
-    });
+    try {
+      // If category is being changed, learn from the user correction
+      if (data.categoryId) {
+        const existingTransaction = await db.transactions.get(id);
+        if (existingTransaction && existingTransaction.categoryId !== data.categoryId) {
+          // User is changing the category - learn from this correction
+          try {
+            await categorizationService.learnFromUserCorrection(id, data.categoryId);
+          } catch (error) {
+            logError('learnFromUserCorrection', error);
+          }
+        }
+      }
+
+      await db.transactions.update(id, {
+        ...data,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      logError('updateTransaction', error);
+      throw new SafeFlowError(
+        'Failed to update transaction',
+        ErrorCode.DB_OPERATION_FAILED,
+        { cause: error instanceof Error ? error : undefined }
+      );
+    }
   },
 
   deleteTransaction: async (id) => {
@@ -171,9 +215,44 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
   },
 
   deleteTransactions: async (ids) => {
-    for (const id of ids) {
-      await get().deleteTransaction(id);
+    if (ids.length === 0) {
+      set({ selectedIds: new Set() });
+      return;
     }
+
+    // Wrap all deletions in a single transaction to ensure atomicity
+    await db.transaction('rw', [db.transactions, db.accounts], async () => {
+      // Get all transactions to be deleted
+      const transactions = await db.transactions.bulkGet(ids);
+
+      // Calculate balance changes per account
+      const accountUpdates = new Map<string, number>();
+      for (const transaction of transactions) {
+        if (transaction) {
+          const balanceChange = transaction.type === 'income' ? -transaction.amount : transaction.amount;
+          accountUpdates.set(
+            transaction.accountId,
+            (accountUpdates.get(transaction.accountId) || 0) + balanceChange
+          );
+        }
+      }
+
+      // Delete all transactions
+      await db.transactions.bulkDelete(ids);
+
+      // Update all account balances
+      const now = new Date();
+      for (const [accountId, change] of accountUpdates) {
+        const account = await db.accounts.get(accountId);
+        if (account) {
+          await db.accounts.update(accountId, {
+            balance: account.balance + change,
+            updatedAt: now,
+          });
+        }
+      }
+    });
+
     set({ selectedIds: new Set() });
   },
 
@@ -275,37 +354,42 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     }
 
     if (recordsToAdd.length > 0) {
-      await db.transactions.bulkAdd(recordsToAdd);
-      imported = recordsToAdd.length;
+      // Wrap all operations in a single transaction to ensure atomicity
+      await db.transaction('rw', [db.transactions, db.accounts, db.importBatches], async () => {
+        // Add all transactions
+        await db.transactions.bulkAdd(recordsToAdd);
 
-      // Track the import batch
-      await db.importBatches.add({
-        id: batchId,
-        source: 'pdf',
-        fileName: '',
-        transactionCount: imported,
-        importedAt: now,
-        status: 'completed',
+        // Track the import batch
+        await db.importBatches.add({
+          id: batchId,
+          source: 'pdf',
+          fileName: '',
+          transactionCount: recordsToAdd.length,
+          importedAt: now,
+          status: 'completed',
+        });
+
+        // Update account balances
+        const accountUpdates = new Map<string, number>();
+        for (const t of recordsToAdd) {
+          const change = t.type === 'income' ? t.amount : -t.amount;
+          accountUpdates.set(t.accountId, (accountUpdates.get(t.accountId) || 0) + change);
+        }
+
+        for (const [accountId, change] of accountUpdates) {
+          const account = await db.accounts.get(accountId);
+          if (account) {
+            await db.accounts.update(accountId, {
+              balance: account.balance + change,
+              updatedAt: now,
+            });
+          }
+        }
       });
 
-      // Update account balances
-      const accountUpdates = new Map<string, number>();
-      for (const t of recordsToAdd) {
-        const change = t.type === 'income' ? t.amount : -t.amount;
-        accountUpdates.set(t.accountId, (accountUpdates.get(t.accountId) || 0) + change);
-      }
+      imported = recordsToAdd.length;
 
-      for (const [accountId, change] of accountUpdates) {
-        const account = await db.accounts.get(accountId);
-        if (account) {
-          await db.accounts.update(accountId, {
-            balance: account.balance + change,
-            updatedAt: now,
-          });
-        }
-      }
-
-      // Queue uncategorized transactions for AI categorization
+      // Queue uncategorized transactions for AI categorization (outside transaction)
       const uncategorizedIds = recordsToAdd
         .filter((t) => !t.categoryId)
         .map((t) => t.id);

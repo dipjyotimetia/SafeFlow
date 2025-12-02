@@ -94,8 +94,9 @@ export const useSyncStore = create<SyncStore>()(
             });
           }
 
-          // Check encryption setup
-          set({ encryptionPasswordSet: isEncryptionSetUp() });
+          // Check encryption setup (now async since it uses IndexedDB)
+          const encryptionSet = await isEncryptionSetUp();
+          set({ encryptionPasswordSet: encryptionSet });
         } catch (error) {
           console.error('Failed to initialize Google Auth:', error);
           set({ error: 'Failed to initialize Google Auth' });

@@ -64,6 +64,11 @@ export async function clearDatabase(): Promise<void> {
       db.taxItems,
       db.syncMetadata,
       db.importBatches,
+      db.superannuationAccounts,
+      db.superTransactions,
+      db.chatConversations,
+      db.categorizationQueue,
+      db.merchantPatterns,
     ],
     async () => {
       await db.accounts.clear();
@@ -74,6 +79,11 @@ export async function clearDatabase(): Promise<void> {
       await db.taxItems.clear();
       await db.syncMetadata.clear();
       await db.importBatches.clear();
+      await db.superannuationAccounts.clear();
+      await db.superTransactions.clear();
+      await db.chatConversations.clear();
+      await db.categorizationQueue.clear();
+      await db.merchantPatterns.clear();
     }
   );
 }
@@ -88,6 +98,12 @@ export async function exportAllData(): Promise<{
   holdings: unknown[];
   investmentTransactions: unknown[];
   taxItems: unknown[];
+  importBatches: unknown[];
+  superannuationAccounts: unknown[];
+  superTransactions: unknown[];
+  chatConversations: unknown[];
+  categorizationQueue: unknown[];
+  merchantPatterns: unknown[];
 }> {
   const syncMetadata = await db.syncMetadata.get('sync-state');
   const version = (syncMetadata?.lastSyncVersion ?? 0) + 1;
@@ -101,5 +117,11 @@ export async function exportAllData(): Promise<{
     holdings: await db.holdings.toArray(),
     investmentTransactions: await db.investmentTransactions.toArray(),
     taxItems: await db.taxItems.toArray(),
+    importBatches: await db.importBatches.toArray(),
+    superannuationAccounts: await db.superannuationAccounts.toArray(),
+    superTransactions: await db.superTransactions.toArray(),
+    chatConversations: await db.chatConversations.toArray(),
+    categorizationQueue: await db.categorizationQueue.toArray(),
+    merchantPatterns: await db.merchantPatterns.toArray(),
   };
 }
