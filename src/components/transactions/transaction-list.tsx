@@ -19,7 +19,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { InstitutionIcon } from '@/components/institution-icon';
 import { formatAUD } from '@/lib/utils/currency';
+import { isKnownInstitution } from '@/lib/icons/institution-icons';
 import { useAccounts, useCategories } from '@/hooks';
 import type { Transaction } from '@/types';
 import { cn } from '@/lib/utils';
@@ -111,7 +113,12 @@ export function TransactionList({
                 )}
               </TableCell>
               <TableCell>
-                <span className="text-sm">{account?.name || 'Unknown'}</span>
+                <div className="flex items-center gap-2">
+                  {account?.institution && isKnownInstitution(account.institution) && (
+                    <InstitutionIcon institution={account.institution} size="sm" />
+                  )}
+                  <span className="text-sm">{account?.name || 'Unknown'}</span>
+                </div>
               </TableCell>
               <TableCell className="text-right">
                 <span

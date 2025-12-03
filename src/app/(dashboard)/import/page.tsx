@@ -24,9 +24,10 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@/components/ui/alert';
-import { FileUp, FileText, CheckCircle2, AlertCircle, Loader2, Landmark } from 'lucide-react';
+import { FileUp, CheckCircle2, AlertCircle, Loader2, Landmark } from 'lucide-react';
 import { FileDropZone, TransactionPreview } from '@/components/import';
 import { CategorizationStatusCard } from '@/components/ai';
+import { InstitutionIcon } from '@/components/institution-icon';
 import { usePDFParser, useAccounts, useSuperAccounts } from '@/hooks';
 import { useTransactionStore } from '@/stores/transaction.store';
 import { useSuperannuationStore } from '@/stores/superannuation.store';
@@ -362,7 +363,10 @@ export default function ImportPage() {
                         <SelectItem value="auto">Auto-detect</SelectItem>
                         {availableBanks.map((bank) => (
                           <SelectItem key={bank.bankCode} value={bank.bankCode}>
-                            {bank.name}
+                            <div className="flex items-center gap-2">
+                              <InstitutionIcon institution={bank.bankCode} size="sm" />
+                              <span>{bank.name}</span>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -461,16 +465,16 @@ export default function ImportPage() {
                   <h4 className="text-sm font-medium mb-2 text-muted-foreground">Big 4 Banks</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                      { name: 'ANZ', supported: true },
-                      { name: 'Commonwealth Bank', supported: true },
-                      { name: 'Westpac', supported: true },
-                      { name: 'NAB', supported: true },
+                      { name: 'ANZ', code: 'anz', supported: true },
+                      { name: 'Commonwealth Bank', code: 'cba', supported: true },
+                      { name: 'Westpac', code: 'westpac', supported: true },
+                      { name: 'NAB', code: 'nab', supported: true },
                     ].map((bank) => (
                       <div
                         key={bank.name}
                         className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50"
                       >
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <InstitutionIcon institution={bank.code} size="md" />
                         <span className="text-sm">{bank.name}</span>
                         <Badge variant="default" className="ml-auto text-xs">
                           Ready
@@ -485,16 +489,16 @@ export default function ImportPage() {
                   <h4 className="text-sm font-medium mb-2 text-muted-foreground">Digital Banks</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                      { name: 'ING Australia', supported: true },
-                      { name: 'Macquarie Bank', supported: true },
-                      { name: 'Up Bank', supported: true },
-                      { name: 'Bendigo Bank', supported: true },
+                      { name: 'ING Australia', code: 'ing', supported: true },
+                      { name: 'Macquarie Bank', code: 'macquarie', supported: true },
+                      { name: 'Up Bank', code: 'up', supported: true },
+                      { name: 'Bendigo Bank', code: 'bendigo', supported: true },
                     ].map((bank) => (
                       <div
                         key={bank.name}
                         className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50"
                       >
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <InstitutionIcon institution={bank.code} size="md" />
                         <span className="text-sm">{bank.name}</span>
                         <Badge variant="default" className="ml-auto text-xs">
                           Ready
@@ -509,15 +513,15 @@ export default function ImportPage() {
                   <h4 className="text-sm font-medium mb-2 text-muted-foreground">Investment & Crypto</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                      { name: 'Raiz Invest', supported: true },
-                      { name: 'CoinSpot', supported: true },
-                      { name: 'Swyftx', supported: true },
+                      { name: 'Raiz Invest', code: 'raiz', supported: true },
+                      { name: 'CoinSpot', code: 'coinspot', supported: true },
+                      { name: 'Swyftx', code: 'swyftx', supported: true },
                     ].map((platform) => (
                       <div
                         key={platform.name}
                         className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50"
                       >
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <InstitutionIcon institution={platform.code} size="md" />
                         <span className="text-sm">{platform.name}</span>
                         <Badge variant="default" className="ml-auto text-xs">
                           Ready
@@ -653,16 +657,16 @@ export default function ImportPage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { name: 'UniSuper', supported: true },
-                    { name: 'Australian Super', supported: true },
-                    { name: 'REST Super', supported: false },
-                    { name: 'Hostplus', supported: false },
+                    { name: 'UniSuper', code: 'unisuper', supported: true },
+                    { name: 'Australian Super', code: 'australian-super', supported: true },
+                    { name: 'REST Super', code: 'rest', supported: false },
+                    { name: 'Hostplus', code: 'hostplus', supported: false },
                   ].map((fund) => (
                     <div
                       key={fund.name}
                       className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50"
                     >
-                      <Landmark className="h-4 w-4 text-muted-foreground" />
+                      <InstitutionIcon institution={fund.code} size="md" />
                       <span className="text-sm">{fund.name}</span>
                       {fund.supported ? (
                         <Badge variant="default" className="ml-auto text-xs">
@@ -762,7 +766,7 @@ export default function ImportPage() {
               {/* Account Info */}
               <div className="p-4 rounded-lg border bg-muted/50">
                 <div className="flex items-center gap-3 mb-3">
-                  <Landmark className="h-6 w-6 text-primary" />
+                  <InstitutionIcon institution={superParseResult.account.provider} size="lg" />
                   <div>
                     <h3 className="font-semibold">{superParseResult.account.providerName}</h3>
                     {superParseResult.account.memberNumber && (

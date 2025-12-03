@@ -20,7 +20,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { InstitutionIcon } from '@/components/institution-icon';
 import { formatAUD } from '@/lib/utils/currency';
+import { isKnownInstitution } from '@/lib/icons/institution-icons';
 import type { Account, AccountType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -54,14 +56,19 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const Icon = accountIcons[account.type];
   const colorClass = accountColors[account.type];
   const isNegative = account.balance < 0 || account.type === 'liability' || account.type === 'credit';
+  const hasInstitutionIcon = account.institution && isKnownInstitution(account.institution);
 
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-3">
-          <div className={cn('p-2 rounded-lg', colorClass)}>
-            <Icon className="h-5 w-5" />
-          </div>
+          {hasInstitutionIcon ? (
+            <InstitutionIcon institution={account.institution!} size="lg" />
+          ) : (
+            <div className={cn('p-2 rounded-lg', colorClass)}>
+              <Icon className="h-5 w-5" />
+            </div>
+          )}
           <div>
             <CardTitle className="text-base font-medium">{account.name}</CardTitle>
             {account.institution && (
