@@ -23,9 +23,9 @@ export async function fetchPrice(symbol: string, type: HoldingType): Promise<Pri
     return {
       symbol: result.symbol,
       name: result.name,
-      price: Math.round(result.current_price * 100),
-      change24hPercent: result.price_change_percentage_24h,
-      lastUpdated: new Date(result.last_updated),
+      price: Math.round((result.current_price ?? 0) * 100),
+      change24hPercent: result.price_change_percentage_24h ?? 0,
+      lastUpdated: result.last_updated ? new Date(result.last_updated) : new Date(),
     };
   }
 
@@ -36,9 +36,9 @@ export async function fetchPrice(symbol: string, type: HoldingType): Promise<Pri
   return {
     symbol: result.symbol,
     name: result.shortName,
-    price: Math.round(result.regularMarketPrice * 100),
-    change24hPercent: result.regularMarketChangePercent,
-    lastUpdated: new Date(result.regularMarketTime * 1000),
+    price: Math.round((result.regularMarketPrice ?? 0) * 100),
+    change24hPercent: result.regularMarketChangePercent ?? 0,
+    lastUpdated: result.regularMarketTime ? new Date(result.regularMarketTime * 1000) : new Date(),
   };
 }
 
@@ -65,9 +65,9 @@ export async function fetchPrices(
     results.set(symbol, {
       symbol: price.symbol,
       name: price.name,
-      price: Math.round(price.current_price * 100),
-      change24hPercent: price.price_change_percentage_24h,
-      lastUpdated: new Date(price.last_updated),
+      price: Math.round((price.current_price ?? 0) * 100),
+      change24hPercent: price.price_change_percentage_24h ?? 0,
+      lastUpdated: price.last_updated ? new Date(price.last_updated) : new Date(),
     });
   }
 
@@ -76,9 +76,9 @@ export async function fetchPrices(
     results.set(symbol, {
       symbol: price.symbol,
       name: price.shortName,
-      price: Math.round(price.regularMarketPrice * 100),
-      change24hPercent: price.regularMarketChangePercent,
-      lastUpdated: new Date(price.regularMarketTime * 1000),
+      price: Math.round((price.regularMarketPrice ?? 0) * 100),
+      change24hPercent: price.regularMarketChangePercent ?? 0,
+      lastUpdated: price.regularMarketTime ? new Date(price.regularMarketTime * 1000) : new Date(),
     });
   }
 

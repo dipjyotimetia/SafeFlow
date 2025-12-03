@@ -312,8 +312,14 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     let imported = 0;
     let skipped = 0;
 
-    // Get existing transactions for duplicate detection
-    const existingTransactions = await db.transactions.toArray();
+    // Get unique account IDs from incoming transactions
+    const accountIds = [...new Set(transactions.map((t) => t.accountId))];
+
+    // Only load transactions for the relevant accounts (more efficient)
+    const existingTransactions = await db.transactions
+      .where('accountId')
+      .anyOf(accountIds)
+      .toArray();
 
     // Create a key for each existing transaction for duplicate detection
     const existingKeys = new Set(

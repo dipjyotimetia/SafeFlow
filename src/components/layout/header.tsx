@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { getCurrentFinancialYear, formatFinancialYear } from '@/lib/utils/financial-year';
+import { useSyncStore } from '@/stores/sync.store';
 
 interface HeaderProps {
   title?: string;
@@ -19,9 +20,8 @@ interface HeaderProps {
 export function Header({ title }: HeaderProps) {
   const currentFY = getCurrentFinancialYear();
 
-  // TODO: Replace with actual sync status from store
-  const syncStatus = 'idle' as 'idle' | 'syncing' | 'synced' | 'error' | 'offline';
-  const isAuthenticated = false;
+  // Get sync status from store
+  const { status: syncStatus, isAuthenticated } = useSyncStore();
 
   const getSyncIcon = () => {
     switch (syncStatus) {

@@ -11,6 +11,8 @@ export interface Account {
   balance: number; // cents
   currency: 'AUD';
   isActive: boolean;
+  memberId?: string;            // Optional - for family member ownership
+  visibility?: 'private' | 'shared'; // Account visibility in family
   createdAt: Date;
   updatedAt: Date;
   metadata?: Record<string, unknown>;
@@ -76,6 +78,9 @@ export interface Transaction {
   isDeductible?: boolean;
   gstAmount?: number; // cents
   atoCategory?: string;
+
+  // Family member tracking
+  memberId?: string;            // Who made this transaction
 
   // Metadata
   notes?: string;
@@ -362,4 +367,46 @@ export interface MerchantPattern {
   userConfirmed: boolean;      // True if user manually confirmed this mapping
   lastUsed: Date;
   createdAt: Date;
+}
+
+// Budget types - Simple category spending tracking
+export type BudgetPeriod = 'monthly' | 'yearly';
+
+export interface Budget {
+  id: string;
+  name: string;
+  categoryId?: string;          // Optional - track specific category or all spending
+  amount: number;               // Budget limit in cents
+  period: BudgetPeriod;
+  memberId?: string;            // Optional - for family member specific budgets
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BudgetProgress {
+  budget: Budget;
+  spent: number;                // Amount spent in cents
+  remaining: number;            // Amount remaining in cents
+  percentUsed: number;          // 0-100+
+  isOverBudget: boolean;
+  periodStart: Date;
+  periodEnd: Date;
+}
+
+// Family/Household types
+export type AccountVisibility = 'private' | 'shared';
+
+export interface FamilyMember {
+  id: string;
+  name: string;
+  color: string;                // For UI differentiation
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FamilySettings {
+  householdName?: string;
+  defaultVisibility: AccountVisibility;
 }

@@ -383,6 +383,7 @@ class CategorizationService {
         }
       } catch (error) {
         // AI call failed, use fallback for entire batch
+        console.error('[CategorizationService] AI batch categorization failed:', error);
         for (const tx of batch) {
           const fallback = this.keywordCategorization(tx, categories);
           if (fallback) {
@@ -819,8 +820,9 @@ class CategorizationService {
           };
         }
       }
-    } catch {
+    } catch (error) {
       // AI failed, use fallback
+      console.error('[CategorizationService] Single transaction AI categorization failed:', error);
     }
 
     // Final fallback

@@ -14,6 +14,8 @@ import {
   Shield,
   Menu,
   X,
+  PiggyBank,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -36,6 +38,11 @@ const navItems = [
     icon: Wallet,
   },
   {
+    title: 'Budgets',
+    href: '/budgets',
+    icon: PiggyBank,
+  },
+  {
     title: 'Import',
     href: '/import',
     icon: FileUp,
@@ -54,6 +61,11 @@ const navItems = [
     title: 'Tax',
     href: '/tax',
     icon: Calculator,
+  },
+  {
+    title: 'Family',
+    href: '/family',
+    icon: Users,
   },
   {
     title: 'Settings',

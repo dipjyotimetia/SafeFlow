@@ -13,6 +13,8 @@ import type {
   ChatConversation,
   CategorizationQueueItem,
   MerchantPattern,
+  Budget,
+  FamilyMember,
 } from '@/types';
 
 export class SafeFlowDB extends Dexie {
@@ -29,6 +31,8 @@ export class SafeFlowDB extends Dexie {
   chatConversations!: Table<ChatConversation>;
   categorizationQueue!: Table<CategorizationQueueItem>;
   merchantPatterns!: Table<MerchantPattern>;
+  budgets!: Table<Budget>;
+  familyMembers!: Table<FamilyMember>;
 
   constructor() {
     super('safeflow-db');
@@ -90,6 +94,25 @@ export class SafeFlowDB extends Dexie {
       categorizationQueue: 'id, transactionId, status, createdAt',
       merchantPatterns: 'id, normalizedName, categoryId, confidence, lastUsed, userConfirmed',
     });
+
+    // Version 5: Add budgets and family members tables
+    this.version(5).stores({
+      accounts: 'id, type, isActive, createdAt, memberId, visibility',
+      categories: 'id, type, parentId, atoCode, isActive',
+      transactions: 'id, accountId, categoryId, type, date, importBatchId, memberId, [accountId+date]',
+      holdings: 'id, accountId, symbol, type',
+      investmentTransactions: 'id, holdingId, type, date',
+      taxItems: 'id, financialYear, atoCategory, transactionId',
+      syncMetadata: 'id',
+      importBatches: 'id, source, importedAt',
+      superannuationAccounts: 'id, provider, memberNumber, createdAt',
+      superTransactions: 'id, superAccountId, type, date, financialYear, [superAccountId+date]',
+      chatConversations: 'id, createdAt, updatedAt',
+      categorizationQueue: 'id, transactionId, status, createdAt',
+      merchantPatterns: 'id, normalizedName, categoryId, confidence, lastUsed, userConfirmed',
+      budgets: 'id, categoryId, memberId, period, isActive, createdAt',
+      familyMembers: 'id, isActive, createdAt',
+    });
   }
 }
 
@@ -110,4 +133,6 @@ export type {
   ChatConversation,
   CategorizationQueueItem,
   MerchantPattern,
+  Budget,
+  FamilyMember,
 };
