@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,20 +27,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Bot,
+  Tags,
   ChevronDown,
   ChevronUp,
   Loader2,
-  Play,
-  RefreshCw,
-  Trash2,
   Wand2,
+  Sparkles,
   WifiOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCategorization } from '@/hooks/use-categorization';
-import { useAIStore } from '@/stores/ai.store';
-import { StatusIndicator } from './connection-status';
 
 interface CategorizationStatusCardProps {
   className?: string;
@@ -57,25 +52,11 @@ export function CategorizationStatusCard({
   }>({ open: false, type: null });
 
   const {
-    status,
     transactionCounts,
     isProcessing,
-    processQueue,
-    retryFailed,
-    clearCompleted,
+    aiAvailable,
     forceRecategorize,
   } = useCategorization();
-
-  const { connectionStatus, isModelReady, openWidget } = useAIStore();
-  const isAIReady = connectionStatus === 'connected' && isModelReady;
-
-  const totalInQueue =
-    status.pending + status.processing + status.completed + status.failed;
-  const hasItems = totalInQueue > 0;
-  const progressPercent =
-    totalInQueue > 0
-      ? Math.round(((status.completed + status.failed) / totalInQueue) * 100)
-      : 0;
 
   const handleForceRecategorize = (includeAlreadyCategorized: boolean) => {
     setConfirmDialog({
@@ -91,168 +72,107 @@ export function CategorizationStatusCard({
     setConfirmDialog({ open: false, type: null });
   };
 
-  // Always show the card so users can see AI status and force recategorization
-
   return (
     <>
       <Card className={cn('', className)}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Bot className="h-5 w-5 text-emerald-600" />
+              <Sparkles className="h-5 w-5 text-emerald-600" />
               <CardTitle className="text-base">AI Categorization</CardTitle>
               {isProcessing && (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               )}
+              {aiAvailable ? (
+                <Badge variant="secondary" className="text-green-600 text-xs">
+                  Online
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="text-yellow-600 text-xs">
+                  <WifiOff className="h-3 w-3 mr-1" />
+                  Offline
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <StatusIndicator
-                status={connectionStatus}
-                isModelReady={isModelReady}
-              />
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setIsCollapsed(!isCollapsed)}
-              >
-                {isCollapsed ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronUp className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              {isCollapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
+            </Button>
           </div>
           {!isCollapsed && (
             <CardDescription>
-              {isAIReady
-                ? 'AI-powered transaction categorization using local Ollama'
-                : 'Connect to Ollama to enable AI categorization'}
+              {aiAvailable
+                ? 'AI-powered categorization using Ollama'
+                : 'Start Ollama to enable AI categorization'}
             </CardDescription>
           )}
         </CardHeader>
 
         {!isCollapsed && (
           <CardContent className="space-y-4">
-            {/* Connection warning */}
-            {!isAIReady && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm">
-                <WifiOff className="h-4 w-4 text-red-500" />
-                <span className="flex-1 text-muted-foreground">
-                  Ollama not connected
-                </span>
-                <Button variant="outline" size="sm" onClick={openWidget}>
-                  Connect
-                </Button>
-              </div>
-            )}
-
-            {/* Progress bar when processing */}
-            {hasItems && (isProcessing || status.processing > 0) && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Processing...</span>
-                  <span className="font-medium">{progressPercent}%</span>
-                </div>
-                <Progress value={progressPercent} className="h-2" />
-              </div>
-            )}
-
-            {/* Status badges */}
-            <div className="grid grid-cols-4 gap-2">
-              <div className="text-center p-2 rounded-lg bg-muted/50">
-                <div className="text-lg font-semibold text-yellow-600">
-                  {status.pending}
-                </div>
-                <div className="text-xs text-muted-foreground">Pending</div>
-              </div>
-              <div className="text-center p-2 rounded-lg bg-muted/50">
-                <div className="text-lg font-semibold text-blue-600">
-                  {status.processing}
-                </div>
-                <div className="text-xs text-muted-foreground">Processing</div>
-              </div>
-              <div className="text-center p-2 rounded-lg bg-muted/50">
-                <div className="text-lg font-semibold text-green-600">
-                  {status.completed}
-                </div>
-                <div className="text-xs text-muted-foreground">Completed</div>
-              </div>
-              <div className="text-center p-2 rounded-lg bg-muted/50">
-                <div className="text-lg font-semibold text-red-600">
-                  {status.failed}
-                </div>
-                <div className="text-xs text-muted-foreground">Failed</div>
-              </div>
-            </div>
-
             {/* Transaction counts */}
-            <div className="flex items-center justify-between text-sm border-t pt-3">
-              <span className="text-muted-foreground">
-                Transactions: {transactionCounts.categorized} categorized /{' '}
-                {transactionCounts.total} total
-              </span>
-              {transactionCounts.uncategorized > 0 && (
-                <Badge variant="secondary">
-                  {transactionCounts.uncategorized} uncategorized
-                </Badge>
-              )}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <div className="text-2xl font-semibold">
+                  {transactionCounts.total}
+                </div>
+                <div className="text-xs text-muted-foreground">Total</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <div className="text-2xl font-semibold text-green-600">
+                  {transactionCounts.categorized}
+                </div>
+                <div className="text-xs text-muted-foreground">Categorized</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <div className="text-2xl font-semibold text-yellow-600">
+                  {transactionCounts.uncategorized}
+                </div>
+                <div className="text-xs text-muted-foreground">Uncategorized</div>
+              </div>
             </div>
+
+            {/* Categorization progress bar */}
+            {transactionCounts.total > 0 && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Categorization progress</span>
+                  <span className="font-medium">
+                    {Math.round((transactionCounts.categorized / transactionCounts.total) * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-600 transition-all"
+                    style={{
+                      width: `${(transactionCounts.categorized / transactionCounts.total) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Action buttons */}
-            <div className="flex flex-wrap gap-2">
-              {/* Process Now */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={processQueue}
-                disabled={!isAIReady || isProcessing || status.pending === 0}
-              >
-                <Play className="h-4 w-4 mr-1" />
-                Process Now
-              </Button>
-
-              {/* Retry Failed */}
-              {status.failed > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={retryFailed}
-                  disabled={!isAIReady || isProcessing}
-                >
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Retry Failed
-                </Button>
-              )}
-
-              {/* Clear Completed */}
-              {status.completed > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearCompleted}
-                  disabled={isProcessing}
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Clear Done
-                </Button>
-              )}
-
+            <div className="flex flex-wrap gap-2 pt-2 border-t">
               {/* Force Recategorize Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={
-                      !isAIReady ||
-                      isProcessing ||
-                      transactionCounts.total === 0
-                    }
+                    disabled={isProcessing || transactionCounts.total === 0 || !aiAvailable}
+                    title={!aiAvailable ? 'Start Ollama to enable AI categorization' : undefined}
                   >
                     <Wand2 className="h-4 w-4 mr-1" />
-                    Recategorize
-                    <ChevronDown className="h-3 w-3 ml-1" />
+                    {isProcessing ? 'Processing...' : 'Categorize with AI'}
+                    {!isProcessing && <ChevronDown className="h-3 w-3 ml-1" />}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -298,15 +218,15 @@ export function CategorizationStatusCard({
             <AlertDialogDescription>
               {confirmDialog.type === 'all' ? (
                 <>
-                  This will queue <strong>all {transactionCounts.total}</strong>{' '}
-                  transactions for AI categorization, overwriting any existing
+                  This will process <strong>all {transactionCounts.total}</strong>{' '}
+                  transactions through auto-categorization, overwriting any existing
                   categories. This action cannot be undone.
                 </>
               ) : (
                 <>
-                  This will queue{' '}
+                  This will process{' '}
                   <strong>{transactionCounts.uncategorized}</strong>{' '}
-                  uncategorized transactions for AI categorization.
+                  uncategorized transactions through auto-categorization.
                 </>
               )}
             </AlertDialogDescription>

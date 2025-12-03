@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { categorizationService, type QueueStatus } from '@/lib/ai/categorization';
-import { useAIStore } from '@/stores/ai.store';
+import { llmCategorizationService } from '@/lib/ai/llm-categorization';
 import { toast } from 'sonner';
 
 interface TransactionCounts {
@@ -12,167 +11,110 @@ interface TransactionCounts {
 }
 
 interface UseCategorization {
-  status: QueueStatus;
   transactionCounts: TransactionCounts;
   isProcessing: boolean;
-  processQueue: () => Promise<void>;
-  retryFailed: () => Promise<void>;
-  clearCompleted: () => Promise<void>;
+  aiAvailable: boolean;
   forceRecategorize: (includeAlreadyCategorized: boolean) => Promise<void>;
+  checkAiStatus: () => Promise<void>;
 }
 
-const POLL_INTERVAL = 5000; // 5 seconds
+const POLL_INTERVAL = 15000; // 15 seconds
+const AI_CHECK_INTERVAL = 30000; // 30 seconds
 
 export function useCategorization(): UseCategorization {
-  const [status, setStatus] = useState<QueueStatus>({
-    pending: 0,
-    processing: 0,
-    completed: 0,
-    failed: 0,
-  });
   const [transactionCounts, setTransactionCounts] = useState<TransactionCounts>({
     total: 0,
     uncategorized: 0,
     categorized: 0,
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
   const processingRef = useRef(false);
 
-  const { connectionStatus, isModelReady, settings } = useAIStore();
-  const isAIReady = connectionStatus === 'connected' && isModelReady;
-
-  // Fetch queue status and transaction counts
-  const fetchStatus = useCallback(async () => {
+  // Check AI availability
+  const checkAiStatus = useCallback(async () => {
     try {
-      const [queueStatus, txCounts] = await Promise.all([
-        categorizationService.getQueueStatus(),
-        categorizationService.getTransactionCounts(),
-      ]);
-      setStatus(queueStatus);
-      setTransactionCounts(txCounts);
+      const available = await llmCategorizationService.checkAvailability();
+      console.log('[AI Status] Available:', available);
+      setAiAvailable(available);
     } catch (error) {
-      console.error('Failed to fetch categorization queue status:', error);
+      console.error('[AI Status] Error checking availability:', error);
+      setAiAvailable(false);
     }
   }, []);
 
-  // Process the queue
-  const processQueue = useCallback(async () => {
-    if (!isAIReady || !settings.autoCategorize || processingRef.current) {
-      return;
-    }
-
-    processingRef.current = true;
-    setIsProcessing(true);
-
+  // Fetch transaction counts
+  const fetchCounts = useCallback(async () => {
     try {
-      const result = await categorizationService.processQueue();
-
-      if (result.processed > 0) {
-        toast.success(`Categorized ${result.processed} transaction(s)`);
-      }
-
-      if (result.failed > 0) {
-        toast.warning(`Failed to categorize ${result.failed} transaction(s)`);
-      }
-
-      // Refresh status
-      await fetchStatus();
+      const txCounts = await llmCategorizationService.getTransactionCounts();
+      setTransactionCounts(txCounts);
     } catch (error) {
-      console.error('Failed to process categorization queue:', error);
-      toast.error('Failed to process categorization queue');
-    } finally {
-      processingRef.current = false;
-      setIsProcessing(false);
+      console.error('Failed to fetch transaction counts:', error);
     }
-  }, [isAIReady, settings.autoCategorize, fetchStatus]);
+  }, []);
 
-  // Retry failed items
-  const retryFailed = useCallback(async () => {
-    try {
-      const count = await categorizationService.retryFailed();
-      if (count > 0) {
-        toast.info(`Retrying ${count} failed categorization(s)`);
-        await fetchStatus();
-        await processQueue();
-      }
-    } catch (error) {
-      console.error('Failed to retry categorization:', error);
-    }
-  }, [fetchStatus, processQueue]);
-
-  // Clear completed items
-  const clearCompleted = useCallback(async () => {
-    try {
-      const count = await categorizationService.clearCompletedItems();
-      if (count > 0) {
-        toast.success(`Cleared ${count} completed item(s)`);
-        await fetchStatus();
-      }
-    } catch (error) {
-      console.error('Failed to clear completed items:', error);
-    }
-  }, [fetchStatus]);
-
-  // Force recategorization
+  // Force recategorization using LLM
   const forceRecategorize = useCallback(
     async (includeAlreadyCategorized: boolean) => {
+      if (processingRef.current) return;
+
+      // Check AI availability first
+      const available = await llmCategorizationService.checkAvailability();
+      if (!available) {
+        toast.error('AI is not available. Please start Ollama and try again.');
+        return;
+      }
+
+      processingRef.current = true;
+      setIsProcessing(true);
+
       try {
-        const count = await categorizationService.forceRecategorize(
-          undefined,
+        toast.info(
+          `Processing transactions for ${includeAlreadyCategorized ? 're-' : ''}categorization...`
+        );
+
+        const categorizedCount = await llmCategorizationService.forceRecategorize(
           includeAlreadyCategorized
         );
-        if (count > 0) {
-          toast.info(
-            `Queued ${count} transaction(s) for ${includeAlreadyCategorized ? 're-' : ''}categorization`
-          );
-          await fetchStatus();
-          // Automatically start processing if AI is ready
-          if (isAIReady && !processingRef.current) {
-            processQueue();
-          }
+
+        if (categorizedCount > 0) {
+          toast.success(`AI categorized ${categorizedCount} transaction(s)`);
         } else {
-          toast.info('No transactions to categorize');
+          toast.info('No transactions were categorized');
         }
+
+        await fetchCounts();
       } catch (error) {
-        console.error('Failed to force recategorization:', error);
-        toast.error('Failed to queue transactions for categorization');
+        console.error('Failed to recategorize:', error);
+        toast.error('Failed to categorize transactions');
+      } finally {
+        processingRef.current = false;
+        setIsProcessing(false);
       }
     },
-    [fetchStatus, isAIReady, processQueue]
+    [fetchCounts]
   );
 
-  // Poll for status and process queue
+  // Fetch counts on mount and set up polling
   useEffect(() => {
-    // Initial fetch
-    fetchStatus();
+    fetchCounts();
+    checkAiStatus();
 
-    // Set up polling
-    const interval = setInterval(async () => {
-      await fetchStatus();
+    const countsInterval = setInterval(fetchCounts, POLL_INTERVAL);
+    const aiInterval = setInterval(checkAiStatus, AI_CHECK_INTERVAL);
 
-      // Auto-process if there are pending items and AI is ready
-      const currentStatus = await categorizationService.getQueueStatus();
-      if (
-        currentStatus.pending > 0 &&
-        isAIReady &&
-        settings.autoCategorize &&
-        !processingRef.current
-      ) {
-        processQueue();
-      }
-    }, POLL_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, [fetchStatus, isAIReady, settings.autoCategorize, processQueue]);
+    return () => {
+      clearInterval(countsInterval);
+      clearInterval(aiInterval);
+    };
+  }, [fetchCounts, checkAiStatus]);
 
   return {
-    status,
     transactionCounts,
     isProcessing,
-    processQueue,
-    retryFailed,
-    clearCompleted,
+    aiAvailable,
     forceRecategorize,
+    checkAiStatus,
   };
 }
 
@@ -180,15 +122,15 @@ export function useCategorization(): UseCategorization {
  * Simpler hook for just displaying categorization status
  */
 export function useCategorizationStatus(): {
-  hasPending: boolean;
-  pendingCount: number;
+  uncategorizedCount: number;
   isProcessing: boolean;
+  aiAvailable: boolean;
 } {
-  const { status, isProcessing } = useCategorization();
+  const { transactionCounts, isProcessing, aiAvailable } = useCategorization();
 
   return {
-    hasPending: status.pending > 0,
-    pendingCount: status.pending,
+    uncategorizedCount: transactionCounts.uncategorized,
     isProcessing,
+    aiAvailable,
   };
 }

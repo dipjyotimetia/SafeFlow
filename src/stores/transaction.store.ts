@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { z } from 'zod';
 import { db } from '@/lib/db';
-import { categorizationService } from '@/lib/ai/categorization';
+import { llmCategorizationService } from '@/lib/ai/llm-categorization';
 import type { Transaction, TransactionType, FilterOptions } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
@@ -176,7 +176,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         if (existingTransaction && existingTransaction.categoryId !== data.categoryId) {
           // User is changing the category - learn from this correction
           try {
-            await categorizationService.learnFromUserCorrection(id, data.categoryId);
+            await llmCategorizationService.learnFromUserCorrection(id, data.categoryId);
           } catch (error) {
             logError('learnFromUserCorrection', error);
           }
@@ -395,17 +395,43 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
 
       imported = recordsToAdd.length;
 
-      // Queue uncategorized transactions for AI categorization (outside transaction)
-      const uncategorizedIds = recordsToAdd
-        .filter((t) => !t.categoryId)
-        .map((t) => t.id);
+      // Auto-categorize transactions using LLM (outside transaction)
+      const uncategorizedTransactions = recordsToAdd.filter((t) => !t.categoryId);
 
-      if (uncategorizedIds.length > 0) {
+      if (uncategorizedTransactions.length > 0) {
         try {
-          await categorizationService.queueForCategorization(uncategorizedIds);
-          toast.info(`Queued ${uncategorizedIds.length} transactions for AI categorization`);
+          // Check if AI is available
+          const isAvailable = await llmCategorizationService.checkAvailability();
+
+          if (isAvailable) {
+            const categorizations = await llmCategorizationService.categorizeTransactions(
+              uncategorizedTransactions
+            );
+
+            // Apply categorizations to transactions
+            if (categorizations.size > 0) {
+              const updateNow = new Date();
+              await Promise.all(
+                Array.from(categorizations.entries()).map(([txId, result]) =>
+                  db.transactions.update(txId, {
+                    categoryId: result.categoryId,
+                    updatedAt: updateNow,
+                  })
+                )
+              );
+              toast.success(`AI categorized ${categorizations.size} transaction(s)`);
+            }
+
+            const uncategorizedCount = uncategorizedTransactions.length - categorizations.size;
+            if (uncategorizedCount > 0) {
+              toast.info(`${uncategorizedCount} transaction(s) need manual categorization`);
+            }
+          } else {
+            toast.info('AI unavailable - categorize transactions manually or start Ollama');
+          }
         } catch (error) {
-          console.error('Failed to queue for categorization:', error);
+          console.error('Failed to auto-categorize:', error);
+          toast.info('Auto-categorization failed - categorize manually');
         }
       }
     }

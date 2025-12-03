@@ -1,16 +1,11 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { v4 as uuidv4 } from 'uuid';
-import { db } from '@/lib/db';
-import { ollamaClient, type OllamaMessage } from '@/lib/ai/ollama-client';
-import { SYSTEM_PROMPTS } from '@/lib/ai/prompts';
-import { buildContextString } from '@/lib/ai/context-builder';
-import type {
-  ChatMessage,
-  ChatConversation,
-  AIConnectionStatus,
-  AISettings,
-} from '@/types';
+import { buildContextString } from "@/lib/ai/context-builder";
+import { ollamaClient, type OllamaMessage } from "@/lib/ai/ollama-client";
+import { SYSTEM_PROMPTS } from "@/lib/ai/prompts";
+import { db } from "@/lib/db";
+import type { AIConnectionStatus, AISettings, ChatMessage } from "@/types";
+import { v4 as uuidv4 } from "uuid";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface AIStore {
   // Connection state
@@ -59,8 +54,8 @@ interface AIStore {
 }
 
 const DEFAULT_SETTINGS: AISettings = {
-  ollamaHost: 'http://127.0.0.1:11434',
-  model: 'martain7r/finance-llama-8b:q4_k_m',
+  ollamaHost: "http://127.0.0.1:11434",
+  model: "llama3.1:8b",
   autoCategorize: true,
 };
 
@@ -68,14 +63,14 @@ export const useAIStore = create<AIStore>()(
   persist(
     (set, get) => ({
       // Initial state
-      connectionStatus: 'disconnected',
+      connectionStatus: "disconnected",
       connectionError: null,
       isModelReady: false,
       availableModels: [],
 
       messages: [],
       isStreaming: false,
-      currentStreamingContent: '',
+      currentStreamingContent: "",
       conversationId: null,
 
       isWidgetOpen: false,
@@ -83,14 +78,14 @@ export const useAIStore = create<AIStore>()(
 
       isPullingModel: false,
       pullProgress: 0,
-      pullStatus: '',
+      pullStatus: "",
 
       settings: DEFAULT_SETTINGS,
 
       // Check connection to Ollama
       checkConnection: async () => {
         const { settings } = get();
-        set({ connectionStatus: 'connecting', connectionError: null });
+        set({ connectionStatus: "connecting", connectionError: null });
 
         try {
           ollamaClient.updateConfig({
@@ -102,24 +97,24 @@ export const useAIStore = create<AIStore>()(
 
           if (!health.connected) {
             set({
-              connectionStatus: 'error',
-              connectionError: health.error || 'Cannot connect to Ollama',
+              connectionStatus: "error",
+              connectionError: health.error || "Cannot connect to Ollama",
               isModelReady: false,
             });
             return;
           }
 
           set({
-            connectionStatus: 'connected',
+            connectionStatus: "connected",
             connectionError: null,
             isModelReady: health.modelReady,
             availableModels: health.availableModels || [],
           });
         } catch (error) {
           set({
-            connectionStatus: 'error',
+            connectionStatus: "error",
             connectionError:
-              error instanceof Error ? error.message : 'Connection failed',
+              error instanceof Error ? error.message : "Connection failed",
             isModelReady: false,
           });
         }
@@ -128,7 +123,11 @@ export const useAIStore = create<AIStore>()(
       // Pull model from Ollama
       pullModel: async () => {
         const { settings } = get();
-        set({ isPullingModel: true, pullProgress: 0, pullStatus: 'Starting...' });
+        set({
+          isPullingModel: true,
+          pullProgress: 0,
+          pullStatus: "Starting...",
+        });
 
         try {
           await ollamaClient.pullModel(settings.model, (percent, status) => {
@@ -138,7 +137,7 @@ export const useAIStore = create<AIStore>()(
           set({
             isPullingModel: false,
             pullProgress: 100,
-            pullStatus: 'Complete',
+            pullStatus: "Complete",
             isModelReady: true,
           });
 
@@ -148,25 +147,26 @@ export const useAIStore = create<AIStore>()(
           set({
             isPullingModel: false,
             pullProgress: 0,
-            pullStatus: '',
+            pullStatus: "",
             connectionError:
-              error instanceof Error ? error.message : 'Failed to pull model',
+              error instanceof Error ? error.message : "Failed to pull model",
           });
         }
       },
 
       // Send a message to the AI
       sendMessage: async (content: string) => {
-        const { messages, connectionStatus, isModelReady, conversationId } = get();
+        const { messages, connectionStatus, isModelReady, conversationId } =
+          get();
 
-        if (connectionStatus !== 'connected' || !isModelReady) {
+        if (connectionStatus !== "connected" || !isModelReady) {
           return;
         }
 
         // Create user message
         const userMessage: ChatMessage = {
           id: uuidv4(),
-          role: 'user',
+          role: "user",
           content,
           timestamp: new Date(),
         };
@@ -174,8 +174,8 @@ export const useAIStore = create<AIStore>()(
         // Create placeholder for assistant message
         const assistantMessage: ChatMessage = {
           id: uuidv4(),
-          role: 'assistant',
-          content: '',
+          role: "assistant",
+          content: "",
           timestamp: new Date(),
         };
 
@@ -185,7 +185,7 @@ export const useAIStore = create<AIStore>()(
         set({
           messages: [...messages, userMessage, assistantMessage],
           isStreaming: true,
-          currentStreamingContent: '',
+          currentStreamingContent: "",
           conversationId: newConversationId,
         });
 
@@ -195,13 +195,13 @@ export const useAIStore = create<AIStore>()(
 
           // Prepare messages for Ollama
           const ollamaMessages: OllamaMessage[] = messages
-            .filter((m) => m.role !== 'system')
+            .filter((m) => m.role !== "system")
             .map((m) => ({
-              role: m.role as 'user' | 'assistant',
+              role: m.role as "user" | "assistant",
               content: m.content,
             }));
 
-          ollamaMessages.push({ role: 'user', content });
+          ollamaMessages.push({ role: "user", content });
 
           // Build system prompt with context
           const systemPrompt = `${SYSTEM_PROMPTS.financialAssistant}
@@ -210,7 +210,7 @@ Current user context:
 ${context}`;
 
           // Stream the response
-          let fullResponse = '';
+          let fullResponse = "";
 
           await ollamaClient.chat(ollamaMessages, systemPrompt, (chunk) => {
             fullResponse += chunk;
@@ -226,18 +226,20 @@ ${context}`;
             }));
           });
 
-          set({ isStreaming: false, currentStreamingContent: '' });
+          set({ isStreaming: false, currentStreamingContent: "" });
 
           // Auto-save conversation
           await get().saveConversation();
         } catch (error) {
           // Remove the empty assistant message on error
           set((state) => ({
-            messages: state.messages.filter((m) => m.id !== assistantMessage.id),
+            messages: state.messages.filter(
+              (m) => m.id !== assistantMessage.id
+            ),
             isStreaming: false,
-            currentStreamingContent: '',
+            currentStreamingContent: "",
             connectionError:
-              error instanceof Error ? error.message : 'Failed to get response',
+              error instanceof Error ? error.message : "Failed to get response",
           }));
         }
       },
@@ -247,7 +249,7 @@ ${context}`;
         set({
           messages: [],
           conversationId: null,
-          currentStreamingContent: '',
+          currentStreamingContent: "",
         });
       },
 
@@ -262,7 +264,7 @@ ${context}`;
             });
           }
         } catch (error) {
-          console.error('Failed to load conversation:', error);
+          console.error("Failed to load conversation:", error);
         }
       },
 
@@ -277,11 +279,11 @@ ${context}`;
           const existing = await db.chatConversations.get(conversationId);
 
           // Generate title from first user message
-          const firstUserMessage = messages.find((m) => m.role === 'user');
+          const firstUserMessage = messages.find((m) => m.role === "user");
           const title = firstUserMessage
             ? firstUserMessage.content.slice(0, 50) +
-              (firstUserMessage.content.length > 50 ? '...' : '')
-            : 'New conversation';
+              (firstUserMessage.content.length > 50 ? "..." : "")
+            : "New conversation";
 
           if (existing) {
             await db.chatConversations.update(conversationId, {
@@ -298,14 +300,14 @@ ${context}`;
             });
           }
         } catch (error) {
-          console.error('Failed to save conversation:', error);
+          console.error("Failed to save conversation:", error);
         }
       },
 
       // Stop streaming
       stopStreaming: () => {
         ollamaClient.abort();
-        set({ isStreaming: false, currentStreamingContent: '' });
+        set({ isStreaming: false, currentStreamingContent: "" });
       },
 
       // Widget actions
@@ -317,8 +319,7 @@ ${context}`;
 
       openWidget: () => set({ isWidgetOpen: true, isWidgetMinimized: false }),
 
-      closeWidget: () =>
-        set({ isWidgetOpen: false, isWidgetMinimized: false }),
+      closeWidget: () => set({ isWidgetOpen: false, isWidgetMinimized: false }),
 
       minimizeWidget: () => set({ isWidgetMinimized: true }),
 
@@ -339,7 +340,7 @@ ${context}`;
       },
     }),
     {
-      name: 'safeflow-ai',
+      name: "safeflow-ai",
       version: 1,
       partialize: (state) => ({
         // Only persist settings, not chat state
@@ -350,8 +351,8 @@ ${context}`;
 
         if (version === 0) {
           // Fix model name to include quantization tag if missing
-          if (state.settings?.model === 'martain7r/finance-llama-8b') {
-            state.settings.model = 'martain7r/finance-llama-8b:q4_k_m';
+          if (state.settings?.model === "martain7r/finance-llama-8b") {
+            state.settings.model = "llama3.1:8b";
           }
         }
 

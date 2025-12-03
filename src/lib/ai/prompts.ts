@@ -5,6 +5,27 @@
 
 export const SYSTEM_PROMPTS = {
   /**
+   * Transaction categorization prompt for LLM-based categorization
+   */
+  transactionCategorizer: `You are a transaction categorization assistant for Australian personal finance.
+
+Your task is to categorize bank transactions into the appropriate category based on the transaction description.
+
+Rules:
+1. Return ONLY valid JSON - no explanations, no markdown, just the JSON
+2. Match category names EXACTLY as provided in the available categories list
+3. Consider Australian merchants, banks, and financial terms
+4. For clear matches (e.g., "WOOLWORTHS" -> Groceries), use high confidence (0.85-0.95)
+5. For ambiguous transactions, use lower confidence (0.5-0.7)
+6. If completely unsure, return null for categoryName
+
+Response format for single transaction:
+{"categoryName": "Groceries", "confidence": 0.9}
+
+Response format for multiple transactions (array):
+[{"index": 1, "categoryName": "Groceries", "confidence": 0.9}, {"index": 2, "categoryName": "Fuel", "confidence": 0.85}]`,
+
+  /**
    * General financial assistant prompt
    */
   financialAssistant: `You are SafeFlow AI, a helpful personal finance assistant for Australian users.
@@ -25,77 +46,6 @@ Important guidelines:
 - Use the context provided about the user's financial situation to give relevant responses
 
 If you don't have enough context to answer a question, ask clarifying questions or suggest what information would be helpful.`,
-
-  /**
-   * Transaction categorization prompt - Enhanced for Australian merchants
-   */
-  categorization: `You are a transaction categorization assistant for Australian bank transactions.
-
-AVAILABLE CATEGORIES (use exactly these names):
-- Groceries: Supermarkets, food shopping (Woolworths, Coles, Aldi, IGA)
-- Dining Out: Restaurants, cafes, fast food, food delivery (McDonald's, Uber Eats, MenuLog)
-- Transport: Uber, taxis, public transport (Opal, Myki), rideshare, tolls
-- Fuel: Petrol stations (BP, Shell, Caltex, Ampol, 7-Eleven fuel)
-- Utilities: Electricity, gas, water, internet, phone (Telstra, Optus, AGL, Origin)
-- Rent: Rental payments, lease payments
-- Mortgage: Home loan repayments
-- Housing: Strata, body corporate, council rates
-- Insurance: Health, car, home, life insurance (NRMA, AAMI, Allianz, Medibank, Bupa)
-- Healthcare: Pharmacies, doctors, medical expenses, pathology
-- Entertainment: Movies, concerts, events, streaming (Netflix, Spotify, Stan)
-- Subscriptions: Recurring digital services, memberships
-- Shopping: Retail stores, online shopping (Kmart, Target, JB Hi-Fi, Amazon)
-- Travel: Flights, hotels, holiday expenses (Qantas, Airbnb, Booking.com)
-- Education: School fees, courses, TAFE, university, childcare
-- Personal Care: Hairdresser, beauty, grooming, spa
-- Pets: Pet food, vet, pet supplies
-- Fees & Charges: Bank fees, ATM fees, service charges
-- Cash Withdrawal: ATM withdrawals, cash out
-- Salary: Wages, salary deposits, payroll
-- Government Payments: Centrelink, tax refunds, government benefits
-- Interest Income: Bank interest, savings interest
-- Dividends: Share dividends, distributions
-- Transfer: Internal transfers, BPAY, Osko
-- Gambling: TAB, Sportsbet, Lotteries, Casino
-- Gifts: Presents, donations
-- Other Expense: Anything else
-
-EXAMPLES:
-"WOOLWORTHS 1234 MELBOURNE" → Groceries (supermarket)
-"UBER *TRIP HELP.UBER.COM" → Transport (rideshare)
-"UBER EATS HELP.UBER.COM" → Dining Out (food delivery)
-"NETFLIX.COM" → Subscriptions (streaming service)
-"BP FUEL 0412" → Fuel (petrol station)
-"COLES EXPRESS" → Fuel (petrol station convenience, primarily fuel)
-"COLES SUPERMARKET" → Groceries (supermarket)
-"MCDONALDS QPS 1234" → Dining Out (fast food)
-"OPAL TOP UP" → Transport (public transit)
-"SALARY ACME PTY LTD" → Salary (income)
-"DIRECT DEBIT ORIGIN ENERGY" → Utilities (electricity/gas)
-"TELSTRA BILL" → Utilities (phone/internet)
-"AGL ELECTRICITY" → Utilities (electricity)
-"TRANSFER TO SAVINGS" → Transfer
-"ATM WITHDRAWAL" → Cash Withdrawal
-"INTEREST" → Interest Income
-"TAX REFUND ATO" → Government Payments
-"CENTRELINK PAYMENT" → Government Payments
-"CHEMIST WAREHOUSE" → Healthcare (pharmacy)
-"SPECSAVERS" → Healthcare (optometry)
-"MEDICARE REBATE" → Healthcare
-"NRMA INSURANCE" → Insurance
-"MEDIBANK PRIVATE" → Insurance (health)
-"SPORTSBET" → Gambling
-"TAB DEBIT" → Gambling
-"JB HI-FI" → Shopping
-"BUNNINGS" → Shopping
-"KMART" → Shopping
-
-Respond with a JSON object ONLY:
-{
-  "categoryId": "category name exactly as listed above",
-  "confidence": 0.0-1.0,
-  "reasoning": "brief explanation"
-}`,
 
   /**
    * Spending analysis prompt
@@ -216,33 +166,6 @@ Always remind users that superannuation is complex and they should consult their
 };
 
 /**
- * Build a categorization prompt for a specific transaction
- */
-export function buildCategorizationPrompt(
-  description: string,
-  amount: number,
-  categories: Array<{ id: string; name: string; type: string }>
-): string {
-  const amountStr = amount >= 0 ? `+$${(amount / 100).toFixed(2)}` : `-$${(Math.abs(amount) / 100).toFixed(2)}`;
-  const type = amount >= 0 ? 'income' : 'expense';
-
-  const categoryList = categories
-    .filter((c) => c.type === type || c.type === 'transfer')
-    .map((c) => `- ${c.id}: ${c.name}`)
-    .join('\n');
-
-  return `Categorize this transaction:
-
-Description: ${description}
-Amount: ${amountStr} (${type})
-
-Available categories:
-${categoryList}
-
-Respond with JSON only.`;
-}
-
-/**
  * Build a spending analysis prompt with context
  */
 export function buildSpendingAnalysisPrompt(context: string): string {
@@ -293,81 +216,46 @@ Please provide investment education and portfolio analysis.`;
 }
 
 /**
- * Batch categorization prompt for processing multiple transactions at once
+ * Build a transaction categorization prompt for batch processing
  */
-export const BATCH_CATEGORIZATION_PROMPT = `You are a transaction categorization assistant for Australian bank transactions.
-Categorize EACH transaction into the most appropriate category.
-
-CATEGORIES:
-Groceries, Dining Out, Transport, Fuel, Utilities, Rent, Mortgage, Housing, Insurance,
-Healthcare, Entertainment, Subscriptions, Shopping, Travel, Education, Personal Care,
-Pets, Fees & Charges, Cash Withdrawal, Salary, Government Payments, Interest Income,
-Dividends, Transfer, Gambling, Gifts, Other Expense
-
-AUSTRALIAN MERCHANT EXAMPLES:
-- Woolworths/Coles/Aldi/IGA → Groceries
-- Uber *TRIP/Opal/Myki/DiDi → Transport
-- Uber Eats/MenuLog/DoorDash → Dining Out
-- BP/Shell/Caltex/Ampol → Fuel
-- Coles Express → Fuel (not Groceries)
-- McDonald's/KFC/Hungry Jacks → Dining Out
-- Netflix/Spotify/Stan/Disney → Subscriptions
-- Origin/AGL/Telstra/Optus → Utilities
-- JB Hi-Fi/Kmart/Target/Bunnings → Shopping
-- Chemist Warehouse/Specsavers → Healthcare
-- NRMA/AAMI/Medibank/Bupa → Insurance
-- Salary/Wages/Payroll → Salary
-- Centrelink/ATO Refund → Government Payments
-- Transfer/BPAY/Osko → Transfer
-- Sportsbet/TAB/Lotto → Gambling
-
-Respond with a JSON array ONLY (no other text):
-[
-  {"id": "tx1", "category": "Groceries", "confidence": 0.95, "reasoning": "supermarket"},
-  {"id": "tx2", "category": "Transport", "confidence": 0.90, "reasoning": "rideshare"}
-]`;
-
-/**
- * Build a batch categorization prompt for multiple transactions
- */
-export function buildBatchCategorizationPrompt(
-  transactions: Array<{ id: string; description: string; amount: number }>
+export function buildCategorizationPrompt(
+  transactions: Array<{ index: number; description: string; amount: number; type: string }>,
+  categoryNames: string[]
 ): string {
-  const txList = transactions
-    .map((tx) => {
-      const type = tx.amount >= 0 ? 'credit' : 'debit';
-      const amountStr = `$${(Math.abs(tx.amount) / 100).toFixed(2)}`;
-      return `- id:"${tx.id}" | ${tx.description} | ${amountStr} (${type})`;
-    })
+  const categoryList = categoryNames.map((name) => `- ${name}`).join('\n');
+
+  const transactionList = transactions
+    .map(
+      (t) =>
+        `${t.index}. "${t.description}" - $${(Math.abs(t.amount) / 100).toFixed(2)} (${t.type})`
+    )
     .join('\n');
 
-  return `${BATCH_CATEGORIZATION_PROMPT}
+  return `Available categories:
+${categoryList}
 
-Transactions to categorize:
-${txList}`;
+Categorize these Australian bank transactions:
+${transactionList}
+
+Return a JSON array with objects containing "index", "categoryName", and "confidence".`;
 }
 
 /**
- * Parse batch categorization response from AI
+ * Build a single transaction categorization prompt
  */
-export function parseBatchCategorizationResponse(
-  response: string
-): Array<{ id: string; category: string; confidence: number; reasoning: string }> | null {
-  try {
-    // Try to extract JSON from the response
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return null;
+export function buildSingleCategorizationPrompt(
+  description: string,
+  amount: number,
+  type: string,
+  categoryNames: string[]
+): string {
+  const categoryList = categoryNames.map((name) => `- ${name}`).join('\n');
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    if (!Array.isArray(parsed)) return null;
+  return `Available categories:
+${categoryList}
 
-    return parsed.map((item) => ({
-      id: String(item.id || ''),
-      category: String(item.category || item.categoryId || ''),
-      confidence: Number(item.confidence) || 0.5,
-      reasoning: String(item.reasoning || ''),
-    }));
-  } catch {
-    return null;
-  }
+Categorize this Australian bank transaction:
+"${description}" - $${(Math.abs(amount) / 100).toFixed(2)} (${type})
+
+Return a JSON object with "categoryName" and "confidence".`;
 }
