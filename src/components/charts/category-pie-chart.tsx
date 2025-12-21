@@ -15,17 +15,18 @@ interface CategoryPieChartProps {
   data: CategoryData[];
 }
 
+// Premium emerald/teal color palette
 const COLORS = [
-  '#3b82f6', // blue
-  '#22c55e', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#14b8a6', // teal
-  '#f97316', // orange
-  '#6366f1', // indigo
-  '#84cc16', // lime
+  'oklch(0.55 0.15 160)', // emerald primary
+  'oklch(0.6 0.12 180)',  // teal
+  'oklch(0.7 0.14 85)',   // gold accent
+  'oklch(0.5 0.08 220)',  // slate blue
+  'oklch(0.65 0.18 145)', // success green
+  'oklch(0.6 0.1 200)',   // cyan
+  'oklch(0.55 0.12 280)', // purple
+  'oklch(0.65 0.15 30)',  // coral
+  'oklch(0.6 0.14 120)',  // lime
+  'oklch(0.5 0.1 260)',   // indigo
 ];
 
 interface ChartDataItem {
@@ -59,7 +60,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
       categoryId: 'other',
       categoryName: 'Other',
       amount: otherTotal / 100,
-      fill: '#94a3b8',
+      fill: 'oklch(0.65 0.02 160)', // muted teal
       percentage: total > 0 ? (otherTotal / total) * 100 : 0,
     });
   }
@@ -68,10 +69,18 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     if (active && payload && payload.length) {
       const item = payload[0].payload;
       return (
-        <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
-          <p className="font-medium">{item.categoryName}</p>
-          <p className="text-sm text-muted-foreground">{formatAUD(item.amount * 100)}</p>
-          <p className="text-sm font-medium text-primary">{item.percentage.toFixed(1)}%</p>
+        <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-xl min-w-[140px]">
+          <div className="flex items-center gap-2 mb-2">
+            <span
+              className="h-3 w-3 rounded-full"
+              style={{ backgroundColor: item.fill }}
+            />
+            <p className="font-semibold text-sm">{item.categoryName}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-lg font-bold tabular-nums">{formatAUD(item.amount * 100)}</p>
+            <p className="text-sm text-primary font-medium">{item.percentage.toFixed(1)}% of total</p>
+          </div>
         </div>
       );
     }
@@ -126,9 +135,9 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
         </ResponsiveContainer>
         {/* Center label showing total - positioned absolutely */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Total</p>
-            <p className="text-sm font-bold">{formatAUD(total)}</p>
+          <div className="text-center bg-card/50 backdrop-blur-[2px] rounded-full p-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total</p>
+            <p className="text-sm font-bold tabular-nums">{formatAUD(total)}</p>
           </div>
         </div>
       </div>

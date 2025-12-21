@@ -40,13 +40,13 @@ export function Header({ title }: HeaderProps) {
   const getSyncIcon = () => {
     switch (syncStatus) {
       case 'syncing':
-        return <RefreshCw className="h-4 w-4 animate-spin" />;
+        return <RefreshCw className="h-4 w-4 animate-spin text-primary" />;
       case 'synced':
-        return <Cloud className="h-4 w-4 text-green-500" />;
+        return <Cloud className="h-4 w-4 text-success" />;
       case 'error':
-        return <CloudOff className="h-4 w-4 text-red-500" />;
+        return <CloudOff className="h-4 w-4 text-destructive" />;
       case 'offline':
-        return <CloudOff className="h-4 w-4 text-yellow-500" />;
+        return <CloudOff className="h-4 w-4 text-warning" />;
       default:
         return <Cloud className="h-4 w-4 text-muted-foreground" />;
     }
@@ -68,10 +68,10 @@ export function Header({ title }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/50 bg-background/95 backdrop-blur-md px-6 supports-[backdrop-filter]:bg-background/80">
       {/* Page title - with spacing for mobile menu */}
       <div className="flex-1 md:pl-0 pl-10">
-        {title && <h1 className="text-xl font-semibold">{title}</h1>}
+        {title && <h1 className="text-xl font-semibold tracking-tight">{title}</h1>}
       </div>
 
       {/* Family Member Filter */}
@@ -121,12 +121,12 @@ export function Header({ title }: HeaderProps) {
       )}
 
       {/* Financial Year Badge */}
-      <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted text-muted-foreground text-sm">
+      <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10 text-primary text-sm font-medium">
         {formatFinancialYear(currentFY)}
       </div>
 
       {/* Sync Status */}
-      <Button variant="ghost" size="sm" className="gap-2">
+      <Button variant="ghost" size="sm" className="gap-2 hover:bg-accent/50">
         {getSyncIcon()}
         <span className="hidden sm:inline text-sm">{getSyncText()}</span>
       </Button>

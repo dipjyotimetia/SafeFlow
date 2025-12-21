@@ -38,13 +38,20 @@ export function CashflowChart({ data }: CashflowChartProps) {
   const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; color: string }>; label?: string }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
-          <p className="font-medium mb-2">{label}</p>
-          {payload.map((entry) => (
-            <p key={entry.dataKey} className="text-sm" style={{ color: entry.color }}>
-              {entry.dataKey === 'income' ? 'Income' : entry.dataKey === 'expenses' ? 'Expenses' : 'Net'}: {formatAUD(entry.value * 100)}
-            </p>
-          ))}
+        <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-xl">
+          <p className="font-semibold text-sm mb-3 text-foreground">{label}</p>
+          <div className="space-y-1.5">
+            {payload.map((entry) => (
+              <div key={entry.dataKey} className="flex items-center justify-between gap-4">
+                <span className="text-sm text-muted-foreground">
+                  {entry.dataKey === 'income' ? 'Income' : entry.dataKey === 'expenses' ? 'Expenses' : 'Net'}
+                </span>
+                <span className="text-sm font-medium tabular-nums" style={{ color: entry.color }}>
+                  {formatAUD(entry.value * 100)}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       );
     }
@@ -66,12 +73,16 @@ export function CashflowChart({ data }: CashflowChartProps) {
       >
         <defs>
           <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#22c55e" />
-            <stop offset="100%" stopColor="#16a34a" />
+            <stop offset="0%" stopColor="oklch(0.65 0.18 145)" />
+            <stop offset="100%" stopColor="oklch(0.55 0.16 145)" />
           </linearGradient>
           <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ef4444" />
-            <stop offset="100%" stopColor="#dc2626" />
+            <stop offset="0%" stopColor="oklch(0.65 0.2 25)" />
+            <stop offset="100%" stopColor="oklch(0.55 0.18 25)" />
+          </linearGradient>
+          <linearGradient id="netGradient" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="oklch(0.55 0.15 160)" />
+            <stop offset="100%" stopColor="oklch(0.6 0.12 180)" />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -110,10 +121,10 @@ export function CashflowChart({ data }: CashflowChartProps) {
         <Line
           type="monotone"
           dataKey="net"
-          stroke="#3b82f6"
-          strokeWidth={2}
-          dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-          activeDot={{ r: 6, fill: '#3b82f6' }}
+          stroke="url(#netGradient)"
+          strokeWidth={2.5}
+          dot={{ fill: 'oklch(0.55 0.15 160)', strokeWidth: 2, r: 4, stroke: 'white' }}
+          activeDot={{ r: 6, fill: 'oklch(0.55 0.15 160)', stroke: 'white', strokeWidth: 2 }}
           isAnimationActive={true}
           animationDuration={500}
           animationEasing="ease-out"

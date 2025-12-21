@@ -21,56 +21,41 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
-const navItems = [
+const navSections = [
   {
-    title: 'Dashboard',
-    href: '/overview',
-    icon: LayoutDashboard,
+    title: 'Overview',
+    items: [
+      { title: 'Dashboard', href: '/overview', icon: LayoutDashboard },
+    ],
   },
   {
-    title: 'Transactions',
-    href: '/transactions',
-    icon: ArrowRightLeft,
+    title: 'Finance',
+    items: [
+      { title: 'Transactions', href: '/transactions', icon: ArrowRightLeft },
+      { title: 'Accounts', href: '/accounts', icon: Wallet },
+      { title: 'Budgets', href: '/budgets', icon: PiggyBank },
+      { title: 'Import', href: '/import', icon: FileUp },
+    ],
   },
   {
-    title: 'Accounts',
-    href: '/accounts',
-    icon: Wallet,
+    title: 'Wealth',
+    items: [
+      { title: 'Investments', href: '/investments', icon: TrendingUp },
+      { title: 'Superannuation', href: '/superannuation', icon: Landmark },
+    ],
   },
   {
-    title: 'Budgets',
-    href: '/budgets',
-    icon: PiggyBank,
+    title: 'Reports',
+    items: [
+      { title: 'Tax', href: '/tax', icon: Calculator },
+      { title: 'Family', href: '/family', icon: Users },
+    ],
   },
   {
-    title: 'Import',
-    href: '/import',
-    icon: FileUp,
-  },
-  {
-    title: 'Investments',
-    href: '/investments',
-    icon: TrendingUp,
-  },
-  {
-    title: 'Superannuation',
-    href: '/superannuation',
-    icon: Landmark,
-  },
-  {
-    title: 'Tax',
-    href: '/tax',
-    icon: Calculator,
-  },
-  {
-    title: 'Family',
-    href: '/family',
-    icon: Users,
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: Settings,
+    title: 'System',
+    items: [
+      { title: 'Settings', href: '/settings', icon: Settings },
+    ],
   },
 ];
 
@@ -107,41 +92,71 @@ export function Sidebar() {
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center gap-2 px-6 py-5 border-b border-border">
-            <Shield className="h-8 w-8 text-primary" />
+          <div className="flex items-center gap-3 px-6 py-5 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-sm">
+              <Shield className="h-5 w-5 text-primary-foreground" />
+            </div>
             <div>
-              <h1 className="text-lg font-bold">SafeFlow</h1>
-              <p className="text-xs text-muted-foreground">AU</p>
+              <h1 className="text-lg font-bold tracking-tight">SafeFlow</h1>
+              <p className="text-xs text-muted-foreground">Australian Finance</p>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.title}
-                </Link>
-              );
-            })}
+          <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
+            {navSections.map((section, sectionIndex) => (
+              <div key={section.title}>
+                {sectionIndex > 0 && (
+                  <div className="mb-3 px-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                      {section.title}
+                    </p>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className={cn(
+                          'group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )}
+                      >
+                        {isActive && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-primary-foreground/30" />
+                        )}
+                        <span
+                          className={cn(
+                            'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+                            isActive
+                              ? 'bg-primary-foreground/10'
+                              : 'bg-transparent group-hover:bg-accent'
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                        </span>
+                        {item.title}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-border">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="h-2 w-2 rounded-full bg-green-500" />
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+              </span>
               <span>Data stored locally</span>
             </div>
           </div>

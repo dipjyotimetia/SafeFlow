@@ -5,8 +5,10 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MetricCard } from '@/components/ui/metric-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton, SkeletonTransaction } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -22,6 +24,7 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Plus,
+  PiggyBank,
 } from 'lucide-react';
 import { CashflowChart, CategoryPieChart } from '@/components/charts';
 import {
@@ -65,85 +68,59 @@ export default function DashboardPage() {
       <div className="p-6 space-y-6">
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Net Worth</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div
-                className={cn(
-                  'text-2xl font-bold',
-                  summary.netWorth >= 0 ? 'text-green-600' : 'text-red-600'
-                )}
-              >
-                {formatAUD(summary.netWorth)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {summary.accountCount} account{summary.accountCount !== 1 ? 's' : ''}
-              </p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            title="Net Worth"
+            value={formatAUD(summary.netWorth)}
+            description={`${summary.accountCount} account${summary.accountCount !== 1 ? 's' : ''}`}
+            icon={Wallet}
+            variant={summary.netWorth >= 0 ? 'positive' : 'negative'}
+            className={summary.netWorth >= 0 ? '[&_p:first-of-type+div>p:first-child]:text-success' : '[&_p:first-of-type+div>p:first-child]:text-destructive'}
+          />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Income</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {formatAUD(totals.income)}
-              </div>
-              <p className="text-xs text-muted-foreground">This month</p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            title="Monthly Income"
+            value={formatAUD(totals.income)}
+            description="This month"
+            icon={TrendingUp}
+            trend="up"
+            variant="positive"
+            className="[&_p:first-of-type+div>p:first-child]:text-success"
+          />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
-              <TrendingDown className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {formatAUD(totals.expenses)}
-              </div>
-              <p className="text-xs text-muted-foreground">This month</p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            title="Monthly Expenses"
+            value={formatAUD(totals.expenses)}
+            description="This month"
+            icon={TrendingDown}
+            trend="down"
+            variant="negative"
+            className="[&_p:first-of-type+div>p:first-child]:text-destructive"
+          />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Net Cashflow</CardTitle>
-              <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div
-                className={cn(
-                  'text-2xl font-bold',
-                  totals.net >= 0 ? 'text-green-600' : 'text-red-600'
-                )}
-              >
-                {totals.net >= 0 ? '+' : ''}
-                {formatAUD(totals.net)}
-              </div>
-              <p className="text-xs text-muted-foreground">This month</p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            title="Net Cashflow"
+            value={`${totals.net >= 0 ? '+' : ''}${formatAUD(totals.net)}`}
+            description="This month"
+            icon={PiggyBank}
+            trend={totals.net >= 0 ? 'up' : 'down'}
+            variant={totals.net >= 0 ? 'positive' : 'negative'}
+            className={totals.net >= 0 ? '[&_p:first-of-type+div>p:first-child]:text-success' : '[&_p:first-of-type+div>p:first-child]:text-destructive'}
+          />
         </div>
 
         {/* Charts Row */}
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
+          <Card variant="elevated">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="space-y-1">
-                <CardTitle>Monthly Cashflow</CardTitle>
+                <CardTitle className="text-base">Monthly Cashflow</CardTitle>
                 <CardDescription>Income vs expenses over time</CardDescription>
               </div>
               <Select
                 value={String(cashflowMonths)}
                 onValueChange={(v) => setCashflowMonths(Number(v))}
               >
-                <SelectTrigger className="w-[110px]">
+                <SelectTrigger className="w-[110px] h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -157,30 +134,32 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="h-[300px]">
               {cashflowLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                <div className="h-full w-full space-y-3">
+                  <Skeleton className="h-full w-full" />
                 </div>
               ) : cashflow.length > 0 ? (
                 <CashflowChart data={cashflow} />
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No cashflow data yet
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <ArrowRightLeft className="h-12 w-12 mb-3 opacity-20" />
+                  <p className="font-medium">No cashflow data yet</p>
+                  <p className="text-sm mt-1">Import transactions to see your cashflow</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card variant="elevated">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="space-y-1">
-                <CardTitle>Spending by Category</CardTitle>
+                <CardTitle className="text-base">Spending by Category</CardTitle>
                 <CardDescription>Where your money goes</CardDescription>
               </div>
               <Select
                 value={String(categoryMonths)}
                 onValueChange={(v) => setCategoryMonths(Number(v))}
               >
-                <SelectTrigger className="w-[110px]">
+                <SelectTrigger className="w-[110px] h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -194,14 +173,16 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="h-[300px]">
               {breakdownLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                <div className="h-full w-full flex items-center justify-center">
+                  <Skeleton className="h-40 w-40 rounded-full" />
                 </div>
               ) : breakdown.length > 0 ? (
                 <CategoryPieChart data={breakdown} />
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No spending data yet
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <PiggyBank className="h-12 w-12 mb-3 opacity-20" />
+                  <p className="font-medium">No spending data yet</p>
+                  <p className="text-sm mt-1">Add expenses to see category breakdown</p>
                 </div>
               )}
             </CardContent>
@@ -209,25 +190,27 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Transactions */}
-        <Card>
+        <Card variant="elevated">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Recent Transactions</CardTitle>
+              <CardTitle className="text-base">Recent Transactions</CardTitle>
               <CardDescription>Your latest financial activity</CardDescription>
             </div>
             <Link href="/transactions">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="hover:bg-primary/5">
                 View All
               </Button>
             </Link>
           </CardHeader>
           <CardContent>
             {transactionsLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+              <div className="space-y-1">
+                {[...Array(5)].map((_, i) => (
+                  <SkeletonTransaction key={i} />
+                ))}
               </div>
             ) : recentTransactions.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-1">
                 {recentTransactions.map((transaction) => {
                   const category = transaction.categoryId
                     ? categoryMap.get(transaction.categoryId)
@@ -237,16 +220,25 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={transaction.id}
-                      className="flex items-center justify-between py-2 border-b last:border-0"
+                      className="flex items-center justify-between py-3 px-2 -mx-2 rounded-lg transition-colors hover:bg-accent/50"
                     >
                       <div className="flex items-center gap-3">
-                        {transaction.type === 'income' ? (
-                          <ArrowUpCircle className="h-5 w-5 text-green-600" />
-                        ) : transaction.type === 'expense' ? (
-                          <ArrowDownCircle className="h-5 w-5 text-red-600" />
-                        ) : (
-                          <ArrowRightLeft className="h-5 w-5 text-blue-600" />
-                        )}
+                        <div
+                          className={cn(
+                            'flex h-10 w-10 items-center justify-center rounded-full',
+                            transaction.type === 'income' && 'bg-success/10',
+                            transaction.type === 'expense' && 'bg-destructive/10',
+                            transaction.type === 'transfer' && 'bg-primary/10'
+                          )}
+                        >
+                          {transaction.type === 'income' ? (
+                            <ArrowUpCircle className="h-5 w-5 text-success" />
+                          ) : transaction.type === 'expense' ? (
+                            <ArrowDownCircle className="h-5 w-5 text-destructive" />
+                          ) : (
+                            <ArrowRightLeft className="h-5 w-5 text-primary" />
+                          )}
+                        </div>
                         <div>
                           <p className="font-medium text-sm">{transaction.description}</p>
                           <p className="text-xs text-muted-foreground">
@@ -257,16 +249,16 @@ export default function DashboardPage() {
                       <div className="text-right">
                         <p
                           className={cn(
-                            'font-medium',
-                            transaction.type === 'income' ? 'text-green-600' : '',
-                            transaction.type === 'expense' ? 'text-red-600' : ''
+                            'font-semibold tabular-nums',
+                            transaction.type === 'income' && 'text-success',
+                            transaction.type === 'expense' && 'text-destructive'
                           )}
                         >
                           {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}
                           {formatAUD(transaction.amount)}
                         </p>
                         {category && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs mt-1">
                             {category.name}
                           </Badge>
                         )}
@@ -276,12 +268,13 @@ export default function DashboardPage() {
                 })}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No transactions yet</p>
-                <p className="text-sm mt-1">
+              <div className="text-center py-12 text-muted-foreground">
+                <ArrowRightLeft className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                <p className="font-medium">No transactions yet</p>
+                <p className="text-sm mt-1 mb-4">
                   Import a bank statement or add a transaction to get started
                 </p>
-                <div className="flex justify-center gap-2 mt-4">
+                <div className="flex justify-center gap-3">
                   <Link href="/import">
                     <Button variant="outline" size="sm">
                       Import Statement
