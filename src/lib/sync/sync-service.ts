@@ -163,7 +163,8 @@ export async function getSyncMetadata(): Promise<SyncMetadata | null> {
   try {
     const metadata = await db.syncMetadata.get(SYNC_METADATA_ID);
     return metadata || null;
-  } catch {
+  } catch (error) {
+    console.error('[SyncService] Failed to get sync metadata:', error);
     return null;
   }
 }

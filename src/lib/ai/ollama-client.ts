@@ -1,5 +1,5 @@
-import { Ollama } from 'ollama/browser';
-import type { ChatMessage } from '@/types';
+import type { ChatMessage } from "@/types";
+import { Ollama } from "ollama/browser";
 
 export interface OllamaConfig {
   host: string;
@@ -14,13 +14,13 @@ export interface HealthCheckResult {
 }
 
 export interface OllamaMessage {
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
 const DEFAULT_CONFIG: OllamaConfig = {
-  host: 'http://127.0.0.1:11434',
-  model: 'martain7r/finance-llama-8b:q4_k_m', // Default to a common model; user can change in settings
+  host: "http://127.0.0.1:11434",
+  model: "llama3.1:8b", // Default to a common model; user can change in settings
 };
 
 class OllamaClient {
@@ -77,20 +77,26 @@ class OllamaClient {
    */
   async checkHealth(): Promise<HealthCheckResult> {
     if (!this.client) {
+      console.log("[Ollama] Initializing client...");
       this.initialize();
     }
 
     try {
+      console.log("[Ollama] Checking health, listing models...");
       // Check if Ollama is running by listing models
       const response = await this.client!.list();
       const availableModels = response.models.map((m) => m.name);
+      console.log("[Ollama] Available models:", availableModels);
+      console.log("[Ollama] Target model:", this.config.model);
 
       // Check if our target model is available
       const modelReady = availableModels.some(
         (name) =>
           name === this.config.model ||
-          name.startsWith(this.config.model.split(':')[0])
+          name.startsWith(this.config.model.split(":")[0])
       );
+
+      console.log("[Ollama] Model ready:", modelReady);
 
       // Update internal state
       this._isConnected = true;
@@ -102,23 +108,24 @@ class OllamaClient {
         availableModels,
       };
     } catch (error) {
+      console.error("[Ollama] Health check failed:", error);
       // Update internal state
       this._isConnected = false;
       this._isModelReady = false;
 
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error ? error.message : "Unknown error";
 
       // Check for common connection issues
       if (
-        errorMessage.includes('fetch') ||
-        errorMessage.includes('ECONNREFUSED')
+        errorMessage.includes("fetch") ||
+        errorMessage.includes("ECONNREFUSED")
       ) {
         return {
           connected: false,
           modelReady: false,
           error:
-            'Cannot connect to Ollama. Please ensure Ollama is running on your machine.',
+            "Cannot connect to Ollama. Please ensure Ollama is running on your machine.",
         };
       }
 
@@ -146,18 +153,20 @@ class OllamaClient {
     if (!this._isConnected || !this._isModelReady) {
       const health = await this.checkHealth();
       if (!health.connected || !health.modelReady) {
-        throw new Error('Ollama not connected or model not ready. Please check connection in settings.');
+        throw new Error(
+          "Ollama not connected or model not ready. Please check connection in settings."
+        );
       }
     }
 
     this.abortController = new AbortController();
 
     const allMessages: OllamaMessage[] = [
-      { role: 'system', content: systemPrompt },
+      { role: "system", content: systemPrompt },
       ...messages,
     ];
 
-    let fullResponse = '';
+    let fullResponse = "";
 
     try {
       const response = await this.client!.chat({
@@ -177,7 +186,7 @@ class OllamaClient {
 
       return fullResponse;
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (error instanceof Error && error.name === "AbortError") {
         return fullResponse;
       }
       throw error;
@@ -198,7 +207,9 @@ class OllamaClient {
     if (!this._isConnected || !this._isModelReady) {
       const health = await this.checkHealth();
       if (!health.connected || !health.modelReady) {
-        throw new Error('Ollama not connected or model not ready. Please check connection in settings.');
+        throw new Error(
+          "Ollama not connected or model not ready. Please check connection in settings."
+        );
       }
     }
 
@@ -213,7 +224,7 @@ class OllamaClient {
       return response.response;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Generation failed';
+        error instanceof Error ? error.message : "Generation failed";
       throw new Error(`Failed to generate response: ${errorMessage}`);
     }
   }
@@ -247,7 +258,7 @@ class OllamaClient {
       }
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to pull model';
+        error instanceof Error ? error.message : "Failed to pull model";
       throw new Error(`Failed to pull model: ${errorMessage}`);
     }
   }
@@ -267,9 +278,9 @@ class OllamaClient {
    */
   static toOllamaMessages(messages: ChatMessage[]): OllamaMessage[] {
     return messages
-      .filter((m) => m.role !== 'system') // System prompt handled separately
+      .filter((m) => m.role !== "system") // System prompt handled separately
       .map((m) => ({
-        role: m.role as 'user' | 'assistant',
+        role: m.role as "user" | "assistant",
         content: m.content,
       }));
   }

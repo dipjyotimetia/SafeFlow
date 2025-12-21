@@ -1,12 +1,15 @@
-import { create } from 'zustand';
-import { z } from 'zod';
-import { db } from '@/lib/db';
-import { categorizationService } from '@/lib/ai/categorization';
-import type { Transaction, TransactionType, FilterOptions } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
-import { toast } from 'sonner';
-import { transactionCreateSchema, transactionUpdateSchema } from '@/lib/schemas';
-import { logError, ErrorCode, SafeFlowError } from '@/lib/errors';
+import { llmCategorizationService } from "@/lib/ai/llm-categorization";
+import { db } from "@/lib/db";
+import { ErrorCode, logError, SafeFlowError } from "@/lib/errors";
+import {
+  transactionCreateSchema,
+  transactionUpdateSchema,
+} from "@/lib/schemas";
+import type { FilterOptions, Transaction, TransactionType } from "@/types";
+import { toast } from "sonner";
+import { v4 as uuidv4 } from "uuid";
+import { z } from "zod";
+import { create } from "zustand";
 
 interface TransactionStore {
   // Filter state
@@ -69,7 +72,8 @@ interface TransactionStore {
       description: string;
       date: string;
       notes?: string;
-    }>
+    }>,
+    memberId?: string
   ) => Promise<{ imported: number; skipped: number }>;
 }
 
@@ -129,7 +133,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         isDeductible: validData.isDeductible,
         gstAmount: validData.gstAmount,
         atoCategory: validData.atoCategory,
-        importSource: 'manual',
+        importSource: "manual",
         isReconciled: false,
         createdAt: now,
         updatedAt: now,
@@ -138,7 +142,8 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       // Update account balance
       const account = await db.accounts.get(validData.accountId);
       if (account) {
-        const balanceChange = validData.type === 'income' ? validData.amount : -validData.amount;
+        const balanceChange =
+          validData.type === "income" ? validData.amount : -validData.amount;
         await db.accounts.update(validData.accountId, {
           balance: account.balance + balanceChange,
           updatedAt: now,
@@ -147,9 +152,9 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
 
       return id;
     } catch (error) {
-      logError('createTransaction', error);
+      logError("createTransaction", error);
       throw new SafeFlowError(
-        'Failed to create transaction',
+        "Failed to create transaction",
         ErrorCode.DB_OPERATION_FAILED,
         { cause: error instanceof Error ? error : undefined }
       );
@@ -173,12 +178,18 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       // If category is being changed, learn from the user correction
       if (data.categoryId) {
         const existingTransaction = await db.transactions.get(id);
-        if (existingTransaction && existingTransaction.categoryId !== data.categoryId) {
+        if (
+          existingTransaction &&
+          existingTransaction.categoryId !== data.categoryId
+        ) {
           // User is changing the category - learn from this correction
           try {
-            await categorizationService.learnFromUserCorrection(id, data.categoryId);
+            await llmCategorizationService.learnFromUserCorrection(
+              id,
+              data.categoryId
+            );
           } catch (error) {
-            logError('learnFromUserCorrection', error);
+            logError("learnFromUserCorrection", error);
           }
         }
       }
@@ -188,9 +199,9 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         updatedAt: new Date(),
       });
     } catch (error) {
-      logError('updateTransaction', error);
+      logError("updateTransaction", error);
       throw new SafeFlowError(
-        'Failed to update transaction',
+        "Failed to update transaction",
         ErrorCode.DB_OPERATION_FAILED,
         { cause: error instanceof Error ? error : undefined }
       );
@@ -203,7 +214,10 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       // Reverse the balance change
       const account = await db.accounts.get(transaction.accountId);
       if (account) {
-        const balanceChange = transaction.type === 'income' ? -transaction.amount : transaction.amount;
+        const balanceChange =
+          transaction.type === "income"
+            ? -transaction.amount
+            : transaction.amount;
         await db.accounts.update(transaction.accountId, {
           balance: account.balance + balanceChange,
           updatedAt: new Date(),
@@ -221,7 +235,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     }
 
     // Wrap all deletions in a single transaction to ensure atomicity
-    await db.transaction('rw', [db.transactions, db.accounts], async () => {
+    await db.transaction("rw", [db.transactions, db.accounts], async () => {
       // Get all transactions to be deleted
       const transactions = await db.transactions.bulkGet(ids);
 
@@ -229,7 +243,10 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       const accountUpdates = new Map<string, number>();
       for (const transaction of transactions) {
         if (transaction) {
-          const balanceChange = transaction.type === 'income' ? -transaction.amount : transaction.amount;
+          const balanceChange =
+            transaction.type === "income"
+              ? -transaction.amount
+              : transaction.amount;
           accountUpdates.set(
             transaction.accountId,
             (accountUpdates.get(transaction.accountId) || 0) + balanceChange
@@ -269,7 +286,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       merchantName: t.merchantName,
       date: t.date,
       originalDescription: t.originalDescription,
-      importSource: importSource as Transaction['importSource'],
+      importSource: importSource as Transaction["importSource"],
       importBatchId: batchId,
       importedAt: now,
       isReconciled: false,
@@ -283,10 +300,10 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     await db.importBatches.add({
       id: batchId,
       source: importSource,
-      fileName: '',
+      fileName: "",
       transactionCount: records.length,
       importedAt: now,
-      status: 'completed',
+      status: "completed",
     });
 
     return records.length;
@@ -294,32 +311,40 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
 
   deleteImportBatch: async (batchId) => {
     const transactions = await db.transactions
-      .where('importBatchId')
+      .where("importBatchId")
       .equals(batchId)
       .toArray();
 
     const ids = transactions.map((t) => t.id);
     await db.transactions.bulkDelete(ids);
 
-    await db.importBatches.update(batchId, { status: 'failed' });
+    await db.importBatches.update(batchId, { status: "failed" });
 
     return ids.length;
   },
 
-  bulkImport: async (transactions) => {
+  bulkImport: async (transactions, memberId) => {
     const now = new Date();
     const batchId = uuidv4();
     let imported = 0;
     let skipped = 0;
 
-    // Get existing transactions for duplicate detection
-    const existingTransactions = await db.transactions.toArray();
+    // Get unique account IDs from incoming transactions
+    const accountIds = [...new Set(transactions.map((t) => t.accountId))];
+
+    // Only load transactions for the relevant accounts (more efficient)
+    const existingTransactions = await db.transactions
+      .where("accountId")
+      .anyOf(accountIds)
+      .toArray();
 
     // Create a key for each existing transaction for duplicate detection
     const existingKeys = new Set(
       existingTransactions.map((t) => {
         const date = t.date instanceof Date ? t.date : new Date(t.date);
-        return `${t.accountId}_${date.toISOString().split('T')[0]}_${t.amount}_${t.description.substring(0, 50)}`;
+        return `${t.accountId}_${date.toISOString().split("T")[0]}_${
+          t.amount
+        }_${t.description.substring(0, 50)}`;
       })
     );
 
@@ -327,7 +352,9 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
 
     for (const t of transactions) {
       const date = new Date(t.date);
-      const key = `${t.accountId}_${date.toISOString().split('T')[0]}_${t.amount}_${t.description.substring(0, 50)}`;
+      const key = `${t.accountId}_${date.toISOString().split("T")[0]}_${
+        t.amount
+      }_${t.description.substring(0, 50)}`;
 
       if (existingKeys.has(key)) {
         skipped++;
@@ -344,7 +371,8 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         description: t.description,
         date,
         notes: t.notes,
-        importSource: 'pdf',
+        memberId,
+        importSource: "pdf",
         importBatchId: batchId,
         importedAt: now,
         isReconciled: false,
@@ -355,51 +383,95 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
 
     if (recordsToAdd.length > 0) {
       // Wrap all operations in a single transaction to ensure atomicity
-      await db.transaction('rw', [db.transactions, db.accounts, db.importBatches], async () => {
-        // Add all transactions
-        await db.transactions.bulkAdd(recordsToAdd);
+      await db.transaction(
+        "rw",
+        [db.transactions, db.accounts, db.importBatches],
+        async () => {
+          // Add all transactions
+          await db.transactions.bulkAdd(recordsToAdd);
 
-        // Track the import batch
-        await db.importBatches.add({
-          id: batchId,
-          source: 'pdf',
-          fileName: '',
-          transactionCount: recordsToAdd.length,
-          importedAt: now,
-          status: 'completed',
-        });
+          // Track the import batch
+          await db.importBatches.add({
+            id: batchId,
+            source: "pdf",
+            fileName: "",
+            transactionCount: recordsToAdd.length,
+            importedAt: now,
+            status: "completed",
+          });
 
-        // Update account balances
-        const accountUpdates = new Map<string, number>();
-        for (const t of recordsToAdd) {
-          const change = t.type === 'income' ? t.amount : -t.amount;
-          accountUpdates.set(t.accountId, (accountUpdates.get(t.accountId) || 0) + change);
-        }
+          // Update account balances
+          const accountUpdates = new Map<string, number>();
+          for (const t of recordsToAdd) {
+            const change = t.type === "income" ? t.amount : -t.amount;
+            accountUpdates.set(
+              t.accountId,
+              (accountUpdates.get(t.accountId) || 0) + change
+            );
+          }
 
-        for (const [accountId, change] of accountUpdates) {
-          const account = await db.accounts.get(accountId);
-          if (account) {
-            await db.accounts.update(accountId, {
-              balance: account.balance + change,
-              updatedAt: now,
-            });
+          for (const [accountId, change] of accountUpdates) {
+            const account = await db.accounts.get(accountId);
+            if (account) {
+              await db.accounts.update(accountId, {
+                balance: account.balance + change,
+                updatedAt: now,
+              });
+            }
           }
         }
-      });
+      );
 
       imported = recordsToAdd.length;
 
-      // Queue uncategorized transactions for AI categorization (outside transaction)
-      const uncategorizedIds = recordsToAdd
-        .filter((t) => !t.categoryId)
-        .map((t) => t.id);
+      // Auto-categorize transactions using LLM (outside transaction)
+      const uncategorizedTransactions = recordsToAdd.filter(
+        (t) => !t.categoryId
+      );
 
-      if (uncategorizedIds.length > 0) {
+      if (uncategorizedTransactions.length > 0) {
         try {
-          await categorizationService.queueForCategorization(uncategorizedIds);
-          toast.info(`Queued ${uncategorizedIds.length} transactions for AI categorization`);
+          // Check if AI is available
+          const isAvailable =
+            await llmCategorizationService.checkAvailability();
+
+          if (isAvailable) {
+            const categorizations =
+              await llmCategorizationService.categorizeTransactions(
+                uncategorizedTransactions
+              );
+
+            // Apply categorizations to transactions
+            if (categorizations.size > 0) {
+              const updateNow = new Date();
+              await Promise.all(
+                Array.from(categorizations.entries()).map(([txId, result]) =>
+                  db.transactions.update(txId, {
+                    categoryId: result.categoryId,
+                    updatedAt: updateNow,
+                  })
+                )
+              );
+              toast.success(
+                `AI categorized ${categorizations.size} transaction(s)`
+              );
+            }
+
+            const uncategorizedCount =
+              uncategorizedTransactions.length - categorizations.size;
+            if (uncategorizedCount > 0) {
+              toast.info(
+                `${uncategorizedCount} transaction(s) need manual categorization`
+              );
+            }
+          } else {
+            toast.info(
+              "AI unavailable - categorize transactions manually or start Ollama"
+            );
+          }
         } catch (error) {
-          console.error('Failed to queue for categorization:', error);
+          console.error("Failed to auto-categorize:", error);
+          toast.info("Auto-categorization failed - categorize manually");
         }
       }
     }

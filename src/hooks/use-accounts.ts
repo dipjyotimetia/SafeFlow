@@ -53,17 +53,17 @@ export function useAccountsSummary() {
 
     const totalAssets = accounts
       .filter((a) => ['bank', 'cash', 'investment', 'crypto', 'asset'].includes(a.type))
-      .reduce((sum, a) => sum + a.balance, 0);
+      .reduce((sum, a) => sum + (a.balance ?? 0), 0);
 
     const totalLiabilities = accounts
       .filter((a) => ['credit', 'liability'].includes(a.type))
-      .reduce((sum, a) => sum + Math.abs(a.balance), 0);
+      .reduce((sum, a) => sum + Math.abs(a.balance ?? 0), 0);
 
     const netWorth = totalAssets - totalLiabilities;
 
     const byType = accounts.reduce(
       (acc, a) => {
-        acc[a.type] = (acc[a.type] || 0) + a.balance;
+        acc[a.type] = (acc[a.type] || 0) + (a.balance ?? 0);
         return acc;
       },
       {} as Record<AccountType, number>

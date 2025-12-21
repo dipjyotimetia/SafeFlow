@@ -1,64 +1,84 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
-import { Header } from '@/components/layout/header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { CategorizationStatusCard } from "@/components/ai";
+import {
+  FileDropZone,
+  MemberSelector,
+  TransactionPreview,
+} from "@/components/import";
+import { InstitutionIcon } from "@/components/institution-icon";
+import { Header } from "@/components/layout/header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAccounts, usePDFParser, useSuperAccounts } from "@/hooks";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
+  getAvailableSuperParsers,
+  parserRegistry,
+  parseSuperStatement,
+} from "@/lib/parsers";
+import type { SuperParseResult } from "@/lib/parsers/super/types";
+import type { ParsedTransaction } from "@/lib/parsers/types";
+import { useAccountStore } from "@/stores/account.store";
+import { useSuperannuationStore } from "@/stores/superannuation.store";
+import { useTransactionStore } from "@/stores/transaction.store";
+import type { SuperTransactionType, TransactionType } from "@/types";
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '@/components/ui/alert';
-import { FileUp, CheckCircle2, AlertCircle, Loader2, Landmark } from 'lucide-react';
-import { FileDropZone, TransactionPreview } from '@/components/import';
-import { CategorizationStatusCard } from '@/components/ai';
-import { InstitutionIcon } from '@/components/institution-icon';
-import { usePDFParser, useAccounts, useSuperAccounts } from '@/hooks';
-import { useTransactionStore } from '@/stores/transaction.store';
-import { useSuperannuationStore } from '@/stores/superannuation.store';
-import { parserRegistry, parseSuperStatement, getAvailableSuperParsers } from '@/lib/parsers';
-import type { ParsedTransaction } from '@/lib/parsers/types';
-import type { SuperParseResult } from '@/lib/parsers/super/types';
-import type { TransactionType, SuperTransactionType } from '@/types';
-import { toast } from 'sonner';
+  AlertCircle,
+  CheckCircle2,
+  FileUp,
+  Landmark,
+  Loader2,
+} from "lucide-react";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 
-type ImportStep = 'upload' | 'preview' | 'complete';
-type ImportType = 'bank' | 'super';
+type ImportStep = "upload" | "preview" | "complete";
+type ImportType = "bank" | "super";
 
 export default function ImportPage() {
-  const [importType, setImportType] = useState<ImportType>('bank');
-  const [step, setStep] = useState<ImportStep>('upload');
+  const [importType, setImportType] = useState<ImportType>("bank");
+  const [step, setStep] = useState<ImportStep>("upload");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedBank, setSelectedBank] = useState<string>('auto');
-  const [selectedSuperFund, setSelectedSuperFund] = useState<string>('auto');
-  const [targetAccountId, setTargetAccountId] = useState<string>('');
-  const [targetSuperAccountId, setTargetSuperAccountId] = useState<string>('');
-  const [selectedTransactions, setSelectedTransactions] = useState<ParsedTransaction[]>([]);
-  const [superParseResult, setSuperParseResult] = useState<SuperParseResult | null>(null);
+  const [selectedBank, setSelectedBank] = useState<string>("auto");
+  const [selectedSuperFund, setSelectedSuperFund] = useState<string>("auto");
+  const [targetAccountId, setTargetAccountId] = useState<string>("");
+  const [targetSuperAccountId, setTargetSuperAccountId] = useState<string>("");
+  const [selectedTransactions, setSelectedTransactions] = useState<
+    ParsedTransaction[]
+  >([]);
+  const [superParseResult, setSuperParseResult] =
+    useState<SuperParseResult | null>(null);
   const [importedCount, setImportedCount] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
   const [superParsing, setSuperParsing] = useState(false);
   const [superError, setSuperError] = useState<string | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   const { accounts } = useAccounts();
+  const { updateAccount } = useAccountStore();
   const { accounts: superAccounts } = useSuperAccounts();
   const { bulkImport } = useTransactionStore();
-  const { bulkImportTransactions: bulkImportSuperTransactions, createAccount: createSuperAccount } = useSuperannuationStore();
+  const {
+    bulkImportTransactions: bulkImportSuperTransactions,
+    createAccount: createSuperAccount,
+  } = useSuperannuationStore();
   const {
     isLoading: isParsing,
     progress,
@@ -74,7 +94,7 @@ export default function ImportPage() {
   const handleFileSelect = useCallback(
     async (file: File) => {
       setSelectedFile(file);
-      await parseFile(file, selectedBank === 'auto' ? undefined : selectedBank);
+      await parseFile(file, selectedBank === "auto" ? undefined : selectedBank);
     },
     [parseFile, selectedBank]
   );
@@ -83,7 +103,7 @@ export default function ImportPage() {
     async (bank: string) => {
       setSelectedBank(bank);
       if (selectedFile) {
-        await parseFile(selectedFile, bank === 'auto' ? undefined : bank);
+        await parseFile(selectedFile, bank === "auto" ? undefined : bank);
       }
     },
     [parseFile, selectedFile]
@@ -91,7 +111,7 @@ export default function ImportPage() {
 
   const handleClear = useCallback(() => {
     setSelectedFile(null);
-    setStep('upload');
+    setStep("upload");
     setSelectedTransactions([]);
     setImportedCount(0);
     resetParser();
@@ -100,13 +120,13 @@ export default function ImportPage() {
   const handleContinueToPreview = useCallback(() => {
     if (parseResult?.transactions) {
       setSelectedTransactions(parseResult.transactions);
-      setStep('preview');
+      setStep("preview");
     }
   }, [parseResult]);
 
   const handleImport = useCallback(async () => {
     if (!targetAccountId || selectedTransactions.length === 0) {
-      toast.error('Please select an account and at least one transaction');
+      toast.error("Please select an account and at least one transaction");
       return;
     }
 
@@ -117,39 +137,59 @@ export default function ImportPage() {
       // Convert 'transfer' type to 'expense' since transfers aren't aggregated in reports
       const transactionsToImport = selectedTransactions.map((t) => ({
         accountId: targetAccountId,
-        type: (t.type === 'transfer' ? 'expense' : t.type) as TransactionType,
+        type: (t.type === "transfer" ? "expense" : t.type) as TransactionType,
         amount: Math.abs(t.amount),
         description: t.description,
         date: t.date.toISOString(),
         notes: t.reference || undefined,
       }));
 
-      const result = await bulkImport(transactionsToImport);
+      // Import transactions with member assignment
+      const result = await bulkImport(
+        transactionsToImport,
+        selectedMemberId ?? undefined
+      );
+
+      // Update account with member assignment if one was selected
+      if (selectedMemberId) {
+        await updateAccount(targetAccountId, {
+          memberId: selectedMemberId,
+          visibility: "private",
+        });
+      }
+
       setImportedCount(result.imported);
-      setStep('complete');
+      setStep("complete");
       toast.success(`Imported ${result.imported} transactions`);
       if (result.skipped > 0) {
         toast.info(`Skipped ${result.skipped} duplicate transactions`);
       }
     } catch (error) {
-      toast.error('Failed to import transactions');
-      console.error('Import error:', error);
+      toast.error("Failed to import transactions");
+      console.error("Import error:", error);
     } finally {
       setIsImporting(false);
     }
-  }, [targetAccountId, selectedTransactions, bulkImport]);
+  }, [
+    targetAccountId,
+    selectedTransactions,
+    bulkImport,
+    selectedMemberId,
+    updateAccount,
+  ]);
 
   const handleStartOver = useCallback(() => {
-    setStep('upload');
+    setStep("upload");
     setSelectedFile(null);
-    setSelectedBank('auto');
-    setSelectedSuperFund('auto');
-    setTargetAccountId('');
-    setTargetSuperAccountId('');
+    setSelectedBank("auto");
+    setSelectedSuperFund("auto");
+    setTargetAccountId("");
+    setTargetSuperAccountId("");
     setSelectedTransactions([]);
     setSuperParseResult(null);
     setImportedCount(0);
     setSuperError(null);
+    setSelectedMemberId(null);
     resetParser();
   }, [resetParser]);
 
@@ -166,34 +206,36 @@ export default function ImportPage() {
       try {
         // Read PDF file as text using pdf.js
         const arrayBuffer = await file.arrayBuffer();
-        const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+        const pdfjsLib = await import("pdfjs-dist");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let fullText = '';
+        let fullText = "";
 
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
           const pageText = textContent.items
             .map((item) => {
-              if ('str' in item && typeof item.str === 'string') {
+              if ("str" in item && typeof item.str === "string") {
                 return item.str;
               }
-              return '';
+              return "";
             })
-            .join(' ');
-          fullText += pageText + '\n';
+            .join(" ");
+          fullText += pageText + "\n";
         }
 
         const result = parseSuperStatement(
           fullText,
-          selectedSuperFund === 'auto' ? undefined : selectedSuperFund
+          selectedSuperFund === "auto" ? undefined : selectedSuperFund
         );
         setSuperParseResult(result);
       } catch (error) {
-        console.error('Super PDF parse error:', error);
-        setSuperError(error instanceof Error ? error.message : 'Failed to parse PDF');
+        console.error("Super PDF parse error:", error);
+        setSuperError(
+          error instanceof Error ? error.message : "Failed to parse PDF"
+        );
       } finally {
         setSuperParsing(false);
       }
@@ -204,7 +246,7 @@ export default function ImportPage() {
   const handleSuperFundChange = useCallback(
     async (fund: string) => {
       setSelectedSuperFund(fund);
-      if (selectedFile && importType === 'super') {
+      if (selectedFile && importType === "super") {
         await handleSuperFileSelect(selectedFile);
       }
     },
@@ -213,13 +255,13 @@ export default function ImportPage() {
 
   const handleSuperContinueToPreview = useCallback(() => {
     if (superParseResult?.success) {
-      setStep('preview');
+      setStep("preview");
     }
   }, [superParseResult]);
 
   const handleSuperImport = useCallback(async () => {
     if (!superParseResult?.success) {
-      toast.error('No valid super statement to import');
+      toast.error("No valid super statement to import");
       return;
     }
 
@@ -230,20 +272,27 @@ export default function ImportPage() {
       // Create new account if needed
       if (!accountId && superParseResult.account) {
         accountId = await createSuperAccount({
-          provider: superParseResult.account.provider as 'unisuper' | 'australian-super' | 'other',
+          provider: superParseResult.account.provider as
+            | "unisuper"
+            | "australian-super"
+            | "other",
           providerName: superParseResult.account.providerName,
-          memberNumber: superParseResult.account.memberNumber || '',
+          memberNumber: superParseResult.account.memberNumber || "",
           accountName: superParseResult.account.accountName,
           totalBalance: superParseResult.account.totalBalance,
           preservedBalance: superParseResult.account.preservedBalance,
-          restrictedNonPreserved: superParseResult.account.restrictedNonPreserved,
-          unrestrictedNonPreserved: superParseResult.account.unrestrictedNonPreserved,
+          restrictedNonPreserved:
+            superParseResult.account.restrictedNonPreserved,
+          unrestrictedNonPreserved:
+            superParseResult.account.unrestrictedNonPreserved,
         });
-        toast.success(`Created new ${superParseResult.account.providerName} account`);
+        toast.success(
+          `Created new ${superParseResult.account.providerName} account`
+        );
       }
 
       if (!accountId) {
-        toast.error('Please select or create a super account');
+        toast.error("Please select or create a super account");
         return;
       }
 
@@ -265,35 +314,43 @@ export default function ImportPage() {
         }
       } else {
         setImportedCount(0);
-        toast.info('Account updated, no new transactions found');
+        toast.info("Account updated, no new transactions found");
       }
 
-      setStep('complete');
+      setStep("complete");
     } catch (error) {
-      toast.error('Failed to import super statement');
-      console.error('Super import error:', error);
+      toast.error("Failed to import super statement");
+      console.error("Super import error:", error);
     } finally {
       setIsImporting(false);
     }
-  }, [superParseResult, targetSuperAccountId, createSuperAccount, bulkImportSuperTransactions]);
+  }, [
+    superParseResult,
+    targetSuperAccountId,
+    createSuperAccount,
+    bulkImportSuperTransactions,
+  ]);
 
   const handleSuperClear = useCallback(() => {
     setSelectedFile(null);
     setSuperParseResult(null);
     setSuperError(null);
-    setStep('upload');
+    setStep("upload");
   }, []);
 
-  const handleImportTypeChange = useCallback((type: ImportType) => {
-    setImportType(type);
-    setStep('upload');
-    setSelectedFile(null);
-    setSelectedTransactions([]);
-    setSuperParseResult(null);
-    setSuperError(null);
-    setImportedCount(0);
-    resetParser();
-  }, [resetParser]);
+  const handleImportTypeChange = useCallback(
+    (type: ImportType) => {
+      setImportType(type);
+      setStep("upload");
+      setSelectedFile(null);
+      setSelectedTransactions([]);
+      setSuperParseResult(null);
+      setSuperError(null);
+      setImportedCount(0);
+      resetParser();
+    },
+    [resetParser]
+  );
 
   return (
     <>
@@ -307,7 +364,10 @@ export default function ImportPage() {
         </div>
 
         {/* Import Type Tabs */}
-        <Tabs value={importType} onValueChange={(v) => handleImportTypeChange(v as ImportType)}>
+        <Tabs
+          value={importType}
+          onValueChange={(v) => handleImportTypeChange(v as ImportType)}
+        >
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="bank" className="flex items-center gap-2">
               <FileUp className="h-4 w-4" />
@@ -322,24 +382,24 @@ export default function ImportPage() {
 
         {/* Step Indicator */}
         <div className="flex items-center gap-4">
-          <Badge variant={step === 'upload' ? 'default' : 'secondary'}>
+          <Badge variant={step === "upload" ? "default" : "secondary"}>
             1. Upload
           </Badge>
           <div className="h-px flex-1 bg-border" />
-          <Badge variant={step === 'preview' ? 'default' : 'secondary'}>
+          <Badge variant={step === "preview" ? "default" : "secondary"}>
             2. Preview
           </Badge>
           <div className="h-px flex-1 bg-border" />
-          <Badge variant={step === 'complete' ? 'default' : 'secondary'}>
+          <Badge variant={step === "complete" ? "default" : "secondary"}>
             3. Complete
           </Badge>
         </div>
 
         {/* AI Categorization Status - always visible for bank imports */}
-        {importType === 'bank' && <CategorizationStatusCard className="mb-6" />}
+        {importType === "bank" && <CategorizationStatusCard className="mb-6" />}
 
         {/* Upload Step */}
-        {step === 'upload' && importType === 'bank' && (
+        {step === "upload" && importType === "bank" && (
           <>
             <Card>
               <CardHeader>
@@ -355,7 +415,10 @@ export default function ImportPage() {
                     <label className="text-sm font-medium mb-2 block">
                       Bank (optional)
                     </label>
-                    <Select value={selectedBank} onValueChange={handleBankChange}>
+                    <Select
+                      value={selectedBank}
+                      onValueChange={handleBankChange}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Auto-detect" />
                       </SelectTrigger>
@@ -364,7 +427,10 @@ export default function ImportPage() {
                         {availableBanks.map((bank) => (
                           <SelectItem key={bank.bankCode} value={bank.bankCode}>
                             <div className="flex items-center gap-2">
-                              <InstitutionIcon institution={bank.bankCode} size="sm" />
+                              <InstitutionIcon
+                                institution={bank.bankCode}
+                                size="sm"
+                              />
                               <span>{bank.name}</span>
                             </div>
                           </SelectItem>
@@ -411,11 +477,13 @@ export default function ImportPage() {
                         <AlertTitle>Statement Parsed</AlertTitle>
                         <AlertDescription>
                           Found {parseResult.transactions.length} transactions
-                          {parseResult.accountName && ` from ${parseResult.accountName}`}
+                          {parseResult.accountName &&
+                            ` from ${parseResult.accountName}`}
                           {parseResult.statementPeriod && (
                             <span className="block text-xs mt-1">
-                              Period:{' '}
-                              {parseResult.statementPeriod.start.toLocaleDateString()} -{' '}
+                              Period:{" "}
+                              {parseResult.statementPeriod.start.toLocaleDateString()}{" "}
+                              -{" "}
                               {parseResult.statementPeriod.end.toLocaleDateString()}
                             </span>
                           )}
@@ -426,7 +494,7 @@ export default function ImportPage() {
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Parse Failed</AlertTitle>
                         <AlertDescription>
-                          {parseResult.errors.join('. ')}
+                          {parseResult.errors.join(". ")}
                         </AlertDescription>
                       </Alert>
                     )}
@@ -436,13 +504,16 @@ export default function ImportPage() {
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Warnings</AlertTitle>
                         <AlertDescription>
-                          {parseResult.warnings.join('. ')}
+                          {parseResult.warnings.join(". ")}
                         </AlertDescription>
                       </Alert>
                     )}
 
                     {parseResult.success && (
-                      <Button onClick={handleContinueToPreview} className="w-full">
+                      <Button
+                        onClick={handleContinueToPreview}
+                        className="w-full"
+                      >
                         Continue to Preview
                       </Button>
                     )}
@@ -462,13 +533,19 @@ export default function ImportPage() {
               <CardContent className="space-y-4">
                 {/* Big 4 Banks */}
                 <div>
-                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Big 4 Banks</h4>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">
+                    Big 4 Banks
+                  </h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                      { name: 'ANZ', code: 'anz', supported: true },
-                      { name: 'Commonwealth Bank', code: 'cba', supported: true },
-                      { name: 'Westpac', code: 'westpac', supported: true },
-                      { name: 'NAB', code: 'nab', supported: true },
+                      { name: "ANZ", code: "anz", supported: true },
+                      {
+                        name: "Commonwealth Bank",
+                        code: "cba",
+                        supported: true,
+                      },
+                      { name: "Westpac", code: "westpac", supported: true },
+                      { name: "NAB", code: "nab", supported: true },
                     ].map((bank) => (
                       <div
                         key={bank.name}
@@ -486,13 +563,23 @@ export default function ImportPage() {
 
                 {/* Digital Banks */}
                 <div>
-                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Digital Banks</h4>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">
+                    Digital Banks
+                  </h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                      { name: 'ING Australia', code: 'ing', supported: true },
-                      { name: 'Macquarie Bank', code: 'macquarie', supported: true },
-                      { name: 'Up Bank', code: 'up', supported: true },
-                      { name: 'Bendigo Bank', code: 'bendigo', supported: true },
+                      { name: "ING Australia", code: "ing", supported: true },
+                      {
+                        name: "Macquarie Bank",
+                        code: "macquarie",
+                        supported: true,
+                      },
+                      { name: "Up Bank", code: "up", supported: true },
+                      {
+                        name: "Bendigo Bank",
+                        code: "bendigo",
+                        supported: true,
+                      },
                     ].map((bank) => (
                       <div
                         key={bank.name}
@@ -510,18 +597,23 @@ export default function ImportPage() {
 
                 {/* Investment/Crypto Platforms */}
                 <div>
-                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Investment & Crypto</h4>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">
+                    Investment & Crypto
+                  </h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                      { name: 'Raiz Invest', code: 'raiz', supported: true },
-                      { name: 'CoinSpot', code: 'coinspot', supported: true },
-                      { name: 'Swyftx', code: 'swyftx', supported: true },
+                      { name: "Raiz Invest", code: "raiz", supported: true },
+                      { name: "CoinSpot", code: "coinspot", supported: true },
+                      { name: "Swyftx", code: "swyftx", supported: true },
                     ].map((platform) => (
                       <div
                         key={platform.name}
                         className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50"
                       >
-                        <InstitutionIcon institution={platform.code} size="md" />
+                        <InstitutionIcon
+                          institution={platform.code}
+                          size="md"
+                        />
                         <span className="text-sm">{platform.name}</span>
                         <Badge variant="default" className="ml-auto text-xs">
                           Ready
@@ -536,13 +628,14 @@ export default function ImportPage() {
         )}
 
         {/* Super Upload Step */}
-        {step === 'upload' && importType === 'super' && (
+        {step === "upload" && importType === "super" && (
           <>
             <Card>
               <CardHeader>
                 <CardTitle>Upload Super Statement PDF</CardTitle>
                 <CardDescription>
-                  Upload your superannuation statement to import account details and transactions
+                  Upload your superannuation statement to import account details
+                  and transactions
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -552,7 +645,10 @@ export default function ImportPage() {
                     <label className="text-sm font-medium mb-2 block">
                       Super Fund (optional)
                     </label>
-                    <Select value={selectedSuperFund} onValueChange={handleSuperFundChange}>
+                    <Select
+                      value={selectedSuperFund}
+                      onValueChange={handleSuperFundChange}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Auto-detect" />
                       </SelectTrigger>
@@ -581,7 +677,9 @@ export default function ImportPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Parsing super statement...</span>
+                      <span className="text-sm">
+                        Parsing super statement...
+                      </span>
                     </div>
                     <Progress value={50} />
                   </div>
@@ -604,15 +702,25 @@ export default function ImportPage() {
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
                         <AlertTitle>Statement Parsed</AlertTitle>
                         <AlertDescription>
-                          <span className="font-medium">{superParseResult.account.providerName}</span>
+                          <span className="font-medium">
+                            {superParseResult.account.providerName}
+                          </span>
                           {superParseResult.account.memberNumber && (
-                            <span> - Member #{superParseResult.account.memberNumber}</span>
+                            <span>
+                              {" "}
+                              - Member #{superParseResult.account.memberNumber}
+                            </span>
                           )}
                           <span className="block text-xs mt-1">
-                            Balance: ${superParseResult.account.totalBalance.toLocaleString('en-AU', { minimumFractionDigits: 2 })}
+                            Balance: $
+                            {superParseResult.account.totalBalance.toLocaleString(
+                              "en-AU",
+                              { minimumFractionDigits: 2 }
+                            )}
                           </span>
                           <span className="block text-xs">
-                            {superParseResult.transactions.length} transaction(s) found
+                            {superParseResult.transactions.length}{" "}
+                            transaction(s) found
                           </span>
                         </AlertDescription>
                       </Alert>
@@ -621,7 +729,7 @@ export default function ImportPage() {
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Parse Failed</AlertTitle>
                         <AlertDescription>
-                          {superParseResult.errors.join('. ')}
+                          {superParseResult.errors.join(". ")}
                         </AlertDescription>
                       </Alert>
                     )}
@@ -631,13 +739,16 @@ export default function ImportPage() {
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Warnings</AlertTitle>
                         <AlertDescription>
-                          {superParseResult.warnings.join('. ')}
+                          {superParseResult.warnings.join(". ")}
                         </AlertDescription>
                       </Alert>
                     )}
 
                     {superParseResult.success && (
-                      <Button onClick={handleSuperContinueToPreview} className="w-full">
+                      <Button
+                        onClick={handleSuperContinueToPreview}
+                        className="w-full"
+                      >
                         Continue to Preview
                       </Button>
                     )}
@@ -657,10 +768,14 @@ export default function ImportPage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { name: 'UniSuper', code: 'unisuper', supported: true },
-                    { name: 'Australian Super', code: 'australian-super', supported: true },
-                    { name: 'REST Super', code: 'rest', supported: false },
-                    { name: 'Hostplus', code: 'hostplus', supported: false },
+                    { name: "UniSuper", code: "unisuper", supported: true },
+                    {
+                      name: "Australian Super",
+                      code: "australian-super",
+                      supported: true,
+                    },
+                    { name: "REST Super", code: "rest", supported: false },
+                    { name: "Hostplus", code: "hostplus", supported: false },
                   ].map((fund) => (
                     <div
                       key={fund.name}
@@ -686,7 +801,7 @@ export default function ImportPage() {
         )}
 
         {/* Preview Step - Bank */}
-        {step === 'preview' && importType === 'bank' && parseResult && (
+        {step === "preview" && importType === "bank" && parseResult && (
           <Card>
             <CardHeader>
               <CardTitle>Preview & Import</CardTitle>
@@ -700,7 +815,10 @@ export default function ImportPage() {
                 <label className="text-sm font-medium mb-2 block">
                   Import to Account *
                 </label>
-                <Select value={targetAccountId} onValueChange={setTargetAccountId}>
+                <Select
+                  value={targetAccountId}
+                  onValueChange={setTargetAccountId}
+                >
                   <SelectTrigger className="w-full sm:w-[300px]">
                     <SelectValue placeholder="Select an account" />
                   </SelectTrigger>
@@ -718,6 +836,13 @@ export default function ImportPage() {
                   </p>
                 )}
               </div>
+
+              {/* Family Member Assignment */}
+              <MemberSelector
+                accountName={parseResult.accountName}
+                selectedMemberId={selectedMemberId}
+                onMemberChange={setSelectedMemberId}
+              />
 
               {/* Transaction Preview */}
               <TransactionPreview
@@ -754,7 +879,7 @@ export default function ImportPage() {
         )}
 
         {/* Preview Step - Super */}
-        {step === 'preview' && importType === 'super' && superParseResult && (
+        {step === "preview" && importType === "super" && superParseResult && (
           <Card>
             <CardHeader>
               <CardTitle>Preview & Import Super Statement</CardTitle>
@@ -766,9 +891,14 @@ export default function ImportPage() {
               {/* Account Info */}
               <div className="p-4 rounded-lg border bg-muted/50">
                 <div className="flex items-center gap-3 mb-3">
-                  <InstitutionIcon institution={superParseResult.account.provider} size="lg" />
+                  <InstitutionIcon
+                    institution={superParseResult.account.provider}
+                    size="lg"
+                  />
                   <div>
-                    <h3 className="font-semibold">{superParseResult.account.providerName}</h3>
+                    <h3 className="font-semibold">
+                      {superParseResult.account.providerName}
+                    </h3>
                     {superParseResult.account.memberNumber && (
                       <p className="text-sm text-muted-foreground">
                         Member #{superParseResult.account.memberNumber}
@@ -780,25 +910,42 @@ export default function ImportPage() {
                   <div>
                     <p className="text-muted-foreground">Total Balance</p>
                     <p className="font-semibold text-lg">
-                      ${superParseResult.account.totalBalance.toLocaleString('en-AU', { minimumFractionDigits: 2 })}
+                      $
+                      {superParseResult.account.totalBalance.toLocaleString(
+                        "en-AU",
+                        { minimumFractionDigits: 2 }
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Preserved</p>
                     <p className="font-medium">
-                      ${(superParseResult.account.preservedBalance ?? 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
+                      $
+                      {(
+                        superParseResult.account.preservedBalance ?? 0
+                      ).toLocaleString("en-AU", { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Restricted Non-Preserved</p>
+                    <p className="text-muted-foreground">
+                      Restricted Non-Preserved
+                    </p>
                     <p className="font-medium">
-                      ${(superParseResult.account.restrictedNonPreserved ?? 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
+                      $
+                      {(
+                        superParseResult.account.restrictedNonPreserved ?? 0
+                      ).toLocaleString("en-AU", { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Unrestricted Non-Preserved</p>
+                    <p className="text-muted-foreground">
+                      Unrestricted Non-Preserved
+                    </p>
                     <p className="font-medium">
-                      ${(superParseResult.account.unrestrictedNonPreserved ?? 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
+                      $
+                      {(
+                        superParseResult.account.unrestrictedNonPreserved ?? 0
+                      ).toLocaleString("en-AU", { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>
@@ -809,7 +956,10 @@ export default function ImportPage() {
                 <label className="text-sm font-medium mb-2 block">
                   Import to Super Account (optional)
                 </label>
-                <Select value={targetSuperAccountId} onValueChange={setTargetSuperAccountId}>
+                <Select
+                  value={targetSuperAccountId}
+                  onValueChange={setTargetSuperAccountId}
+                >
                   <SelectTrigger className="w-full sm:w-[300px]">
                     <SelectValue placeholder="Create new account" />
                   </SelectTrigger>
@@ -817,13 +967,15 @@ export default function ImportPage() {
                     <SelectItem value="">Create new account</SelectItem>
                     {superAccounts.map((account) => (
                       <SelectItem key={account.id} value={account.id}>
-                        {account.providerName} {account.memberNumber && `(#${account.memberNumber})`}
+                        {account.providerName}{" "}
+                        {account.memberNumber && `(#${account.memberNumber})`}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Select an existing account to update, or leave blank to create a new one
+                  Select an existing account to update, or leave blank to create
+                  a new one
                 </p>
               </div>
 
@@ -846,15 +998,26 @@ export default function ImportPage() {
                       <tbody>
                         {superParseResult.transactions.map((t, i) => (
                           <tr key={i} className="border-t">
-                            <td className="p-2">{t.date.toLocaleDateString('en-AU')}</td>
+                            <td className="p-2">
+                              {t.date.toLocaleDateString("en-AU")}
+                            </td>
                             <td className="p-2">
                               <Badge variant="outline" className="text-xs">
-                                {t.type.replace(/-/g, ' ')}
+                                {t.type.replace(/-/g, " ")}
                               </Badge>
                             </td>
                             <td className="p-2">{t.description}</td>
-                            <td className={`p-2 text-right font-medium ${t.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {t.amount >= 0 ? '+' : ''}${Math.abs(t.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
+                            <td
+                              className={`p-2 text-right font-medium ${
+                                t.amount >= 0
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {t.amount >= 0 ? "+" : ""}$
+                              {Math.abs(t.amount).toLocaleString("en-AU", {
+                                minimumFractionDigits: 2,
+                              })}
                             </td>
                           </tr>
                         ))}
@@ -889,7 +1052,7 @@ export default function ImportPage() {
         )}
 
         {/* Complete Step */}
-        {step === 'complete' && (
+        {step === "complete" && (
           <>
             <Card>
               <CardContent className="py-12">
@@ -897,25 +1060,32 @@ export default function ImportPage() {
                   <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto" />
                   <h3 className="text-2xl font-semibold">Import Complete!</h3>
                   <p className="text-muted-foreground">
-                    {importType === 'bank'
+                    {importType === "bank"
                       ? `Successfully imported ${importedCount} transactions`
                       : importedCount > 0
-                        ? `Successfully imported super account with ${importedCount} transactions`
-                        : 'Successfully imported super account'
-                    }
+                      ? `Successfully imported super account with ${importedCount} transactions`
+                      : "Successfully imported super account"}
                   </p>
                   <div className="flex justify-center gap-4 pt-4">
                     <Button variant="outline" onClick={handleStartOver}>
                       Import Another
                     </Button>
-                    <Button onClick={() => (window.location.href = importType === 'bank' ? '/transactions' : '/superannuation')}>
-                      {importType === 'bank' ? 'View Transactions' : 'View Superannuation'}
+                    <Button
+                      onClick={() =>
+                        (window.location.href =
+                          importType === "bank"
+                            ? "/transactions"
+                            : "/superannuation")
+                      }
+                    >
+                      {importType === "bank"
+                        ? "View Transactions"
+                        : "View Superannuation"}
                     </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
-
           </>
         )}
       </div>

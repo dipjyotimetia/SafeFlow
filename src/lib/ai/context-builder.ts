@@ -19,12 +19,16 @@ export async function buildFinancialContext(): Promise<FinancialContext> {
     topCategories,
     portfolioSummary,
     taxSummary,
+    recentTransactions,
+    merchantPatterns,
   ] = await Promise.all([
     buildAccountsSummary(),
     buildRecentSpending(),
     buildTopCategories(),
     buildPortfolioSummary(),
     buildTaxSummary(),
+    buildRecentTransactionsList(),
+    buildMerchantPatterns(),
   ]);
 
   return {
@@ -33,6 +37,8 @@ export async function buildFinancialContext(): Promise<FinancialContext> {
     topCategories,
     portfolioSummary,
     taxSummary,
+    recentTransactions,
+    merchantPatterns,
   };
 }
 
@@ -54,6 +60,14 @@ export async function buildContextString(): Promise<string> {
 
   if (context.topCategories) {
     parts.push(`TOP SPENDING CATEGORIES:\n${context.topCategories}`);
+  }
+
+  if (context.recentTransactions) {
+    parts.push(`RECENT TRANSACTIONS:\n${context.recentTransactions}`);
+  }
+
+  if (context.merchantPatterns) {
+    parts.push(`MERCHANT PATTERNS:\n${context.merchantPatterns}`);
   }
 
   if (context.portfolioSummary) {
@@ -147,6 +161,122 @@ async function buildRecentSpending(): Promise<string> {
   lines.push(`- Expenses: ${formatDollars(totalExpenses)} (${expenseCount} transactions)`);
   lines.push(`- Net: ${formatDollars(totalIncome - totalExpenses)}`);
   lines.push(`- Daily average spending: ${formatDollars(Math.round(totalExpenses / 30))}`);
+
+  return lines.join('\n');
+}
+
+/**
+ * Build recent transactions list (last 20 transactions)
+ */
+async function buildRecentTransactionsList(): Promise<string | undefined> {
+  const transactions = await db.transactions
+    .orderBy('date')
+    .reverse()
+    .limit(20)
+    .toArray();
+
+  if (transactions.length === 0) {
+    return undefined;
+  }
+
+  // Get categories for lookup
+  const categories = await db.categories.toArray();
+  const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
+
+  // Get accounts for lookup
+  const accounts = await db.accounts.toArray();
+  const accountMap = new Map(accounts.map((a) => [a.id, a.name]));
+
+  const lines: string[] = ['Last 20 transactions:'];
+
+  for (let i = 0; i < transactions.length; i++) {
+    const t = transactions[i];
+    const dateStr = t.date.toLocaleDateString('en-AU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    const merchant = t.merchantName || t.description;
+    const category = t.categoryId ? categoryMap.get(t.categoryId) : null;
+    const account = accountMap.get(t.accountId) || 'Unknown';
+    const typeIndicator = t.type === 'income' ? '+' : '-';
+
+    const categoryStr = category ? ` (${category})` : '';
+    lines.push(
+      `${i + 1}. ${dateStr} - ${merchant} - ${typeIndicator}${formatDollars(t.amount)}${categoryStr} [${account}]`
+    );
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Normalize merchant name for grouping
+ */
+function normalizeMerchantName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim()
+    .split(' ')[0]; // Take first word for grouping (e.g., "woolworths" from "woolworths metro sydney")
+}
+
+/**
+ * Build merchant spending patterns (last 60 days)
+ */
+async function buildMerchantPatterns(): Promise<string | undefined> {
+  const sixtyDaysAgo = new Date();
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+  const transactions = await db.transactions
+    .where('date')
+    .above(sixtyDaysAgo)
+    .filter((t) => t.type === 'expense')
+    .toArray();
+
+  if (transactions.length === 0) {
+    return undefined;
+  }
+
+  // Group by normalized merchant name
+  const merchantGroups: Record<
+    string,
+    { displayName: string; total: number; count: number }
+  > = {};
+
+  for (const t of transactions) {
+    const rawName = t.merchantName || t.description;
+    const normalizedName = normalizeMerchantName(rawName);
+
+    if (!merchantGroups[normalizedName]) {
+      merchantGroups[normalizedName] = {
+        displayName: rawName, // Keep first occurrence as display name
+        total: 0,
+        count: 0,
+      };
+    }
+    merchantGroups[normalizedName].total += t.amount;
+    merchantGroups[normalizedName].count++;
+  }
+
+  // Sort by total and take top 10
+  const sorted = Object.values(merchantGroups)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  if (sorted.length === 0) {
+    return undefined;
+  }
+
+  const lines: string[] = ['Top 10 merchants (last 60 days):'];
+  for (let i = 0; i < sorted.length; i++) {
+    const m = sorted[i];
+    const avgPerTxn = Math.round(m.total / m.count);
+    lines.push(
+      `${i + 1}. ${m.displayName}: ${formatDollars(m.total)} (${m.count} txn, avg ${formatDollars(avgPerTxn)})`
+    );
+  }
 
   return lines.join('\n');
 }
@@ -249,12 +379,16 @@ async function buildTaxSummary(): Promise<string | undefined> {
   }
 
   // Group by ATO category
-  const byAtoCategory: Record<string, number> = {};
+  const byAtoCategory: Record<string, { total: number; transactions: typeof transactions }> = {};
   let totalDeductions = 0;
 
   for (const t of transactions) {
     const category = t.atoCategory || 'Uncategorized';
-    byAtoCategory[category] = (byAtoCategory[category] || 0) + t.amount;
+    if (!byAtoCategory[category]) {
+      byAtoCategory[category] = { total: 0, transactions: [] };
+    }
+    byAtoCategory[category].total += t.amount;
+    byAtoCategory[category].transactions.push(t);
     totalDeductions += t.amount;
   }
 
@@ -263,8 +397,26 @@ async function buildTaxSummary(): Promise<string | undefined> {
   lines.push(`Total potential deductions: ${formatDollars(totalDeductions)}`);
 
   lines.push('\nBy ATO category:');
-  for (const [category, amount] of Object.entries(byAtoCategory)) {
-    lines.push(`- ${category}: ${formatDollars(amount)}`);
+  for (const [category, data] of Object.entries(byAtoCategory)) {
+    lines.push(`- ${category}: ${formatDollars(data.total)} (${data.transactions.length} items)`);
+  }
+
+  // Add recent deductible transaction examples (last 10)
+  const recentDeductible = transactions
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 10);
+
+  if (recentDeductible.length > 0) {
+    lines.push('\nRecent deductible transactions:');
+    for (const t of recentDeductible) {
+      const dateStr = t.date.toLocaleDateString('en-AU', {
+        day: '2-digit',
+        month: '2-digit',
+      });
+      const atoCategory = t.atoCategory ? `[${t.atoCategory}]` : '';
+      const description = t.merchantName || t.description;
+      lines.push(`- ${dateStr}: ${description} - ${formatDollars(t.amount)} ${atoCategory}`);
+    }
   }
 
   return lines.join('\n');

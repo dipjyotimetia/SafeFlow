@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { InstitutionIcon } from '@/components/institution-icon';
 import { formatAUD } from '@/lib/utils/currency';
 import { isKnownInstitution } from '@/lib/icons/institution-icons';
-import { useAccounts, useCategories } from '@/hooks';
+import { useAccounts, useCategories, useFamilyMembers } from '@/hooks';
 import type { Transaction } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -37,12 +37,17 @@ export function TransactionList({
   onEdit,
   onDelete,
 }: TransactionListProps) {
-  // Fetch categories and accounts directly instead of prop drilling
+  // Fetch categories, accounts, and family members
   const { categories } = useCategories();
   const { accounts } = useAccounts();
+  const { members } = useFamilyMembers();
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const memberMap = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
+
+  // Check if we have any family members to show the column
+  const showMemberColumn = members.length > 0;
 
   const getTypeIcon = (type: Transaction['type']) => {
     switch (type) {
@@ -71,6 +76,7 @@ export function TransactionList({
           <TableHead>Description</TableHead>
           <TableHead>Category</TableHead>
           <TableHead>Account</TableHead>
+          {showMemberColumn && <TableHead>Member</TableHead>}
           <TableHead className="text-right">Amount</TableHead>
           <TableHead className="w-[50px]"></TableHead>
         </TableRow>
@@ -81,6 +87,9 @@ export function TransactionList({
             ? categoryMap.get(transaction.categoryId)
             : null;
           const account = accountMap.get(transaction.accountId);
+          const member = transaction.memberId
+            ? memberMap.get(transaction.memberId)
+            : null;
 
           return (
             <TableRow key={transaction.id}>
@@ -120,6 +129,21 @@ export function TransactionList({
                   <span className="text-sm">{account?.name || 'Unknown'}</span>
                 </div>
               </TableCell>
+              {showMemberColumn && (
+                <TableCell>
+                  {member ? (
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: member.color }}
+                      />
+                      <span className="text-sm">{member.name}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">Shared</span>
+                  )}
+                </TableCell>
+              )}
               <TableCell className="text-right">
                 <span
                   className={cn(

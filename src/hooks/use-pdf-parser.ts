@@ -52,6 +52,12 @@ export function usePDFParser(): PDFParserState & PDFParserActions {
   }, []);
 
   const parseFile = useCallback(async (file: File, preferredBank?: string) => {
+    // Terminate any existing worker to prevent race conditions
+    if (workerRef.current) {
+      workerRef.current.terminate();
+      workerRef.current = null;
+    }
+
     // Reset state
     setState({
       isLoading: true,

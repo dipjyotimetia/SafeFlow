@@ -1,6 +1,6 @@
 'use client';
 
-import { Cloud, CloudOff, RefreshCw, User } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,7 +10,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { getCurrentFinancialYear, formatFinancialYear } from '@/lib/utils/financial-year';
+import { useSyncStore } from '@/stores/sync.store';
+import { useFamilyStore } from '@/stores/family.store';
+import { useFamilyMembers } from '@/hooks/use-family';
 
 interface HeaderProps {
   title?: string;
@@ -19,9 +29,13 @@ interface HeaderProps {
 export function Header({ title }: HeaderProps) {
   const currentFY = getCurrentFinancialYear();
 
-  // TODO: Replace with actual sync status from store
-  const syncStatus = 'idle' as 'idle' | 'syncing' | 'synced' | 'error' | 'offline';
-  const isAuthenticated = false;
+  // Get sync status from store
+  const { status: syncStatus, isAuthenticated } = useSyncStore();
+
+  // Family member filtering
+  const { members } = useFamilyMembers({ activeOnly: true });
+  const { selectedMemberId, setSelectedMemberId } = useFamilyStore();
+  const selectedMember = members.find((m) => m.id === selectedMemberId);
 
   const getSyncIcon = () => {
     switch (syncStatus) {
@@ -59,6 +73,52 @@ export function Header({ title }: HeaderProps) {
       <div className="flex-1 md:pl-0 pl-10">
         {title && <h1 className="text-xl font-semibold">{title}</h1>}
       </div>
+
+      {/* Family Member Filter */}
+      {members.length > 0 && (
+        <Select
+          value={selectedMemberId ?? 'all'}
+          onValueChange={(value) => setSelectedMemberId(value === 'all' ? null : value)}
+        >
+          <SelectTrigger className="w-[140px] sm:w-[160px] h-9">
+            <SelectValue>
+              {selectedMember ? (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: selectedMember.color }}
+                  />
+                  <span className="truncate">{selectedMember.name}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 flex-shrink-0" />
+                  <span>All Members</span>
+                </div>
+              )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>All Members</span>
+              </div>
+            </SelectItem>
+            {members.map((member) => (
+              <SelectItem key={member.id} value={member.id}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: member.color }}
+                  />
+                  <span>{member.name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       {/* Financial Year Badge */}
       <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted text-muted-foreground text-sm">

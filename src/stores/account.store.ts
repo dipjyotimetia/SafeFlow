@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import { db } from '@/lib/db';
-import type { Account, AccountType } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import { db } from "@/lib/db";
+import type { Account, AccountType, AccountVisibility } from "@/types";
+import { v4 as uuidv4 } from "uuid";
+import { create } from "zustand";
 
 interface AccountStore {
   // State
@@ -17,6 +17,8 @@ interface AccountStore {
     type: AccountType;
     institution?: string;
     balance?: number;
+    memberId?: string;
+    visibility?: AccountVisibility;
   }) => Promise<string>;
 
   updateAccount: (id: string, data: Partial<Account>) => Promise<void>;
@@ -42,8 +44,10 @@ export const useAccountStore = create<AccountStore>((set) => ({
       type: data.type,
       institution: data.institution,
       balance: data.balance ?? 0,
-      currency: 'AUD',
+      currency: "AUD",
       isActive: true,
+      memberId: data.memberId,
+      visibility: data.visibility ?? (data.memberId ? "private" : "shared"),
       createdAt: now,
       updatedAt: now,
     });
