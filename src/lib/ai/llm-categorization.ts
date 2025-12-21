@@ -265,6 +265,8 @@ class LLMCategorizationService {
 
       for (const item of parsed) {
         if (
+          !item ||
+          typeof item.index !== 'number' ||
           item.index < 1 ||
           item.index > transactions.length ||
           !item.categoryName
@@ -273,6 +275,11 @@ class LLMCategorizationService {
         }
 
         const tx = transactions[item.index - 1];
+        if (!tx || !tx.id) {
+          console.warn('Transaction not found for index:', item.index);
+          continue;
+        }
+
         const category = categoryByName.get(item.categoryName.toLowerCase());
 
         if (category && item.confidence >= this.minConfidence) {
@@ -455,7 +462,7 @@ class LLMCategorizationService {
     if (!isAvailable) return null;
 
     // Call LLM for single transaction
-    const categoryNames = categories.map((c) => c.name);
+    const categoryNames = Array.from(categoryByName.values()).map((c) => c.name);
     const prompt = buildSingleCategorizationPrompt(
       transaction.description,
       transaction.amount,

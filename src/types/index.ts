@@ -1,7 +1,14 @@
 // SafeFlow AU - TypeScript Types
 
 // Account types
-export type AccountType = 'bank' | 'credit' | 'investment' | 'crypto' | 'cash' | 'asset' | 'liability';
+export type AccountType =
+  | "bank"
+  | "credit"
+  | "investment"
+  | "crypto"
+  | "cash"
+  | "asset"
+  | "liability";
 
 export interface Account {
   id: string;
@@ -9,17 +16,17 @@ export interface Account {
   type: AccountType;
   institution?: string;
   balance: number; // cents
-  currency: 'AUD';
+  currency: "AUD";
   isActive: boolean;
-  memberId?: string;            // Optional - for family member ownership
-  visibility?: 'private' | 'shared'; // Account visibility in family
+  memberId?: string; // Optional - for family member ownership
+  visibility?: "private" | "shared"; // Account visibility in family
   createdAt: Date;
   updatedAt: Date;
   metadata?: Record<string, unknown>;
 }
 
 // Category types
-export type CategoryType = 'income' | 'expense' | 'transfer';
+export type CategoryType = "income" | "expense" | "transfer";
 
 export interface Category {
   id: string;
@@ -36,24 +43,24 @@ export interface Category {
 }
 
 // Transaction types
-export type TransactionType = 'income' | 'expense' | 'transfer';
+export type TransactionType = "income" | "expense" | "transfer";
 export type ImportSource =
-  | 'manual'
-  | 'pdf'
+  | "manual"
+  | "pdf"
   // Big 4 Banks
-  | 'anz-pdf'
-  | 'cba-pdf'
-  | 'westpac-pdf'
-  | 'nab-pdf'
+  | "anz-pdf"
+  | "cba-pdf"
+  | "westpac-pdf"
+  | "nab-pdf"
   // Digital Banks
-  | 'ing-pdf'
-  | 'macquarie-pdf'
-  | 'up-pdf'
-  | 'bendigo-pdf'
+  | "ing-pdf"
+  | "macquarie-pdf"
+  | "up-pdf"
+  | "bendigo-pdf"
   // Investment/Crypto
-  | 'raiz-pdf'
-  | 'coinspot-pdf'
-  | 'swyftx-pdf';
+  | "raiz-pdf"
+  | "coinspot-pdf"
+  | "swyftx-pdf";
 
 export interface Transaction {
   id: string;
@@ -80,7 +87,7 @@ export interface Transaction {
   atoCategory?: string;
 
   // Family member tracking
-  memberId?: string;            // Who made this transaction
+  memberId?: string; // Who made this transaction
 
   // Metadata
   notes?: string;
@@ -91,7 +98,7 @@ export interface Transaction {
 }
 
 // Investment types (Phase 2)
-export type HoldingType = 'etf' | 'stock' | 'crypto' | 'managed-fund';
+export type HoldingType = "etf" | "stock" | "crypto" | "managed-fund";
 
 export interface Holding {
   id: string;
@@ -108,7 +115,12 @@ export interface Holding {
   updatedAt: Date;
 }
 
-export type InvestmentTransactionType = 'buy' | 'sell' | 'dividend' | 'distribution' | 'fee';
+export type InvestmentTransactionType =
+  | "buy"
+  | "sell"
+  | "dividend"
+  | "distribution"
+  | "fee";
 
 export interface InvestmentTransaction {
   id: string;
@@ -146,19 +158,25 @@ export interface TaxItem {
 }
 
 // Sync types
-export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error' | 'conflict' | 'offline';
+export type SyncStatus =
+  | "idle"
+  | "syncing"
+  | "synced"
+  | "error"
+  | "conflict"
+  | "offline";
 
 export interface SyncMetadata {
   id: string;
   lastSyncAt?: Date;
   lastSyncVersion: number;
   driveFileId?: string;
-  conflictState?: 'none' | 'pending' | 'resolved';
+  conflictState?: "none" | "pending" | "resolved";
   encryptionKeyHash?: string;
 }
 
 // Import types
-export type ImportStatus = 'pending' | 'completed' | 'partial' | 'failed';
+export type ImportStatus = "pending" | "completed" | "partial" | "failed";
 
 export interface ImportBatch {
   id: string;
@@ -175,7 +193,7 @@ export interface ParsedTransaction {
   date: Date;
   description: string;
   amount: number; // cents (positive)
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   balance?: number;
   reference?: string;
   merchantName?: string;
@@ -205,33 +223,33 @@ export interface PriceData {
 }
 
 // Superannuation types
-export type SuperProvider = 'unisuper' | 'australian-super' | 'other';
+export type SuperProvider = "unisuper" | "australian-super" | "other";
 
 export type SuperContributionType =
-  | 'employer-sg'              // Super Guarantee (11.5% mandatory)
-  | 'employer-additional'      // Employer voluntary contributions
-  | 'salary-sacrifice'         // Pre-tax employee contributions
-  | 'personal-concessional'    // Personal deductible contributions
-  | 'personal-non-concessional' // After-tax contributions
-  | 'government-co-contribution'
-  | 'spouse-contribution';
+  | "employer-sg" // Super Guarantee (11.5% mandatory)
+  | "employer-additional" // Employer voluntary contributions
+  | "salary-sacrifice" // Pre-tax employee contributions
+  | "personal-concessional" // Personal deductible contributions
+  | "personal-non-concessional" // After-tax contributions
+  | "government-co-contribution"
+  | "spouse-contribution";
 
 export type SuperTransactionType =
   | SuperContributionType
-  | 'earnings'                 // Investment returns
-  | 'fees'                     // Admin and investment fees
-  | 'insurance'                // Insurance premiums
-  | 'withdrawal'               // Lump sum or pension
-  | 'rollover-in'              // Transfer from another fund
-  | 'rollover-out';            // Transfer to another fund
+  | "earnings" // Investment returns
+  | "fees" // Admin and investment fees
+  | "insurance" // Insurance premiums
+  | "withdrawal" // Lump sum or pension
+  | "rollover-in" // Transfer from another fund
+  | "rollover-out"; // Transfer to another fund
 
 export interface SuperannuationAccount {
   id: string;
   provider: SuperProvider;
-  providerName: string;        // "UniSuper", "Australian Super"
+  providerName: string; // "UniSuper", "Australian Super"
   memberNumber: string;
-  accountName?: string;        // "Accumulation Account", "Pension Account"
-  investmentOption?: string;   // "Balanced", "High Growth", etc.
+  accountName?: string; // "Accumulation Account", "Pension Account"
+  investmentOption?: string; // "Balanced", "High Growth", etc.
   employerName?: string;
 
   // Balances (cents)
@@ -253,14 +271,14 @@ export interface SuperTransaction {
   id: string;
   superAccountId: string;
   type: SuperTransactionType;
-  amount: number;              // cents (positive for contributions, negative for fees)
+  amount: number; // cents (positive for contributions, negative for fees)
   date: Date;
   description?: string;
-  financialYear: string;       // "2024-25"
+  financialYear: string; // "2024-25"
 
   // Contribution-specific
-  employerName?: string;       // For employer contributions
-  isConcessional?: boolean;    // Tax-deductible contribution
+  employerName?: string; // For employer contributions
+  isConcessional?: boolean; // Tax-deductible contribution
 
   importSource?: ImportSource;
   importBatchId?: string;
@@ -280,8 +298,8 @@ export interface ContributionSummary {
   spouseContribution: number;
   totalConcessional: number;
   totalNonConcessional: number;
-  concessionalCap: number;      // $30,000 for 2024-25
-  nonConcessionalCap: number;   // $120,000 for 2024-25
+  concessionalCap: number; // $30,000 for 2024-25
+  nonConcessionalCap: number; // $120,000 for 2024-25
   concessionalRemaining: number;
   nonConcessionalRemaining: number;
 }
@@ -299,12 +317,17 @@ export interface FilterOptions {
   dateRange?: DateRange;
   searchQuery?: string;
   isDeductible?: boolean;
+  memberId?: string; // Filter by family member
 }
 
 // AI types
-export type AIConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type AIConnectionStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "error";
 
-export type ChatMessageRole = 'user' | 'assistant' | 'system';
+export type ChatMessageRole = "user" | "assistant" | "system";
 
 export interface ChatMessage {
   id: string;
@@ -321,7 +344,11 @@ export interface ChatConversation {
   updatedAt: Date;
 }
 
-export type CategorizationStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type CategorizationStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed";
 
 export interface CategorizationQueueItem {
   id: string;
@@ -353,32 +380,34 @@ export interface FinancialContext {
   topCategories: string;
   portfolioSummary?: string;
   taxSummary?: string;
+  recentTransactions?: string;
+  merchantPatterns?: string;
 }
 
 // Merchant Pattern Learning types
 export interface MerchantPattern {
   id: string;
-  normalizedName: string;      // Normalized merchant name (e.g., "woolworths")
-  originalExamples: string[];  // Original descriptions that matched
+  normalizedName: string; // Normalized merchant name (e.g., "woolworths")
+  originalExamples: string[]; // Original descriptions that matched
   categoryId: string;
-  categoryName: string;        // Denormalized for display
-  confidence: number;          // 0.0-1.0, increases with usage
+  categoryName: string; // Denormalized for display
+  confidence: number; // 0.0-1.0, increases with usage
   usageCount: number;
-  userConfirmed: boolean;      // True if user manually confirmed this mapping
+  userConfirmed: boolean; // True if user manually confirmed this mapping
   lastUsed: Date;
   createdAt: Date;
 }
 
 // Budget types - Simple category spending tracking
-export type BudgetPeriod = 'monthly' | 'yearly';
+export type BudgetPeriod = "monthly" | "yearly";
 
 export interface Budget {
   id: string;
   name: string;
-  categoryId?: string;          // Optional - track specific category or all spending
-  amount: number;               // Budget limit in cents
+  categoryId?: string; // Optional - track specific category or all spending
+  amount: number; // Budget limit in cents
   period: BudgetPeriod;
-  memberId?: string;            // Optional - for family member specific budgets
+  memberId?: string; // Optional - for family member specific budgets
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -386,21 +415,21 @@ export interface Budget {
 
 export interface BudgetProgress {
   budget: Budget;
-  spent: number;                // Amount spent in cents
-  remaining: number;            // Amount remaining in cents
-  percentUsed: number;          // 0-100+
+  spent: number; // Amount spent in cents
+  remaining: number; // Amount remaining in cents
+  percentUsed: number; // 0-100+
   isOverBudget: boolean;
   periodStart: Date;
   periodEnd: Date;
 }
 
 // Family/Household types
-export type AccountVisibility = 'private' | 'shared';
+export type AccountVisibility = "private" | "shared";
 
 export interface FamilyMember {
   id: string;
   name: string;
-  color: string;                // For UI differentiation
+  color: string; // For UI differentiation
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

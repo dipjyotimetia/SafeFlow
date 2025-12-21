@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { Bot, X, Minus, Trash2, MessageSquare } from 'lucide-react';
+import { useEffect, useRef, useCallback } from 'react';
+import { Bot, X, Minus, Trash2, MessageSquare, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useAIStore } from '@/stores/ai.store';
 import { ChatMessage } from './chat-message';
@@ -34,7 +33,8 @@ export function FloatingChatWidget() {
     minimizeWidget,
   } = useAIStore();
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isReady = connectionStatus === 'connected' && isModelReady;
 
   // Check connection on mount
@@ -42,12 +42,22 @@ export function FloatingChatWidget() {
     checkConnection();
   }, [checkConnection]);
 
+  // Scroll to bottom function
+  const scrollToBottom = useCallback((smooth = true) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: smooth ? 'smooth' : 'instant',
+        block: 'end',
+      });
+    }
+  }, []);
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, isStreaming]);
+    // Use a small delay to ensure content is rendered
+    const timer = setTimeout(() => scrollToBottom(true), 50);
+    return () => clearTimeout(timer);
+  }, [messages, isStreaming, scrollToBottom]);
 
   // Floating button (when closed)
   if (!isWidgetOpen) {
@@ -168,17 +178,25 @@ export function FloatingChatWidget() {
       )}
 
       {/* Messages */}
-      <ScrollArea className="flex-1" ref={scrollRef}>
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth"
+      >
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-            <div className="h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-4">
-              <MessageSquare className="h-8 w-8 text-emerald-600" />
+          <div className="flex flex-col items-center justify-center min-h-full p-6 text-center">
+            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/40 dark:to-emerald-800/40 flex items-center justify-center mb-4 shadow-sm">
+              <Sparkles className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h4 className="font-medium mb-2">Welcome to SafeFlow AI</h4>
-            <p className="text-sm text-muted-foreground max-w-[280px]">
+            <h4 className="font-semibold text-base mb-2">Welcome to SafeFlow AI</h4>
+            <p className="text-sm text-muted-foreground max-w-[280px] leading-relaxed">
               Your personal finance assistant. Ask me about your spending,
               budgets, taxes, or investments.
             </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <span className="text-xs bg-muted px-2 py-1 rounded-full">Spending analysis</span>
+              <span className="text-xs bg-muted px-2 py-1 rounded-full">Budget help</span>
+              <span className="text-xs bg-muted px-2 py-1 rounded-full">Tax tips</span>
+            </div>
           </div>
         ) : (
           <div className="divide-y">
@@ -193,9 +211,11 @@ export function FloatingChatWidget() {
                 }
               />
             ))}
+            {/* Scroll anchor */}
+            <div ref={messagesEndRef} className="h-px" />
           </div>
         )}
-      </ScrollArea>
+      </div>
 
       {/* Input */}
       <ChatInput

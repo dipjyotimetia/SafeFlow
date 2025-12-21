@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/db';
-import type { Transaction, TransactionType, FilterOptions } from '@/types';
-import { subMonths } from 'date-fns';
+import { db } from "@/lib/db";
+import type { FilterOptions, TransactionType } from "@/types";
+import { subMonths } from "date-fns";
+import { useLiveQuery } from "dexie-react-hooks";
 
 interface UseTransactionsOptions extends FilterOptions {
   limit?: number;
@@ -11,10 +11,20 @@ interface UseTransactionsOptions extends FilterOptions {
 }
 
 export function useTransactions(options: UseTransactionsOptions = {}) {
-  const { accountId, categoryId, type, dateRange, searchQuery, isDeductible, limit, offset } = options;
+  const {
+    accountId,
+    categoryId,
+    type,
+    dateRange,
+    searchQuery,
+    isDeductible,
+    memberId,
+    limit,
+    offset,
+  } = options;
 
   const transactions = useLiveQuery(async () => {
-    let results = await db.transactions.orderBy('date').reverse().toArray();
+    let results = await db.transactions.orderBy("date").reverse().toArray();
 
     // Apply filters
     if (accountId) {
@@ -30,7 +40,9 @@ export function useTransactions(options: UseTransactionsOptions = {}) {
     }
 
     if (dateRange) {
-      results = results.filter((t) => t.date >= dateRange.from && t.date <= dateRange.to);
+      results = results.filter(
+        (t) => t.date >= dateRange.from && t.date <= dateRange.to
+      );
     }
 
     if (searchQuery) {
@@ -47,6 +59,31 @@ export function useTransactions(options: UseTransactionsOptions = {}) {
       results = results.filter((t) => t.isDeductible === isDeductible);
     }
 
+    // Filter by member - show transactions belonging to member OR from shared accounts
+    if (memberId) {
+      // Get accounts to check visibility
+      const accounts = await db.accounts.toArray();
+      const accountMap = new Map(accounts.map((a) => [a.id, a]));
+
+      results = results.filter((t) => {
+        // Transaction explicitly belongs to this member
+        if (t.memberId === memberId) return true;
+
+        // Transaction belongs to a shared account (no member assigned)
+        const account = accountMap.get(t.accountId);
+        if (account && !account.memberId && account.visibility !== "private") {
+          return true;
+        }
+
+        // Transaction has no member and account has no member (legacy data)
+        if (!t.memberId && account && !account.memberId) {
+          return true;
+        }
+
+        return false;
+      });
+    }
+
     // Apply pagination
     if (offset || limit) {
       const start = offset || 0;
@@ -55,7 +92,18 @@ export function useTransactions(options: UseTransactionsOptions = {}) {
     }
 
     return results;
-  }, [accountId, categoryId, type, dateRange?.from, dateRange?.to, searchQuery, isDeductible, limit, offset]);
+  }, [
+    accountId,
+    categoryId,
+    type,
+    dateRange?.from,
+    dateRange?.to,
+    searchQuery,
+    isDeductible,
+    memberId,
+    limit,
+    offset,
+  ]);
 
   return {
     transactions: transactions ?? [],
@@ -64,13 +112,10 @@ export function useTransactions(options: UseTransactionsOptions = {}) {
 }
 
 export function useTransaction(id: string | null) {
-  const transaction = useLiveQuery(
-    async () => {
-      if (!id) return null;
-      return db.transactions.get(id);
-    },
-    [id]
-  );
+  const transaction = useLiveQuery(async () => {
+    if (!id) return null;
+    return db.transactions.get(id);
+  }, [id]);
 
   return {
     transaction: transaction ?? null,
@@ -80,7 +125,7 @@ export function useTransaction(id: string | null) {
 
 export function useRecentTransactions(limit: number = 10) {
   const transactions = useLiveQuery(async () => {
-    return db.transactions.orderBy('date').reverse().limit(limit).toArray();
+    return db.transactions.orderBy("date").reverse().limit(limit).toArray();
   }, [limit]);
 
   return {
@@ -100,13 +145,13 @@ const parseTransactionDate = (date: Date | string | unknown): Date => {
   if (date instanceof Date && !isNaN(date.getTime())) {
     return date;
   }
-  if (typeof date === 'string') {
+  if (typeof date === "string") {
     const parsed = new Date(date);
     if (!isNaN(parsed.getTime())) {
       return parsed;
     }
   }
-  console.warn('[parseTransactionDate] Invalid date:', date);
+  console.warn("[parseTransactionDate] Invalid date:", date);
   return new Date(0); // Return epoch as fallback
 };
 
@@ -132,15 +177,15 @@ export function useCashflow(months: number = 6) {
       });
 
       const income = transactions
-        .filter((t) => t.type === 'income')
+        .filter((t) => t.type === "income")
         .reduce((sum, t) => sum + t.amount, 0);
 
       const expenses = transactions
-        .filter((t) => t.type === 'expense')
+        .filter((t) => t.type === "expense")
         .reduce((sum, t) => sum + t.amount, 0);
 
       monthsData.push({
-        month: monthDate.toLocaleString('default', { month: 'short' }),
+        month: monthDate.toLocaleString("default", { month: "short" }),
         year: monthDate.getFullYear(),
         income,
         expenses,
@@ -172,11 +217,11 @@ export function useMonthlyTotals() {
     });
 
     const income = transactions
-      .filter((t) => t.type === 'income')
+      .filter((t) => t.type === "income")
       .reduce((sum, t) => sum + t.amount, 0);
 
     const expenses = transactions
-      .filter((t) => t.type === 'expense')
+      .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + t.amount, 0);
 
     return {
@@ -193,7 +238,10 @@ export function useMonthlyTotals() {
   };
 }
 
-export function useCategoryBreakdown(type: TransactionType = 'expense', months: number = 1) {
+export function useCategoryBreakdown(
+  type: TransactionType = "expense",
+  months: number = 1
+) {
   const breakdown = useLiveQuery(async () => {
     const now = new Date();
     const currentYearMonth = getYearMonth(now);
@@ -214,21 +262,18 @@ export function useCategoryBreakdown(type: TransactionType = 'expense', months: 
     const categories = await db.categories.toArray();
     const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
-    const byCategory = transactions.reduce(
-      (acc, t) => {
-        const categoryId = t.categoryId || 'uncategorized';
-        acc[categoryId] = (acc[categoryId] || 0) + t.amount;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const byCategory = transactions.reduce((acc, t) => {
+      const categoryId = t.categoryId || "uncategorized";
+      acc[categoryId] = (acc[categoryId] || 0) + t.amount;
+      return acc;
+    }, {} as Record<string, number>);
 
     return Object.entries(byCategory)
       .map(([categoryId, amount]) => {
         const category = categoryMap.get(categoryId);
         return {
           categoryId,
-          categoryName: category?.name || 'Uncategorized',
+          categoryName: category?.name || "Uncategorized",
           icon: category?.icon,
           color: category?.color,
           amount,
