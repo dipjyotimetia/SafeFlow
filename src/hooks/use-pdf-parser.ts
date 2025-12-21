@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { PDFContent, PDFWorkerResponse, ParseResult } from '@/lib/parsers/types';
 import { parserRegistry } from '@/lib/parsers';
 
@@ -40,7 +40,8 @@ export function usePDFParser(): PDFParserState & PDFParserActions {
     };
   }, []);
 
-  const reset = useCallback(() => {
+  // React Compiler automatically memoizes these - no manual useCallback needed
+  const reset = () => {
     setState({
       isLoading: false,
       progress: 0,
@@ -49,9 +50,9 @@ export function usePDFParser(): PDFParserState & PDFParserActions {
       pdfContent: null,
       parseResult: null,
     });
-  }, []);
+  };
 
-  const parseFile = useCallback(async (file: File, preferredBank?: string) => {
+  const parseFile = async (file: File, preferredBank?: string) => {
     // Terminate any existing worker to prevent race conditions
     if (workerRef.current) {
       workerRef.current.terminate();
@@ -151,7 +152,7 @@ export function usePDFParser(): PDFParserState & PDFParserActions {
         parseResult: null,
       });
     }
-  }, []);
+  };
 
   return {
     ...state,

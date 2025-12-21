@@ -113,6 +113,27 @@ export class SafeFlowDB extends Dexie {
       budgets: 'id, categoryId, memberId, period, isActive, createdAt',
       familyMembers: 'id, isActive, createdAt',
     });
+
+    // Version 6: Add compound indexes for query optimization
+    // These indexes enable efficient filtering by common query patterns
+    this.version(6).stores({
+      accounts: 'id, type, isActive, createdAt, memberId, visibility',
+      categories: 'id, type, parentId, atoCode, isActive',
+      transactions:
+        'id, accountId, categoryId, type, date, importBatchId, memberId, [accountId+date], [categoryId+date], [type+date], [memberId+date]',
+      holdings: 'id, accountId, symbol, type',
+      investmentTransactions: 'id, holdingId, type, date',
+      taxItems: 'id, financialYear, atoCategory, transactionId',
+      syncMetadata: 'id',
+      importBatches: 'id, source, importedAt',
+      superannuationAccounts: 'id, provider, memberNumber, createdAt',
+      superTransactions: 'id, superAccountId, type, date, financialYear, [superAccountId+date]',
+      chatConversations: 'id, createdAt, updatedAt',
+      categorizationQueue: 'id, transactionId, status, createdAt',
+      merchantPatterns: 'id, normalizedName, categoryId, confidence, lastUsed, userConfirmed',
+      budgets: 'id, categoryId, memberId, period, isActive, createdAt',
+      familyMembers: 'id, isActive, createdAt',
+    });
   }
 }
 

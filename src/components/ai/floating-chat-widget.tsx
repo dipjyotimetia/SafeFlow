@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { Bot, X, Minus, Trash2, MessageSquare, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -42,22 +42,22 @@ export function FloatingChatWidget() {
     checkConnection();
   }, [checkConnection]);
 
-  // Scroll to bottom function
-  const scrollToBottom = useCallback((smooth = true) => {
+  // Scroll to bottom function - React Compiler handles memoization
+  const scrollToBottom = (smooth = true) => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({
         behavior: smooth ? 'smooth' : 'instant',
         block: 'end',
       });
     }
-  }, []);
+  };
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     // Use a small delay to ensure content is rendered
     const timer = setTimeout(() => scrollToBottom(true), 50);
     return () => clearTimeout(timer);
-  }, [messages, isStreaming, scrollToBottom]);
+  }, [messages, isStreaming]);
 
   // Floating button (when closed)
   if (!isWidgetOpen) {

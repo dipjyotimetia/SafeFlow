@@ -1,9 +1,10 @@
 "use client";
 
 import { db } from "@/lib/db";
-import type { FilterOptions, TransactionType } from "@/types";
+import type { FilterOptions, Transaction, TransactionType } from "@/types";
 import { subMonths } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
+import { useDeferredValue } from "react";
 
 interface UseTransactionsOptions extends FilterOptions {
   limit?: number;
@@ -23,44 +24,122 @@ export function useTransactions(options: UseTransactionsOptions = {}) {
     offset,
   } = options;
 
-  const transactions = useLiveQuery(async () => {
-    let results = await db.transactions.orderBy("date").reverse().toArray();
+  // Defer search query to avoid blocking UI while typing
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
-    // Apply filters
-    if (accountId) {
+  const transactions = useLiveQuery(async () => {
+    let results: Transaction[];
+
+    // Use indexed queries based on filter combination for optimal performance
+    // Priority: compound indexes > single indexes > full scan
+    if (accountId && dateRange) {
+      // Use compound index [accountId+date]
+      results = await db.transactions
+        .where("[accountId+date]")
+        .between(
+          [accountId, dateRange.from],
+          [accountId, dateRange.to],
+          true,
+          true
+        )
+        .reverse()
+        .toArray();
+    } else if (categoryId && dateRange) {
+      // Use compound index [categoryId+date]
+      results = await db.transactions
+        .where("[categoryId+date]")
+        .between(
+          [categoryId, dateRange.from],
+          [categoryId, dateRange.to],
+          true,
+          true
+        )
+        .reverse()
+        .toArray();
+    } else if (type && dateRange) {
+      // Use compound index [type+date]
+      results = await db.transactions
+        .where("[type+date]")
+        .between([type, dateRange.from], [type, dateRange.to], true, true)
+        .reverse()
+        .toArray();
+    } else if (memberId && dateRange) {
+      // Use compound index [memberId+date]
+      results = await db.transactions
+        .where("[memberId+date]")
+        .between(
+          [memberId, dateRange.from],
+          [memberId, dateRange.to],
+          true,
+          true
+        )
+        .reverse()
+        .toArray();
+    } else if (dateRange) {
+      // Use date index
+      results = await db.transactions
+        .where("date")
+        .between(dateRange.from, dateRange.to, true, true)
+        .reverse()
+        .toArray();
+    } else if (accountId) {
+      // Use accountId index
+      results = await db.transactions
+        .where("accountId")
+        .equals(accountId)
+        .reverse()
+        .toArray();
+    } else if (categoryId) {
+      // Use categoryId index
+      results = await db.transactions
+        .where("categoryId")
+        .equals(categoryId)
+        .reverse()
+        .toArray();
+    } else if (type) {
+      // Use type index
+      results = await db.transactions
+        .where("type")
+        .equals(type)
+        .reverse()
+        .toArray();
+    } else {
+      // No specific filter - get all ordered by date
+      results = await db.transactions.orderBy("date").reverse().toArray();
+    }
+
+    // Determine which filter was used in the indexed query to avoid re-filtering
+    const usedAccountIdIndex = accountId && dateRange;
+    const usedCategoryIdIndex = categoryId && dateRange && !accountId;
+    const usedTypeIndex = type && dateRange && !accountId && !categoryId;
+    const usedMemberIdIndex = memberId && dateRange && !accountId && !categoryId && !type;
+    const usedSingleAccountId = accountId && !dateRange && !categoryId && !type;
+    const usedSingleCategoryId = categoryId && !dateRange && !accountId && !type;
+    const usedSingleType = type && !dateRange && !accountId && !categoryId;
+
+    // Apply accountId filter if not already filtered by index
+    if (accountId && !usedAccountIdIndex && !usedSingleAccountId) {
       results = results.filter((t) => t.accountId === accountId);
     }
 
-    if (categoryId) {
+    // Apply categoryId filter if not already filtered by index
+    if (categoryId && !usedCategoryIdIndex && !usedSingleCategoryId) {
       results = results.filter((t) => t.categoryId === categoryId);
     }
 
-    if (type) {
+    // Apply type filter if not already filtered by index
+    if (type && !usedTypeIndex && !usedSingleType) {
       results = results.filter((t) => t.type === type);
     }
 
-    if (dateRange) {
-      results = results.filter(
-        (t) => t.date >= dateRange.from && t.date <= dateRange.to
-      );
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      results = results.filter(
-        (t) =>
-          t.description.toLowerCase().includes(query) ||
-          t.merchantName?.toLowerCase().includes(query) ||
-          t.notes?.toLowerCase().includes(query)
-      );
-    }
-
+    // Apply isDeductible filter (never indexed)
     if (isDeductible !== undefined) {
       results = results.filter((t) => t.isDeductible === isDeductible);
     }
 
-    // Filter by member - show transactions belonging to member OR from shared accounts
-    if (memberId) {
+    // Apply memberId filter - show transactions belonging to member OR from shared accounts
+    // This is complex because it also checks account visibility
+    if (memberId && !usedMemberIdIndex) {
       // Get accounts to check visibility
       const accounts = await db.accounts.toArray();
       const accountMap = new Map(accounts.map((a) => [a.id, a]));
@@ -84,6 +163,17 @@ export function useTransactions(options: UseTransactionsOptions = {}) {
       });
     }
 
+    // Search query filter (can't be indexed - text search)
+    if (deferredSearchQuery) {
+      const query = deferredSearchQuery.toLowerCase();
+      results = results.filter(
+        (t) =>
+          t.description.toLowerCase().includes(query) ||
+          t.merchantName?.toLowerCase().includes(query) ||
+          t.notes?.toLowerCase().includes(query)
+      );
+    }
+
     // Apply pagination
     if (offset || limit) {
       const start = offset || 0;
@@ -98,7 +188,7 @@ export function useTransactions(options: UseTransactionsOptions = {}) {
     type,
     dateRange?.from,
     dateRange?.to,
-    searchQuery,
+    deferredSearchQuery,
     isDeductible,
     memberId,
     limit,
@@ -160,16 +250,23 @@ export function useCashflow(months: number = 6) {
     const now = new Date();
     const monthsData = [];
 
-    // Get all transactions once and filter in memory
-    // This handles inconsistent date storage formats
-    const allTransactions = await db.transactions.toArray();
+    // Calculate date range for the query
+    const startDate = subMonths(now, months - 1);
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Use indexed date query instead of loading all transactions
+    const relevantTransactions = await db.transactions
+      .where("date")
+      .aboveOrEqual(startDate)
+      .toArray();
 
     for (let i = months - 1; i >= 0; i--) {
       const monthDate = subMonths(now, i);
       const targetYearMonth = getYearMonth(monthDate);
 
       // Filter transactions by year-month to avoid timezone/time issues
-      const transactions = allTransactions.filter((t) => {
+      const transactions = relevantTransactions.filter((t) => {
         const txDate = parseTransactionDate(t.date);
         // Skip invalid dates (epoch fallback)
         if (txDate.getTime() === 0) return false;
@@ -207,11 +304,19 @@ export function useMonthlyTotals() {
     const now = new Date();
     const currentYearMonth = getYearMonth(now);
 
-    // Get all transactions and filter in memory to handle date format inconsistencies
-    const allTransactions = await db.transactions.toArray();
-    const transactions = allTransactions.filter((t) => {
+    // Calculate start of current month for indexed query
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    // Use indexed date query instead of loading all transactions
+    const monthTransactions = await db.transactions
+      .where("date")
+      .between(startOfMonth, endOfMonth, true, true)
+      .toArray();
+
+    // Filter for valid dates (handles format inconsistencies)
+    const transactions = monthTransactions.filter((t) => {
       const txDate = parseTransactionDate(t.date);
-      // Skip invalid dates (epoch fallback)
       if (txDate.getTime() === 0) return false;
       return getYearMonth(txDate) === currentYearMonth;
     });
@@ -248,12 +353,20 @@ export function useCategoryBreakdown(
     // Calculate the starting year-month (months back from current)
     const startYearMonth = currentYearMonth - (months - 1);
 
-    // Get all transactions and filter in memory to handle date format inconsistencies
-    const allTransactions = await db.transactions.toArray();
-    const transactions = allTransactions.filter((t) => {
-      if (t.type !== type) return false;
+    // Calculate date range for indexed query
+    const startDate = subMonths(now, months - 1);
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Use compound index [type+date] for optimal performance
+    const typeTransactions = await db.transactions
+      .where("[type+date]")
+      .between([type, startDate], [type, now], true, true)
+      .toArray();
+
+    // Filter for valid dates (handles format inconsistencies)
+    const transactions = typeTransactions.filter((t) => {
       const txDate = parseTransactionDate(t.date);
-      // Skip invalid dates (epoch fallback)
       if (txDate.getTime() === 0) return false;
       const txYearMonth = getYearMonth(txDate);
       return txYearMonth >= startYearMonth && txYearMonth <= currentYearMonth;
@@ -262,11 +375,14 @@ export function useCategoryBreakdown(
     const categories = await db.categories.toArray();
     const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
-    const byCategory = transactions.reduce((acc, t) => {
-      const categoryId = t.categoryId || "uncategorized";
-      acc[categoryId] = (acc[categoryId] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
+    const byCategory = transactions.reduce(
+      (acc, t) => {
+        const categoryId = t.categoryId || "uncategorized";
+        acc[categoryId] = (acc[categoryId] || 0) + t.amount;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return Object.entries(byCategory)
       .map(([categoryId, amount]) => {

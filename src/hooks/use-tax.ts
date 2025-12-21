@@ -6,17 +6,19 @@ import { getFinancialYearDates } from '@/lib/utils/financial-year';
 
 /**
  * Get deductible transactions for a financial year
+ * Optimized to use indexed date query instead of loading all transactions
  */
 export function useDeductibleTransactions(financialYear: string) {
   const { start, end } = getFinancialYearDates(financialYear);
 
   const transactions = useLiveQuery(async () => {
-    const allTransactions = await db.transactions.toArray();
+    // Use indexed date query for better performance
+    const fyTransactions = await db.transactions
+      .where('date')
+      .between(start, end, true, true)
+      .toArray();
 
-    return allTransactions.filter((t) => {
-      const date = t.date instanceof Date ? t.date : new Date(t.date);
-      return t.isDeductible && date >= start && date <= end;
-    });
+    return fyTransactions.filter((t) => t.isDeductible === true);
   }, [financialYear]);
 
   return {
@@ -27,19 +29,20 @@ export function useDeductibleTransactions(financialYear: string) {
 
 /**
  * Get deductions summary by ATO category for a financial year
+ * Optimized to use indexed date query
  */
 export function useDeductionsSummary(financialYear: string) {
   const { start, end } = getFinancialYearDates(financialYear);
 
   const summary = useLiveQuery(async () => {
-    const transactions = await db.transactions.toArray();
-    const categories = await db.categories.toArray();
+    // Use indexed date query for better performance
+    const [fyTransactions, categories] = await Promise.all([
+      db.transactions.where('date').between(start, end, true, true).toArray(),
+      db.categories.toArray(),
+    ]);
 
-    // Filter to deductible transactions in the FY
-    const deductible = transactions.filter((t) => {
-      const date = t.date instanceof Date ? t.date : new Date(t.date);
-      return t.isDeductible && date >= start && date <= end;
-    });
+    // Filter to deductible transactions
+    const deductible = fyTransactions.filter((t) => t.isDeductible === true);
 
     // Group by ATO category
     const byCategory = new Map<string, { amount: number; gst: number; count: number; name: string }>();
@@ -89,18 +92,20 @@ export function useDeductionsSummary(financialYear: string) {
 
 /**
  * Get capital gains/losses for a financial year
+ * Optimized to use indexed date query
  */
 export function useCapitalGains(financialYear: string) {
   const { start, end } = getFinancialYearDates(financialYear);
 
   const data = useLiveQuery(async () => {
-    const transactions = await db.investmentTransactions.toArray();
+    // Use indexed date query for better performance
+    const fyTransactions = await db.investmentTransactions
+      .where('date')
+      .between(start, end, true, true)
+      .toArray();
 
-    // Filter to sell transactions in the FY
-    const sells = transactions.filter((t) => {
-      const date = t.date instanceof Date ? t.date : new Date(t.date);
-      return t.type === 'sell' && date >= start && date <= end;
-    });
+    // Filter to sell transactions
+    const sells = fyTransactions.filter((t) => t.type === 'sell');
 
     const gains = sells.filter((t) => (t.capitalGain || 0) > 0);
     const losses = sells.filter((t) => (t.capitalGain || 0) < 0);
@@ -148,25 +153,25 @@ export function useCapitalGains(financialYear: string) {
 
 /**
  * Get income summary for a financial year
+ * Optimized to use indexed date queries with parallel fetching
  */
 export function useIncomeSummary(financialYear: string) {
   const { start, end } = getFinancialYearDates(financialYear);
 
   const summary = useLiveQuery(async () => {
-    const transactions = await db.transactions.toArray();
-    const investmentTrans = await db.investmentTransactions.toArray();
+    // Fetch transactions and investment transactions in parallel with indexed queries
+    const [fyTransactions, fyInvestmentTrans] = await Promise.all([
+      db.transactions.where('date').between(start, end, true, true).toArray(),
+      db.investmentTransactions.where('date').between(start, end, true, true).toArray(),
+    ]);
 
     // Filter income transactions
-    const income = transactions.filter((t) => {
-      const date = t.date instanceof Date ? t.date : new Date(t.date);
-      return t.type === 'income' && date >= start && date <= end;
-    });
+    const income = fyTransactions.filter((t) => t.type === 'income');
 
     // Filter dividends and distributions
-    const dividends = investmentTrans.filter((t) => {
-      const date = t.date instanceof Date ? t.date : new Date(t.date);
-      return (t.type === 'dividend' || t.type === 'distribution') && date >= start && date <= end;
-    });
+    const dividends = fyInvestmentTrans.filter(
+      (t) => t.type === 'dividend' || t.type === 'distribution'
+    );
 
     const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
     const totalDividends = dividends.reduce((sum, t) => sum + t.totalAmount, 0);
@@ -194,27 +199,37 @@ export function useIncomeSummary(financialYear: string) {
 
 /**
  * Get list of available financial years based on transaction data
+ * This still needs to scan transactions but is called infrequently
  */
 export function useAvailableFinancialYears() {
   const years = useLiveQuery(async () => {
-    const transactions = await db.transactions.toArray();
+    // Get the date range of all transactions efficiently
+    const oldestTx = await db.transactions.orderBy('date').first();
+    const newestTx = await db.transactions.orderBy('date').last();
 
-    if (transactions.length === 0) {
-      // Return current and previous FY
+    if (!oldestTx || !newestTx) {
+      // Return current FY
       const now = new Date();
-      const currentFY = now.getMonth() >= 6
-        ? `${now.getFullYear()}-${(now.getFullYear() + 1).toString().slice(-2)}`
-        : `${now.getFullYear() - 1}-${now.getFullYear().toString().slice(-2)}`;
+      const currentFY =
+        now.getMonth() >= 6
+          ? `${now.getFullYear()}-${(now.getFullYear() + 1).toString().slice(-2)}`
+          : `${now.getFullYear() - 1}-${now.getFullYear().toString().slice(-2)}`;
       return [currentFY];
     }
 
+    // Generate FY range from oldest to newest transaction
     const fySet = new Set<string>();
-    for (const t of transactions) {
-      const date = t.date instanceof Date ? t.date : new Date(t.date);
-      const fy = date.getMonth() >= 6
-        ? `${date.getFullYear()}-${(date.getFullYear() + 1).toString().slice(-2)}`
-        : `${date.getFullYear() - 1}-${date.getFullYear().toString().slice(-2)}`;
-      fySet.add(fy);
+
+    const oldestDate = oldestTx.date instanceof Date ? oldestTx.date : new Date(oldestTx.date);
+    const newestDate = newestTx.date instanceof Date ? newestTx.date : new Date(newestTx.date);
+
+    // Calculate FY for oldest date
+    let currentYear = oldestDate.getMonth() >= 6 ? oldestDate.getFullYear() : oldestDate.getFullYear() - 1;
+    const endYear = newestDate.getMonth() >= 6 ? newestDate.getFullYear() : newestDate.getFullYear() - 1;
+
+    while (currentYear <= endYear) {
+      fySet.add(`${currentYear}-${(currentYear + 1).toString().slice(-2)}`);
+      currentYear++;
     }
 
     return Array.from(fySet).sort().reverse();

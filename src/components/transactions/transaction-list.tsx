@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { ArrowUpCircle, ArrowDownCircle, ArrowRightLeft, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import {
@@ -42,9 +41,10 @@ export function TransactionList({
   const { accounts } = useAccounts();
   const { members } = useFamilyMembers();
 
-  const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
-  const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
-  const memberMap = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
+  // React Compiler automatically memoizes these - no manual useMemo needed
+  const categoryMap = new Map(categories.map((c) => [c.id, c]));
+  const accountMap = new Map(accounts.map((a) => [a.id, a]));
+  const memberMap = new Map(members.map((m) => [m.id, m]));
 
   // Check if we have any family members to show the column
   const showMemberColumn = members.length > 0;

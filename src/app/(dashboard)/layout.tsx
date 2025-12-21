@@ -1,9 +1,15 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
-import { FloatingChatWidget } from '@/components/ai';
 import { initializeDatabase } from '@/lib/db';
+
+// Lazy load FloatingChatWidget - it's not needed for initial render
+const FloatingChatWidget = dynamic(
+  () => import('@/components/ai').then((mod) => mod.FloatingChatWidget),
+  { ssr: false }
+);
 
 export default function DashboardLayout({
   children,
