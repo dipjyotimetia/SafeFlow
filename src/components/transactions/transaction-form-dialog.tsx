@@ -46,7 +46,13 @@ import { toast } from 'sonner';
 const formSchema = z.object({
   accountId: z.string().min(1, 'Account is required'),
   type: z.enum(['income', 'expense', 'transfer']),
-  amount: z.string().min(1, 'Amount is required'),
+  amount: z.string()
+    .min(1, 'Amount is required')
+    .refine((val) => {
+      const cleaned = val.replace(/[$,\s]/g, '');
+      const parsed = parseFloat(cleaned);
+      return !isNaN(parsed) && parsed > 0;
+    }, { message: 'Must be a valid positive number' }),
   description: z.string().min(1, 'Description is required'),
   categoryId: z.string().optional(),
   date: z.date(),

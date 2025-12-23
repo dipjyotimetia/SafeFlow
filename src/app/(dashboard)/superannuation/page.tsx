@@ -61,7 +61,7 @@ import {
   useSuperFinancialYears,
 } from '@/hooks';
 import { useSuperannuationStore } from '@/stores/superannuation.store';
-import { formatAUD } from '@/lib/utils/currency';
+import { formatAUD, parseAUD } from '@/lib/utils/currency';
 import { getCurrentFinancialYear, formatFinancialYear } from '@/lib/utils/financial-year';
 import { cn } from '@/lib/utils';
 import type { SuperProvider, SuperannuationAccount, SuperTransactionType } from '@/types';
@@ -134,7 +134,7 @@ export default function SuperannuationPage() {
         accountName: newAccount.accountName || undefined,
         investmentOption: newAccount.investmentOption || undefined,
         employerName: newAccount.employerName || undefined,
-        totalBalance: Math.round(parseFloat(newAccount.totalBalance || '0') * 100),
+        totalBalance: parseAUD(newAccount.totalBalance),
       });
 
       toast.success('Super account added');

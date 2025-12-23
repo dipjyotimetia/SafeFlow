@@ -50,7 +50,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useHoldings, usePortfolioSummary, useAccounts } from '@/hooks';
 import { useHoldingStore } from '@/stores/holding.store';
-import { formatAUD } from '@/lib/utils/currency';
+import { formatAUD, parseAUD } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 import type { HoldingType, Holding } from '@/types';
 import { toast } from 'sonner';
@@ -93,13 +93,15 @@ export default function InvestmentsPage() {
     }
 
     try {
+      // Parse units as float (can be fractional), cost basis using parseAUD for consistency
+      const parsedUnits = parseFloat(newHolding.units);
       await createHolding({
         accountId: newHolding.accountId,
         symbol: newHolding.symbol,
         name: newHolding.name || newHolding.symbol,
         type: newHolding.type,
-        units: parseFloat(newHolding.units) || 0,
-        costBasis: Math.round((parseFloat(newHolding.costBasis) || 0) * 100),
+        units: isNaN(parsedUnits) ? 0 : parsedUnits,
+        costBasis: parseAUD(newHolding.costBasis),
       });
 
       toast.success('Holding added');

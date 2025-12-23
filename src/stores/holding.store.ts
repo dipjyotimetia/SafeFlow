@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { db } from '@/lib/db';
 import { fetchPrices } from '@/lib/prices';
-import type { Holding, HoldingType, InvestmentTransaction, InvestmentTransactionType } from '@/types';
+import { calculateFrankingCredit, calculateGrossedUpDividend } from '@/lib/utils/franking';
+import type {
+  Holding,
+  HoldingType,
+  InvestmentTransaction,
+  InvestmentTransactionType,
+  CompanyTaxRate,
+} from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface HoldingStore {
@@ -36,6 +43,9 @@ interface HoldingStore {
     fees?: number;
     date: Date;
     notes?: string;
+    // Franking credit fields (for dividends/distributions)
+    frankingPercentage?: number; // 0-100
+    companyTaxRate?: CompanyTaxRate; // 30 or 25
   }) => Promise<string>;
 
   deleteTransaction: (id: string) => Promise<void>;
@@ -127,6 +137,23 @@ export const useHoldingStore = create<HoldingStore>((set, get) => ({
     const now = new Date();
     const totalAmount = data.units * data.pricePerUnit + (data.fees || 0);
 
+    // Calculate franking credit for dividends and distributions
+    let frankingCreditAmount: number | undefined;
+    let grossedUpAmount: number | undefined;
+
+    if (
+      (data.type === 'dividend' || data.type === 'distribution') &&
+      data.frankingPercentage !== undefined &&
+      data.frankingPercentage > 0
+    ) {
+      frankingCreditAmount = calculateFrankingCredit(
+        totalAmount,
+        data.frankingPercentage,
+        data.companyTaxRate || 30
+      );
+      grossedUpAmount = calculateGrossedUpDividend(totalAmount, frankingCreditAmount);
+    }
+
     // Create the transaction
     await db.investmentTransactions.add({
       id,
@@ -138,6 +165,11 @@ export const useHoldingStore = create<HoldingStore>((set, get) => ({
       fees: data.fees,
       date: data.date,
       notes: data.notes,
+      // Franking credit fields
+      frankingPercentage: data.frankingPercentage,
+      companyTaxRate: data.companyTaxRate,
+      frankingCreditAmount,
+      grossedUpAmount,
       createdAt: now,
       updatedAt: now,
     });
@@ -152,10 +184,12 @@ export const useHoldingStore = create<HoldingStore>((set, get) => ({
         newUnits += data.units;
         newCostBasis += totalAmount;
       } else if (data.type === 'sell') {
-        // Calculate proportional cost basis reduction
-        const costPerUnit = holding.costBasis / holding.units;
+        // Calculate proportional cost basis reduction using integer math
+        // Avoids float division drift: (costBasis * remainingUnits) / totalUnits
         newUnits -= data.units;
-        newCostBasis = Math.round(newUnits * costPerUnit);
+        newCostBasis = holding.units > 0
+          ? Math.round((holding.costBasis * newUnits) / holding.units)
+          : 0;
       }
 
       await db.holdings.update(data.holdingId, {

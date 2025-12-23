@@ -104,7 +104,10 @@ export function useBudgetProgress(budgetId: string | null) {
       const transactions = await query.toArray();
       const spent = transactions.reduce((sum, t) => sum + (t.amount ?? 0), 0);
       const remaining = budget.amount - spent;
-      const percentUsed = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
+      // Round to 2 decimal places for consistent display
+      const percentUsed = budget.amount > 0
+        ? Math.round((spent / budget.amount) * 10000) / 100
+        : 0;
 
       return {
         budget,
@@ -162,7 +165,10 @@ export function useAllBudgetProgress(memberId?: string) {
 
         const spent = transactions.reduce((sum, t) => sum + (t.amount ?? 0), 0);
         const remaining = budget.amount - spent;
-        const percentUsed = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
+        // Round to 2 decimal places for consistent display
+        const percentUsed = budget.amount > 0
+          ? Math.round((spent / budget.amount) * 10000) / 100
+          : 0;
 
         progressList.push({
           budget,

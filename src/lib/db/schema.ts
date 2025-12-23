@@ -15,6 +15,7 @@ import type {
   MerchantPattern,
   Budget,
   FamilyMember,
+  Goal,
 } from '@/types';
 
 export class SafeFlowDB extends Dexie {
@@ -33,6 +34,7 @@ export class SafeFlowDB extends Dexie {
   merchantPatterns!: Table<MerchantPattern>;
   budgets!: Table<Budget>;
   familyMembers!: Table<FamilyMember>;
+  goals!: Table<Goal>;
 
   constructor() {
     super('safeflow-db');
@@ -134,6 +136,27 @@ export class SafeFlowDB extends Dexie {
       budgets: 'id, categoryId, memberId, period, isActive, createdAt',
       familyMembers: 'id, isActive, createdAt',
     });
+
+    // Version 7: Add goals table and investment transaction index for dividend queries
+    this.version(7).stores({
+      accounts: 'id, type, isActive, createdAt, memberId, visibility',
+      categories: 'id, type, parentId, atoCode, isActive',
+      transactions:
+        'id, accountId, categoryId, type, date, importBatchId, memberId, [accountId+date], [categoryId+date], [type+date], [memberId+date]',
+      holdings: 'id, accountId, symbol, type',
+      investmentTransactions: 'id, holdingId, type, date, [type+date]',
+      taxItems: 'id, financialYear, atoCategory, transactionId',
+      syncMetadata: 'id',
+      importBatches: 'id, source, importedAt',
+      superannuationAccounts: 'id, provider, memberNumber, createdAt',
+      superTransactions: 'id, superAccountId, type, date, financialYear, [superAccountId+date]',
+      chatConversations: 'id, createdAt, updatedAt',
+      categorizationQueue: 'id, transactionId, status, createdAt',
+      merchantPatterns: 'id, normalizedName, categoryId, confidence, lastUsed, userConfirmed',
+      budgets: 'id, categoryId, memberId, period, isActive, createdAt',
+      familyMembers: 'id, isActive, createdAt',
+      goals: 'id, type, status, targetDate, createdAt',
+    });
   }
 }
 
@@ -156,4 +179,5 @@ export type {
   MerchantPattern,
   Budget,
   FamilyMember,
+  Goal,
 };

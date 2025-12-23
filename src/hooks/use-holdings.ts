@@ -66,7 +66,10 @@ export function usePortfolioSummary() {
       totalGainLoss += value - costBasis;
     }
 
-    const gainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+    // Round to 2 decimal places for consistent display
+    const gainLossPercent = totalCostBasis > 0
+      ? Math.round((totalGainLoss / totalCostBasis) * 10000) / 100
+      : 0;
 
     return {
       totalValue,

@@ -137,9 +137,18 @@ export interface InvestmentTransaction {
   capitalGain?: number;
   holdingPeriod?: number; // days
 
+  // Franking credits (for dividends/distributions)
+  frankingPercentage?: number; // 0-100 (100 = fully franked)
+  companyTaxRate?: CompanyTaxRate; // 30 or 25
+  frankingCreditAmount?: number; // cents - calculated franking credit
+  grossedUpAmount?: number; // cents - cash dividend + franking credit
+
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Company tax rate for franking credit calculations
+export type CompanyTaxRate = 30 | 25;
 
 // Tax types (Phase 3)
 export interface TaxItem {
@@ -438,4 +447,56 @@ export interface FamilyMember {
 export interface FamilySettings {
   householdName?: string;
   defaultVisibility: AccountVisibility;
+}
+
+// Goal types for financial projections
+export type GoalType =
+  | "net-worth" // Target net worth
+  | "retirement" // Retirement savings target
+  | "savings" // General savings goal
+  | "investment" // Investment portfolio target
+  | "debt-free" // Pay off all debt
+  | "emergency-fund" // Emergency fund target
+  | "custom"; // User-defined goal
+
+export type GoalStatus = "active" | "achieved" | "paused" | "cancelled";
+
+export interface Goal {
+  id: string;
+  name: string;
+  type: GoalType;
+  targetAmount: number; // cents
+  currentAmount: number; // cents - calculated/cached
+  targetDate?: Date; // Optional deadline
+
+  // Projection settings
+  monthlyContribution?: number; // cents - expected monthly savings
+  expectedReturnRate?: number; // Annual return rate (e.g., 0.07 for 7%)
+
+  // For retirement goals
+  retirementAge?: number;
+  preservationAge?: number; // Default 60 (Australia)
+  includeSuperannuation?: boolean;
+
+  // Tracking - link to specific accounts/holdings
+  linkedAccountIds?: string[];
+  linkedHoldingIds?: string[];
+
+  // Metadata
+  status: GoalStatus;
+  notes?: string;
+  color?: string;
+  icon?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GoalProgress {
+  goal: Goal;
+  currentAmount: number; // cents
+  progressPercent: number; // 0-100+
+  remainingAmount: number; // cents
+  projectedCompletionDate?: Date;
+  monthsToTarget?: number;
+  onTrack: boolean;
 }

@@ -32,6 +32,7 @@ export {
   useCapitalGains,
   useDeductibleTransactions,
   useDeductionsSummary,
+  useFrankingSummary,
   useIncomeSummary,
 } from "./use-tax";
 
@@ -56,3 +57,17 @@ export {
   useFamilyMembers,
   useFamilySpending,
 } from "./use-family";
+
+export {
+  useAllGoalProgress,
+  useGoal,
+  useGoalProgress,
+  useGoals,
+} from "./use-goals";
+
+export {
+  useCompoundInterest,
+  useFinancialSummary,
+  useNetWorthProjection,
+  useRetirementProjection,
+} from "./use-projections";

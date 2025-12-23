@@ -68,8 +68,13 @@ export function dollarsToCents(dollars: number): number {
 
 /**
  * Convert cents to dollars
+ *
+ * @warning Result is floating-point. Do NOT use in calculations that will
+ * be stored back as cents - use only for display purposes. For calculations,
+ * keep values in cents and only divide for final display.
+ *
  * @param cents Amount in cents
- * @returns Amount in dollars
+ * @returns Amount in dollars (floating-point)
  */
 export function centsToDollars(cents: number): number {
   return cents / 100;
