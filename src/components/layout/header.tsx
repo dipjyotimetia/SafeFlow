@@ -30,7 +30,7 @@ export function Header({ title }: HeaderProps) {
   const currentFY = getCurrentFinancialYear();
 
   // Get sync status from store
-  const { status: syncStatus, isAuthenticated } = useSyncStore();
+  const { status: syncStatus, isConnected } = useSyncStore();
 
   // Family member filtering
   const { members } = useFamilyMembers({ activeOnly: true });
@@ -63,7 +63,7 @@ export function Header({ title }: HeaderProps) {
       case 'offline':
         return 'Offline';
       default:
-        return isAuthenticated ? 'Not synced' : 'Local only';
+        return isConnected ? 'Not synced' : 'Local only';
     }
   };
 
@@ -141,17 +141,17 @@ export function Header({ title }: HeaderProps) {
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {isAuthenticated ? (
+          {isConnected ? (
             <>
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Sync Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">Sign Out</DropdownMenuItem>
+              <DropdownMenuItem className="text-red-600">Disconnect</DropdownMenuItem>
             </>
           ) : (
             <DropdownMenuItem>
               <Cloud className="mr-2 h-4 w-4" />
-              Connect Google Drive
+              Connect Cloud Sync
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

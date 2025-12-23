@@ -216,6 +216,9 @@ export interface SyncMetadata {
   driveFileId?: string;
   conflictState?: "none" | "pending" | "resolved";
   encryptionKeyHash?: string;
+  // Multi-backend support
+  backendType?: "google-drive" | "webdav" | "s3" | "local-file";
+  backendConfig?: string; // Serialized JSON config (credentials stored here)
 }
 
 // Import types
@@ -548,4 +551,562 @@ export interface HoldingSnapshot {
   units: number;
   value: number; // cents
   costBasis: number; // cents
+}
+
+// ============ Property Portfolio Types ============
+
+// Australian states for stamp duty calculation
+export type AustralianState =
+  | "NSW"
+  | "VIC"
+  | "QLD"
+  | "SA"
+  | "WA"
+  | "TAS"
+  | "NT"
+  | "ACT";
+
+// Property type classification
+export type PropertyType =
+  | "house"
+  | "apartment"
+  | "townhouse"
+  | "unit"
+  | "land"
+  | "commercial"
+  | "industrial";
+
+// Property purpose
+export type PropertyPurpose = "investment" | "owner-occupied" | "holiday";
+
+// Property status
+export type PropertyStatus = "active" | "sold" | "archived";
+
+// Loan type
+export type LoanType =
+  | "interest-only"
+  | "principal-interest"
+  | "fixed"
+  | "variable"
+  | "split";
+
+// Expense frequency for normalization
+export type ExpenseFrequency = "weekly" | "monthly" | "quarterly" | "annually";
+
+// Property expense categories
+export type PropertyExpenseCategory =
+  | "council-rates"
+  | "strata-fees"
+  | "water-rates"
+  | "building-insurance"
+  | "landlord-insurance"
+  | "property-management"
+  | "leasing-fee"
+  | "advertising"
+  | "repairs-maintenance"
+  | "cleaning"
+  | "gardening"
+  | "pest-control"
+  | "pool-maintenance"
+  | "interest-payments"
+  | "bank-charges"
+  | "depreciation"
+  | "capital-works"
+  | "other";
+
+// Property entity
+export interface Property extends Versionable {
+  id: string;
+
+  // Basic Details
+  address: string;
+  suburb: string;
+  state: AustralianState;
+  postcode: string;
+  propertyType: PropertyType;
+  purpose: PropertyPurpose;
+  status: PropertyStatus;
+
+  // Purchase Details (all in cents)
+  purchasePrice: number;
+  purchaseDate: Date;
+  valuationAmount: number;
+  valuationDate?: Date;
+
+  // Purchase Costs (all in cents)
+  stampDuty: number;
+  legalFees: number;
+  buildingInspection?: number;
+  pestInspection?: number;
+  conveyancingFees?: number;
+  mortgageRegistration?: number;
+  titleSearch?: number;
+  adjustments?: number; // Council rates/strata settled at purchase
+  otherPurchaseCosts?: number;
+
+  // Renovation/Improvement
+  renovationCost?: number;
+  renovationDate?: Date;
+  renovationDescription?: string;
+
+  // Land & Building Split (for depreciation)
+  landValue?: number;
+  buildingValue?: number;
+  buildingAge?: number; // Years at purchase for depreciation calc
+  constructionDate?: Date;
+
+  // Insurance
+  buildingInsuranceAnnual?: number;
+  landlordInsuranceAnnual?: number;
+  insurerName?: string;
+  insurancePolicyNumber?: string;
+  insuranceRenewalDate?: Date;
+
+  // Property Manager
+  hasPropertyManager: boolean;
+  propertyManagerName?: string;
+  propertyManagerCompany?: string;
+  propertyManagerEmail?: string;
+  propertyManagerPhone?: string;
+  managementFeePercent?: number; // e.g., 7.5 for 7.5%
+
+  // Key Dates
+  settlementDate?: Date;
+  lastTermiteInspection?: Date;
+  nextTermiteInspection?: Date;
+  lastLeaseInspection?: Date;
+  airconLastServiced?: Date;
+
+  // Notes and metadata
+  notes?: string;
+  memberId?: string; // Family member ownership
+
+  createdAt: Date;
+}
+
+// Property Loan
+export interface PropertyLoan extends Versionable {
+  id: string;
+  propertyId: string;
+
+  // Loan Details
+  lender: string;
+  accountNumber?: string;
+  loanName?: string; // "Home Loan 1", "Investment Loan"
+
+  // Amounts (all in cents)
+  originalLoanAmount: number;
+  currentBalance: number;
+  lmiAmount?: number; // Lenders Mortgage Insurance
+  redrawAvailable?: number;
+
+  // Interest & Terms
+  interestRate: number; // e.g., 5.75 for 5.75%
+  loanType: LoanType;
+  interestOnlyPeriodMonths?: number;
+  principalInterestPeriodMonths?: number;
+  loanTermMonths: number;
+  fixedRateExpiryDate?: Date;
+
+  // Offset Account
+  hasOffsetAccount: boolean;
+  offsetAccountId?: string; // Link to bank account if tracking separately
+  offsetBalance?: number;
+
+  // Repayment
+  repaymentAmount?: number; // Regular repayment in cents
+  repaymentFrequency?: ExpenseFrequency;
+  repaymentDay?: number; // Day of month (1-31)
+
+  // Dates
+  startDate: Date;
+  maturityDate?: Date;
+
+  createdAt: Date;
+}
+
+// Property Expense (recurring or one-off)
+export interface PropertyExpense extends Versionable {
+  id: string;
+  propertyId: string;
+
+  category: PropertyExpenseCategory;
+  description: string;
+  amount: number; // cents
+  frequency: ExpenseFrequency;
+
+  // For tracking actuals vs estimates
+  isEstimate: boolean;
+
+  // For one-off expenses
+  isRecurring: boolean;
+  expenseDate?: Date;
+
+  // Tax deductibility
+  isDeductible: boolean;
+  gstAmount?: number; // cents
+  atoCategory?: string; // D1-D10 for tax
+
+  financialYear?: string; // "2024-25"
+
+  createdAt: Date;
+}
+
+// Property Rental (tenant/lease)
+export interface PropertyRental extends Versionable {
+  id: string;
+  propertyId: string;
+
+  // Tenant Details
+  tenantName?: string;
+  tenantEmail?: string;
+  tenantPhone?: string;
+  numberOfTenants?: number;
+
+  // Lease Details
+  leaseStartDate: Date;
+  leaseEndDate: Date;
+  leaseType?: "fixed" | "periodic";
+
+  // Rental Income (cents)
+  weeklyRent: number;
+  bondAmount?: number;
+  bondLodgedWith?: string; // e.g., "NSW Fair Trading"
+  bondReceiptNumber?: string;
+
+  // Rent Reviews
+  lastRentReviewDate?: Date;
+  nextRentReviewDate?: Date;
+  rentIncreasePercent?: number;
+
+  // Vacancy allowance (percentage, e.g., 2 for 2%)
+  vacancyAllowancePercent?: number;
+
+  // Payment tracking
+  rentPaidToDate?: Date;
+  isCurrentlyOccupied: boolean;
+
+  notes?: string;
+
+  createdAt: Date;
+}
+
+// Property Depreciation (manual entry from QS report)
+export interface PropertyDepreciation extends Versionable {
+  id: string;
+  propertyId: string;
+  financialYear: string; // "2024-25"
+
+  // Division 40 (Plant & Equipment)
+  division40Amount: number; // cents
+  division40Items?: DepreciationItem[];
+
+  // Division 43 (Building/Capital Works)
+  division43Amount: number; // cents
+  division43Rate?: number; // 2.5% or 4%
+
+  totalDepreciation: number;
+
+  // Source
+  hasQuantitySurveyorReport: boolean;
+  surveyorReportDate?: Date;
+  surveyorCompany?: string;
+  surveyorReportCost?: number; // cents
+
+  notes?: string;
+
+  createdAt: Date;
+}
+
+// Individual depreciation item from QS report
+export interface DepreciationItem {
+  name: string;
+  originalValue: number; // cents
+  effectiveLife: number; // years
+  writeOffThisYear: number; // cents
+  remainingValue: number; // cents
+}
+
+// Property Model (for scenario analysis)
+export interface PropertyModel extends Versionable {
+  id: string;
+  propertyId?: string; // Optional - can be standalone model for pre-purchase
+  name: string;
+
+  // Input Assumptions
+  assumptions: PropertyAssumptions;
+
+  // Calculated Results (cached)
+  calculatedResults?: PropertyCalculatedResults;
+  lastCalculatedAt?: Date;
+
+  isActive: boolean;
+  createdAt: Date;
+}
+
+// Property Model Assumptions (inputs)
+export interface PropertyAssumptions {
+  // Property Details
+  address?: string;
+  state: AustralianState;
+  propertyType: PropertyType;
+
+  // Purchase Inputs (cents)
+  purchasePrice: number;
+  valuationAmount?: number;
+
+  // Deposit & Finance
+  depositPercent: number; // e.g., 20 for 20%
+  isFirstHomeBuyer: boolean;
+
+  // Loan Inputs
+  interestRate: number; // e.g., 5.75
+  loanType: LoanType;
+  interestOnlyPeriodYears: number;
+  principalInterestPeriodYears: number;
+  loanTermYears: number;
+
+  // Purchase Costs (optional overrides, cents)
+  stampDutyOverride?: number;
+  legalFees?: number;
+  buildingInspection?: number;
+  pestInspection?: number;
+  otherPurchaseCosts?: number;
+
+  // Income Inputs (cents)
+  weeklyRentLow: number;
+  weeklyRentHigh: number;
+  vacancyPercent: number; // e.g., 2
+
+  // Expense Inputs (annual amounts in cents, or percentages)
+  propertyManagementPercent: number; // e.g., 9 (inc GST)
+  councilRatesAnnual: number;
+  waterRatesAnnual: number;
+  strataFeesAnnual?: number;
+  buildingInsuranceAnnual: number;
+  landlordInsuranceAnnual: number;
+  maintenanceAnnual?: number;
+  poolMaintenanceAnnual?: number;
+  bankFeesAnnual?: number;
+
+  // Tax Inputs
+  marginalTaxRate: number; // e.g., 37
+
+  // Depreciation (annual estimate, cents)
+  estimatedDepreciationYear1?: number;
+
+  // Growth Assumptions (optional projections)
+  capitalGrowthPercent?: number; // e.g., 5 for 5% annual
+  rentGrowthPercent?: number; // e.g., 3 for 3% annual
+}
+
+// Property Model Calculated Results (outputs)
+export interface PropertyCalculatedResults {
+  // Capital Required (cents)
+  depositAmount: number;
+  stampDuty: number;
+  legalFees: number;
+  lmiAmount: number;
+  otherCosts: number;
+  totalCapitalRequired: number;
+
+  // Loan Details (cents)
+  loanAmountPreLMI: number;
+  loanAmountPostLMI: number;
+  lvr: number; // Loan-to-Value Ratio percentage
+
+  // Interest Payments (cents)
+  monthlyInterestPayment: number;
+  annualInterestPayment: number;
+
+  // Annual Expenses Breakdown (cents)
+  totalAnnualExpenses: number;
+  expensesBreakdown: Record<string, number>;
+
+  // Yield Analysis (percentages)
+  grossYieldLow: number;
+  grossYieldHigh: number;
+  netYieldLow: number;
+  netYieldHigh: number;
+  cashOnCashReturnLow: number;
+  cashOnCashReturnHigh: number;
+
+  // Annual Income (cents)
+  annualRentalIncomeLow: number;
+  annualRentalIncomeHigh: number;
+  annualRentalIncomeAfterVacancyLow: number;
+  annualRentalIncomeAfterVacancyHigh: number;
+
+  // Cashflow Before Tax (cents)
+  cashflowBeforeTaxWeeklyLow: number;
+  cashflowBeforeTaxWeeklyHigh: number;
+  cashflowBeforeTaxMonthlyLow: number;
+  cashflowBeforeTaxMonthlyHigh: number;
+  cashflowBeforeTaxAnnuallyLow: number;
+  cashflowBeforeTaxAnnuallyHigh: number;
+
+  // Tax Impact (cents)
+  estimatedDepreciation: number;
+  taxableIncomeLow: number;
+  taxableIncomeHigh: number;
+  estimatedTaxBenefitLow: number; // Negative gearing benefit
+  estimatedTaxBenefitHigh: number;
+
+  // Cashflow After Tax (cents)
+  cashflowAfterTaxWeeklyLow: number;
+  cashflowAfterTaxWeeklyHigh: number;
+  cashflowAfterTaxMonthlyLow: number;
+  cashflowAfterTaxMonthlyHigh: number;
+  cashflowAfterTaxAnnuallyLow: number;
+  cashflowAfterTaxAnnuallyHigh: number;
+}
+
+// Stamp Duty Calculation Result
+export interface StampDutyResult {
+  stampDuty: number; // cents
+  transferFee: number; // cents
+  mortgageRegistration: number; // cents
+  totalGovernmentCharges: number; // cents
+  isFirstHomeBuyerExempt: boolean;
+  concessionApplied: number; // cents saved
+  foreignBuyerSurcharge?: number; // cents
+}
+
+// LMI Calculation Result
+export interface LMIResult {
+  lmiAmount: number; // cents
+  lvr: number; // percentage
+  requiresLMI: boolean;
+  lmiRate: number; // percentage rate applied
+}
+
+// ============ Yield Calculator Types ============
+
+export interface YieldCalculatorInputs {
+  purchasePrice: number; // cents
+  weeklyRent: number; // cents
+  annualExpenses?: number; // cents (optional for net yield)
+}
+
+export interface YieldCalculatorResults {
+  grossYield: number; // percentage (e.g., 5.2)
+  netYield: number; // percentage
+  annualRent: number; // cents
+  annualExpenses: number; // cents
+  netOperatingIncome: number; // cents
+  assessment: {
+    category: "excellent" | "good" | "fair" | "poor";
+    description: string;
+  };
+}
+
+export interface RentScenario {
+  weeklyRent: number; // cents
+  annualRent: number; // cents
+  grossYield: number; // percentage
+  netYield: number; // percentage
+  assessment: "excellent" | "good" | "fair" | "poor";
+}
+
+// ============ Affordability Calculator Types ============
+
+export type LivingExpensesType = "declared" | "hem";
+
+export type DebtType =
+  | "credit-card"
+  | "personal-loan"
+  | "car-loan"
+  | "hecs-help"
+  | "other-mortgage"
+  | "other";
+
+export type AffordabilityStatus = "green" | "amber" | "red";
+
+export interface BorrowerProfile {
+  grossAnnualIncome: number; // cents
+  partnerGrossIncome?: number; // cents (optional)
+  numberOfDependents: number;
+  livingExpensesType: LivingExpensesType;
+  declaredLivingExpenses?: number; // cents - annual, if declared
+}
+
+export interface ExistingDebt {
+  id: string;
+  type: DebtType;
+  description?: string;
+  creditLimit?: number; // cents - for credit cards
+  currentBalance: number; // cents
+  monthlyRepayment?: number; // cents - for loans (not credit cards)
+  interestRate?: number; // percentage (optional)
+}
+
+export interface AffordabilityInputs {
+  borrower: BorrowerProfile;
+  existingDebts: ExistingDebt[];
+
+  // Property-specific (optional for "how much can I borrow" mode)
+  purchasePrice?: number; // cents
+  depositAmount?: number; // cents
+  depositPercent?: number; // percentage
+
+  // Loan assumptions
+  interestRate: number; // percentage (e.g., 6.5)
+  apraBuffer: number; // percentage - typically 3%
+  loanTermYears: number; // typically 30
+  isInterestOnly: boolean;
+
+  // Optional rental income for investment properties
+  expectedWeeklyRent?: number; // cents
+}
+
+export interface AffordabilityResults {
+  // Borrowing capacity
+  maxBorrowingAmount: number; // cents
+  assessmentRate: number; // percentage (interest rate + APRA buffer)
+
+  // Serviceability ratios
+  debtServiceRatio: number; // percentage - all debts / gross income
+  loanServiceRatio: number; // percentage - housing debt / gross income
+  dsrStatus: AffordabilityStatus;
+  lsrStatus: AffordabilityStatus;
+
+  // Monthly breakdown (cents)
+  monthlyGrossIncome: number;
+  monthlyNetIncome: number; // estimated after tax
+  monthlyLivingExpenses: number;
+  monthlyExistingDebtPayments: number;
+  availableForHousing: number;
+  proposedRepayment: number;
+  surplus: number; // can be negative
+
+  // Coverage ratio (for investment)
+  rentalCoverageRatio?: number; // rental income / interest payments
+
+  // Overall assessment
+  overallStatus: AffordabilityStatus;
+  statusDescription: string;
+}
+
+export interface StressTestScenario {
+  rateIncrease: number; // percentage (e.g., 1, 2, 3)
+  newRate: number; // percentage
+  newRepayment: number; // cents
+  monthlyCashflow: number; // cents (can be negative)
+  status: AffordabilityStatus;
+}
+
+export interface RiskMetrics {
+  maxVacancyBeforeNegative: number; // percentage
+  sensitivityPerPercent: number; // cents change per 1% rate increase
+  bufferMonths: number; // months of expenses covered by surplus
+  breakEvenRate: number; // interest rate where cashflow = 0
+}
+
+// HEM (Household Expenditure Measure) bracket
+export interface HEMBracket {
+  incomeMin: number; // dollars annual
+  incomeMax: number; // dollars annual
+  single: number; // monthly HEM in dollars
+  couple: number; // monthly HEM in dollars
+  perDependent: number; // additional per dependent in dollars
 }

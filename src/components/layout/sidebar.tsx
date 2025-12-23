@@ -16,6 +16,7 @@ import {
   X,
   PiggyBank,
   Users,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ const navSections = [
     title: 'Wealth',
     items: [
       { title: 'Investments', href: '/investments', icon: TrendingUp },
+      { title: 'Property', href: '/property', icon: Building2 },
       { title: 'Superannuation', href: '/superannuation', icon: Landmark },
     ],
   },

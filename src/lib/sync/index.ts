@@ -34,6 +34,29 @@ export {
   forceDownload,
   exportLocalBackup,
   importLocalBackup,
+  // Backend config persistence
+  saveBackendConfig,
+  loadBackendConfig,
+  clearBackendConfig,
+  // Backend-agnostic sync
+  syncWithBackend,
+  forceUploadToBackend,
+  forceDownloadFromBackend,
   type SyncData,
   type SyncResult,
 } from './sync-service';
+
+// Backend registry and types
+export {
+  backendRegistry,
+  getRequiredConfigFields,
+  createBackendFromConfig,
+  type SyncBackend,
+  type SyncBackendType,
+  type BackendConfig,
+  type GoogleDriveConfig,
+  type WebDAVConfig,
+  type S3Config,
+  type LocalFileConfig,
+  type SyncBackendUser,
+} from './backends';

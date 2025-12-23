@@ -2,30 +2,30 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { SyncStatus } from '@/types';
 import {
-  initGoogleAuth,
-  requestAccessToken,
-  signOut,
-  getAuthState,
-  syncWithDrive,
-  forceUpload,
-  forceDownload,
   isEncryptionSetUp,
-  getSyncMetadata,
   exportLocalBackup,
   importLocalBackup,
+  saveBackendConfig,
+  loadBackendConfig,
+  clearBackendConfig,
+  syncWithBackend,
+  forceUploadToBackend,
+  forceDownloadFromBackend,
+  backendRegistry,
+  type SyncBackendType,
+  type BackendConfig,
 } from '@/lib/sync';
 
-interface User {
-  email: string;
+interface ConnectionUser {
+  email?: string;
   name?: string;
-  picture?: string;
 }
 
 interface SyncStore {
-  // Auth state
-  isAuthenticated: boolean;
-  user: User | null;
-  isGoogleInitialized: boolean;
+  // Connection state (backend-agnostic)
+  activeBackendType: SyncBackendType | null;
+  isConnected: boolean;
+  connectionUser: ConnectionUser | null;
 
   // Sync state
   status: SyncStatus;
@@ -38,11 +38,11 @@ interface SyncStore {
   encryptionPassword: string | null; // Only stored in memory
 
   // Initialization
-  initGoogle: (clientId: string) => Promise<void>;
+  initializeFromStorage: () => Promise<void>;
 
-  // Auth actions
-  signInWithGoogle: () => Promise<void>;
-  signOutFromGoogle: () => Promise<void>;
+  // Connection actions
+  connectProvider: (type: SyncBackendType, config: BackendConfig) => Promise<void>;
+  disconnectProvider: () => Promise<void>;
 
   // Sync actions
   setStatus: (status: SyncStatus) => void;
@@ -65,9 +65,9 @@ export const useSyncStore = create<SyncStore>()(
   persist(
     (set, get) => ({
       // Initial state
-      isAuthenticated: false,
-      user: null,
-      isGoogleInitialized: false,
+      activeBackendType: null,
+      isConnected: false,
+      connectionUser: null,
 
       status: 'idle',
       lastSyncAt: null,
@@ -77,62 +77,114 @@ export const useSyncStore = create<SyncStore>()(
       encryptionPasswordSet: false,
       encryptionPassword: null,
 
-      // Initialization
-      initGoogle: async (clientId) => {
-        if (get().isGoogleInitialized) return;
+      // Initialize from stored configuration
+      initializeFromStorage: async () => {
+        // Reset transient state on reload to prevent stuck states
+        set({
+          status: 'idle',
+          error: null,
+        });
 
         try {
-          await initGoogleAuth(clientId);
-          set({ isGoogleInitialized: true });
-
-          // Check if already authenticated
-          const authState = getAuthState();
-          if (authState.isSignedIn) {
-            set({
-              isAuthenticated: true,
-              user: { email: authState.userEmail || '' },
-            });
-          }
-
-          // Check encryption setup (now async since it uses IndexedDB)
+          // Check if encryption is set up
           const encryptionSet = await isEncryptionSetUp();
           set({ encryptionPasswordSet: encryptionSet });
+
+          // Load saved backend config
+          const savedConfig = await loadBackendConfig();
+          if (!savedConfig) {
+            return;
+          }
+
+          const { type, config } = savedConfig;
+
+          // Create and initialize backend
+          const backend = await backendRegistry.createAndInitialize(config);
+
+          // Check if backend is still authenticated
+          if (backend.isAuthenticated()) {
+            backendRegistry.setActive(backend);
+            const user = backend.getUser();
+            set({
+              activeBackendType: type,
+              isConnected: true,
+              connectionUser: user ? { email: user.email, name: user.name } : null,
+              error: null,
+            });
+          } else {
+            // Backend exists but session expired - user needs to re-authenticate
+            set({
+              activeBackendType: type,
+              isConnected: false,
+              connectionUser: null,
+              error: 'Session expired. Please reconnect to continue syncing.',
+            });
+          }
         } catch (error) {
-          console.error('Failed to initialize Google Auth:', error);
-          set({ error: 'Failed to initialize Google Auth' });
+          console.error('[SyncStore] Failed to initialize from storage:', error);
+          set({ error: 'Failed to restore sync connection' });
         }
       },
 
-      // Auth actions
-      signInWithGoogle: async () => {
+      // Connect to a provider
+      connectProvider: async (type, config) => {
         const { setStatus, setError } = get();
         setStatus('syncing');
         setError(null);
 
         try {
-          const authState = await requestAccessToken();
+          // Create and initialize backend
+          const backend = await backendRegistry.createAndInitialize(config);
+
+          // Authenticate with the backend
+          await backend.authenticate();
+
+          // Set as active backend
+          backendRegistry.setActive(backend);
+
+          // Save configuration for reconnection
+          await saveBackendConfig(type, config);
+
+          // Get user info
+          const user = backend.getUser();
+
           set({
-            isAuthenticated: true,
-            user: { email: authState.userEmail || '' },
+            activeBackendType: type,
+            isConnected: true,
+            connectionUser: user ? { email: user.email, name: user.name } : null,
             status: 'idle',
+            error: null, // Clear any previous errors
           });
         } catch (error) {
-          setError(error instanceof Error ? error.message : 'Sign in failed');
+          setError(error instanceof Error ? error.message : 'Connection failed');
           set({ status: 'error' });
+          throw error;
         }
       },
 
-      signOutFromGoogle: async () => {
+      // Disconnect from current provider
+      disconnectProvider: async () => {
         try {
-          await signOut();
+          const backend = backendRegistry.getActive();
+          if (backend) {
+            await backend.signOut();
+          }
         } catch (error) {
-          console.error('Sign out error:', error);
+          console.error('[SyncStore] Sign out error:', error);
         }
 
+        // Clear stored config
+        await clearBackendConfig();
+
+        // Clear registry
+        backendRegistry.clearActive();
+
         set({
-          isAuthenticated: false,
-          user: null,
+          activeBackendType: null,
+          isConnected: false,
+          connectionUser: null,
           status: 'idle',
+          error: null,
           encryptionPassword: null,
         });
       },
@@ -156,10 +208,13 @@ export const useSyncStore = create<SyncStore>()(
 
       // Sync operations
       sync: async () => {
-        const { setStatus, setError, isAuthenticated, encryptionPassword } = get();
+        const { setStatus, setError, encryptionPassword } = get();
 
-        if (!isAuthenticated) {
-          setError('Not signed in to Google');
+        // Check backend authentication state (not just isConnected flag)
+        const backend = backendRegistry.getActive();
+        if (!backend || !backend.isAuthenticated()) {
+          setError('Not connected or session expired. Please reconnect.');
+          set({ isConnected: false });
           return;
         }
 
@@ -172,13 +227,14 @@ export const useSyncStore = create<SyncStore>()(
         setError(null);
 
         try {
-          const result = await syncWithDrive(encryptionPassword);
+          const result = await syncWithBackend(backend, encryptionPassword);
 
           if (result.success) {
             set({
               lastSyncAt: result.timestamp || new Date(),
               status: 'synced',
               encryptionPasswordSet: true,
+              error: null, // Clear any previous errors
             });
           } else {
             setError(result.message);
@@ -191,10 +247,13 @@ export const useSyncStore = create<SyncStore>()(
       },
 
       uploadToCloud: async () => {
-        const { setStatus, setError, isAuthenticated, encryptionPassword } = get();
+        const { setStatus, setError, encryptionPassword } = get();
 
-        if (!isAuthenticated) {
-          setError('Not signed in to Google');
+        // Check backend authentication state (not just isConnected flag)
+        const backend = backendRegistry.getActive();
+        if (!backend || !backend.isAuthenticated()) {
+          setError('Not connected or session expired. Please reconnect.');
+          set({ isConnected: false });
           return;
         }
 
@@ -207,13 +266,14 @@ export const useSyncStore = create<SyncStore>()(
         setError(null);
 
         try {
-          const result = await forceUpload(encryptionPassword);
+          const result = await forceUploadToBackend(backend, encryptionPassword);
 
           if (result.success) {
             set({
               lastSyncAt: result.timestamp || new Date(),
               status: 'synced',
               encryptionPasswordSet: true,
+              error: null, // Clear any previous errors
             });
           } else {
             setError(result.message);
@@ -226,10 +286,13 @@ export const useSyncStore = create<SyncStore>()(
       },
 
       downloadFromCloud: async () => {
-        const { setStatus, setError, isAuthenticated, encryptionPassword } = get();
+        const { setStatus, setError, encryptionPassword } = get();
 
-        if (!isAuthenticated) {
-          setError('Not signed in to Google');
+        // Check backend authentication state (not just isConnected flag)
+        const backend = backendRegistry.getActive();
+        if (!backend || !backend.isAuthenticated()) {
+          setError('Not connected or session expired. Please reconnect.');
+          set({ isConnected: false });
           return;
         }
 
@@ -242,12 +305,13 @@ export const useSyncStore = create<SyncStore>()(
         setError(null);
 
         try {
-          const result = await forceDownload(encryptionPassword);
+          const result = await forceDownloadFromBackend(backend, encryptionPassword);
 
           if (result.success) {
             set({
               lastSyncAt: result.timestamp || new Date(),
               status: 'synced',
+              error: null, // Clear any previous errors
             });
             // Reload page to reflect new data
             window.location.reload();
@@ -271,7 +335,7 @@ export const useSyncStore = create<SyncStore>()(
           await importLocalBackup(json);
           // Reload to reflect imported data
           window.location.reload();
-        } catch (error) {
+        } catch {
           throw new Error('Invalid backup file');
         }
       },
@@ -279,11 +343,14 @@ export const useSyncStore = create<SyncStore>()(
     {
       name: 'safeflow-sync',
       partialize: (state) => ({
-        isAuthenticated: state.isAuthenticated,
-        user: state.user,
+        activeBackendType: state.activeBackendType,
+        isConnected: state.isConnected,
+        connectionUser: state.connectionUser,
         lastSyncAt: state.lastSyncAt,
         isAutoSyncEnabled: state.isAutoSyncEnabled,
         encryptionPasswordSet: state.encryptionPasswordSet,
+        // Note: status is NOT persisted to prevent stuck "syncing" state on reload
+        // Note: error is NOT persisted as it's transient
         // Note: encryptionPassword is NOT persisted for security
       }),
     }

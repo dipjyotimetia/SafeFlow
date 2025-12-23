@@ -18,6 +18,12 @@ import type {
   Goal,
   PriceHistoryEntry,
   PortfolioSnapshot,
+  Property,
+  PropertyLoan,
+  PropertyExpense,
+  PropertyRental,
+  PropertyDepreciation,
+  PropertyModel,
 } from '@/types';
 
 export class SafeFlowDB extends Dexie {
@@ -39,6 +45,12 @@ export class SafeFlowDB extends Dexie {
   goals!: Table<Goal>;
   priceHistory!: Table<PriceHistoryEntry>;
   portfolioHistory!: Table<PortfolioSnapshot>;
+  properties!: Table<Property>;
+  propertyLoans!: Table<PropertyLoan>;
+  propertyExpenses!: Table<PropertyExpense>;
+  propertyRentals!: Table<PropertyRental>;
+  propertyDepreciation!: Table<PropertyDepreciation>;
+  propertyModels!: Table<PropertyModel>;
 
   constructor() {
     super('safeflow-db');
@@ -206,6 +218,36 @@ export class SafeFlowDB extends Dexie {
       priceHistory: 'id, holdingId, date, [holdingId+date]',
       portfolioHistory: 'id, date',
     });
+
+    // Version 10: Add property portfolio tables
+    this.version(10).stores({
+      accounts: 'id, type, isActive, createdAt, memberId, visibility',
+      categories: 'id, type, parentId, atoCode, isActive',
+      transactions:
+        'id, accountId, categoryId, type, date, importBatchId, memberId, [accountId+date], [categoryId+date], [type+date], [memberId+date]',
+      holdings: 'id, accountId, symbol, type',
+      investmentTransactions: 'id, holdingId, type, date, [type+date]',
+      taxItems: 'id, financialYear, atoCategory, transactionId',
+      syncMetadata: 'id',
+      importBatches: 'id, source, importedAt',
+      superannuationAccounts: 'id, provider, memberNumber, createdAt',
+      superTransactions: 'id, superAccountId, type, date, financialYear, [superAccountId+date]',
+      chatConversations: 'id, createdAt, updatedAt',
+      categorizationQueue: 'id, transactionId, status, createdAt',
+      merchantPatterns: 'id, normalizedName, categoryId, confidence, lastUsed, userConfirmed',
+      budgets: 'id, categoryId, memberId, period, isActive, createdAt',
+      familyMembers: 'id, isActive, createdAt',
+      goals: 'id, type, status, targetDate, createdAt',
+      priceHistory: 'id, holdingId, date, [holdingId+date]',
+      portfolioHistory: 'id, date',
+      // Property portfolio tables
+      properties: 'id, state, status, purpose, memberId, createdAt, [state+status]',
+      propertyLoans: 'id, propertyId, lender, createdAt',
+      propertyExpenses: 'id, propertyId, category, financialYear, isRecurring, [propertyId+category], [propertyId+financialYear]',
+      propertyRentals: 'id, propertyId, leaseStartDate, leaseEndDate, [propertyId+leaseStartDate]',
+      propertyDepreciation: 'id, propertyId, financialYear, [propertyId+financialYear]',
+      propertyModels: 'id, propertyId, isActive, createdAt',
+    });
   }
 }
 
@@ -231,4 +273,10 @@ export type {
   Goal,
   PriceHistoryEntry,
   PortfolioSnapshot,
+  Property,
+  PropertyLoan,
+  PropertyExpense,
+  PropertyRental,
+  PropertyDepreciation,
+  PropertyModel,
 };

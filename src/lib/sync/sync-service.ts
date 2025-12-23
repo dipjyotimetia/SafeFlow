@@ -1,8 +1,8 @@
 // Sync service - orchestrates data sync with pluggable backends
 
 import { db } from '@/lib/db';
-import { encrypt, decrypt, type EncryptedData, hashPassword, verifyPassword } from './encryption';
-import type { SyncBackend } from './backends/types';
+import { encrypt, decrypt, hashPassword, verifyPassword, type EncryptedData } from './encryption';
+import type { SyncBackend, SyncBackendType, BackendConfig } from './backends/types';
 import type {
   Account,
   Transaction,
@@ -22,6 +22,12 @@ import type {
   Goal,
   PriceHistoryEntry,
   PortfolioSnapshot,
+  Property,
+  PropertyLoan,
+  PropertyExpense,
+  PropertyRental,
+  PropertyDepreciation,
+  PropertyModel,
 } from '@/types';
 
 // Import for backward compatibility (legacy Google Drive sync)
@@ -51,6 +57,13 @@ export interface SyncData {
   goals?: Goal[];
   priceHistory?: PriceHistoryEntry[];
   portfolioHistory?: PortfolioSnapshot[];
+  // Property portfolio tables
+  properties?: Property[];
+  propertyLoans?: PropertyLoan[];
+  propertyExpenses?: PropertyExpense[];
+  propertyRentals?: PropertyRental[];
+  propertyDepreciation?: PropertyDepreciation[];
+  propertyModels?: PropertyModel[];
 }
 
 export interface SyncResult {
@@ -85,6 +98,12 @@ export async function exportData(): Promise<SyncData> {
     goals,
     priceHistory,
     portfolioHistory,
+    properties,
+    propertyLoans,
+    propertyExpenses,
+    propertyRentals,
+    propertyDepreciation,
+    propertyModels,
   ] = await Promise.all([
     db.accounts.toArray(),
     db.transactions.toArray(),
@@ -103,6 +122,12 @@ export async function exportData(): Promise<SyncData> {
     db.goals.toArray(),
     db.priceHistory.toArray(),
     db.portfolioHistory.toArray(),
+    db.properties.toArray(),
+    db.propertyLoans.toArray(),
+    db.propertyExpenses.toArray(),
+    db.propertyRentals.toArray(),
+    db.propertyDepreciation.toArray(),
+    db.propertyModels.toArray(),
   ]);
 
   return {
@@ -125,6 +150,12 @@ export async function exportData(): Promise<SyncData> {
     goals,
     priceHistory,
     portfolioHistory,
+    properties,
+    propertyLoans,
+    propertyExpenses,
+    propertyRentals,
+    propertyDepreciation,
+    propertyModels,
   };
 }
 
@@ -158,6 +189,12 @@ export async function importData(data: SyncData): Promise<void> {
       db.goals,
       db.priceHistory,
       db.portfolioHistory,
+      db.properties,
+      db.propertyLoans,
+      db.propertyExpenses,
+      db.propertyRentals,
+      db.propertyDepreciation,
+      db.propertyModels,
     ],
     async () => {
       // Clear all tables
@@ -179,6 +216,12 @@ export async function importData(data: SyncData): Promise<void> {
         db.goals.clear(),
         db.priceHistory.clear(),
         db.portfolioHistory.clear(),
+        db.properties.clear(),
+        db.propertyLoans.clear(),
+        db.propertyExpenses.clear(),
+        db.propertyRentals.clear(),
+        db.propertyDepreciation.clear(),
+        db.propertyModels.clear(),
       ]);
 
       // Import new data (handle backward compatibility for older exports)
@@ -199,6 +242,13 @@ export async function importData(data: SyncData): Promise<void> {
       if (data.goals?.length) await db.goals.bulkAdd(data.goals);
       if (data.priceHistory?.length) await db.priceHistory.bulkAdd(data.priceHistory);
       if (data.portfolioHistory?.length) await db.portfolioHistory.bulkAdd(data.portfolioHistory);
+      // Property tables (backward compatible - optional in older exports)
+      if (data.properties?.length) await db.properties.bulkAdd(data.properties);
+      if (data.propertyLoans?.length) await db.propertyLoans.bulkAdd(data.propertyLoans);
+      if (data.propertyExpenses?.length) await db.propertyExpenses.bulkAdd(data.propertyExpenses);
+      if (data.propertyRentals?.length) await db.propertyRentals.bulkAdd(data.propertyRentals);
+      if (data.propertyDepreciation?.length) await db.propertyDepreciation.bulkAdd(data.propertyDepreciation);
+      if (data.propertyModels?.length) await db.propertyModels.bulkAdd(data.propertyModels);
     }
   );
 }
@@ -495,6 +545,123 @@ export async function exportLocalBackup(): Promise<string> {
 export async function importLocalBackup(json: string): Promise<void> {
   const data: SyncData = JSON.parse(json);
   await importData(data);
+}
+
+// ============ Backend Configuration Persistence ============
+
+const DEVICE_KEY_STORAGE = 'safeflow-device-key';
+
+/**
+ * Convert Uint8Array to base64 (matches encryption.ts pattern)
+ */
+function arrayToBase64(array: Uint8Array): string {
+  return btoa(String.fromCharCode.apply(null, Array.from(array)));
+}
+
+/**
+ * Get or create a device-specific encryption key.
+ * This key is used to encrypt backend credentials in IndexedDB.
+ *
+ * Security note: This provides defense-in-depth against casual IndexedDB snooping,
+ * but is NOT XSS-proof. An XSS attacker can read both localStorage and IndexedDB.
+ * For maximum security, implement Content Security Policy (CSP) headers.
+ */
+function getOrCreateDeviceKey(): string {
+  if (typeof window === 'undefined') {
+    throw new Error('Device key can only be accessed in browser');
+  }
+
+  let deviceKey = localStorage.getItem(DEVICE_KEY_STORAGE);
+  if (!deviceKey) {
+    // Generate a new device key (32 random bytes = 256 bits as base64)
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    deviceKey = arrayToBase64(bytes);
+    localStorage.setItem(DEVICE_KEY_STORAGE, deviceKey);
+  }
+  return deviceKey;
+}
+
+/**
+ * Encrypt backend configuration with device key
+ */
+async function encryptConfig(config: BackendConfig): Promise<string> {
+  const deviceKey = getOrCreateDeviceKey();
+  const encrypted = await encrypt(JSON.stringify(config), deviceKey);
+  return JSON.stringify(encrypted);
+}
+
+/**
+ * Decrypt backend configuration with device key
+ */
+async function decryptConfig(encryptedConfig: string): Promise<BackendConfig> {
+  const deviceKey = getOrCreateDeviceKey();
+  const encrypted = JSON.parse(encryptedConfig) as EncryptedData;
+  const decrypted = await decrypt(encrypted, deviceKey);
+  return JSON.parse(decrypted) as BackendConfig;
+}
+
+/**
+ * Save backend configuration to IndexedDB (encrypted with device key)
+ * Credentials are encrypted before storage for XSS protection.
+ */
+export async function saveBackendConfig(
+  type: SyncBackendType,
+  config: BackendConfig
+): Promise<void> {
+  const encryptedConfig = await encryptConfig(config);
+  await saveSyncMetadata({
+    backendType: type,
+    backendConfig: encryptedConfig,
+  });
+}
+
+/**
+ * Load saved backend configuration from IndexedDB (decrypted with device key)
+ */
+export async function loadBackendConfig(): Promise<{
+  type: SyncBackendType;
+  config: BackendConfig;
+} | null> {
+  const metadata = await getSyncMetadata();
+
+  if (!metadata?.backendType || !metadata?.backendConfig) {
+    return null;
+  }
+
+  try {
+    // Try to decrypt (encrypted format)
+    const config = await decryptConfig(metadata.backendConfig);
+    return {
+      type: metadata.backendType,
+      config,
+    };
+  } catch {
+    // Fallback: try parsing as plain JSON (legacy unencrypted format)
+    try {
+      const config = JSON.parse(metadata.backendConfig) as BackendConfig;
+      // Re-save with encryption for future loads
+      await saveBackendConfig(metadata.backendType, config);
+      return {
+        type: metadata.backendType,
+        config,
+      };
+    } catch {
+      console.error('[SyncService] Failed to parse backend config');
+      // Clear corrupted config
+      await clearBackendConfig();
+      return null;
+    }
+  }
+}
+
+/**
+ * Clear saved backend configuration
+ */
+export async function clearBackendConfig(): Promise<void> {
+  await saveSyncMetadata({
+    backendType: undefined,
+    backendConfig: undefined,
+  });
 }
 
 // ============ Backend-Agnostic Sync Functions ============
