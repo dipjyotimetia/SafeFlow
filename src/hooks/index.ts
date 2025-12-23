@@ -24,7 +24,9 @@ export {
   useHoldings,
   useHoldingsByType,
   useInvestmentTransactions,
+  useMultiplePriceHistory,
   usePortfolioSummary,
+  usePriceHistory,
 } from "./use-holdings";
 
 export {
@@ -71,3 +73,13 @@ export {
   useNetWorthProjection,
   useRetirementProjection,
 } from "./use-projections";
+
+export {
+  usePortfolioHistory,
+  usePortfolioPerformance,
+  useLatestSnapshot,
+  useHasPortfolioHistory,
+  usePortfolioSnapshots,
+  getTimeRangeDays,
+} from "./use-portfolio";
+export type { TimeRange } from "./use-portfolio";

@@ -37,6 +37,7 @@ import {
   FileDown,
   FileUp,
   Trash2,
+  TrendingUp,
 } from 'lucide-react';
 import { useSyncStore } from '@/stores/sync.store';
 import { toast } from 'sonner';
@@ -356,6 +357,39 @@ export default function SettingsPage() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Investment Price Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Investment Prices
+            </CardTitle>
+            <CardDescription>
+              Configure automatic price refresh for your investments
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="font-medium">Auto-refresh on page load</p>
+                <p className="text-sm text-muted-foreground">
+                  Automatically refresh prices when visiting the Investments page if data is stale (over 1 hour old)
+                </p>
+              </div>
+              <Badge variant="default" className="text-xs">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Enabled
+              </Badge>
+            </div>
+            <div className="pt-2 border-t">
+              <p className="text-xs text-muted-foreground">
+                Price data is fetched from Yahoo Finance (ASX stocks/ETFs) and CoinGecko (cryptocurrencies).
+                Prices are stored locally and a 30-day history is kept for trend charts.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

@@ -16,6 +16,8 @@ import type {
   Budget,
   FamilyMember,
   Goal,
+  PriceHistoryEntry,
+  PortfolioSnapshot,
 } from '@/types';
 
 export class SafeFlowDB extends Dexie {
@@ -35,6 +37,8 @@ export class SafeFlowDB extends Dexie {
   budgets!: Table<Budget>;
   familyMembers!: Table<FamilyMember>;
   goals!: Table<Goal>;
+  priceHistory!: Table<PriceHistoryEntry>;
+  portfolioHistory!: Table<PortfolioSnapshot>;
 
   constructor() {
     super('safeflow-db');
@@ -157,6 +161,51 @@ export class SafeFlowDB extends Dexie {
       familyMembers: 'id, isActive, createdAt',
       goals: 'id, type, status, targetDate, createdAt',
     });
+
+    // Version 8: Add price history table for investment charts
+    this.version(8).stores({
+      accounts: 'id, type, isActive, createdAt, memberId, visibility',
+      categories: 'id, type, parentId, atoCode, isActive',
+      transactions:
+        'id, accountId, categoryId, type, date, importBatchId, memberId, [accountId+date], [categoryId+date], [type+date], [memberId+date]',
+      holdings: 'id, accountId, symbol, type',
+      investmentTransactions: 'id, holdingId, type, date, [type+date]',
+      taxItems: 'id, financialYear, atoCategory, transactionId',
+      syncMetadata: 'id',
+      importBatches: 'id, source, importedAt',
+      superannuationAccounts: 'id, provider, memberNumber, createdAt',
+      superTransactions: 'id, superAccountId, type, date, financialYear, [superAccountId+date]',
+      chatConversations: 'id, createdAt, updatedAt',
+      categorizationQueue: 'id, transactionId, status, createdAt',
+      merchantPatterns: 'id, normalizedName, categoryId, confidence, lastUsed, userConfirmed',
+      budgets: 'id, categoryId, memberId, period, isActive, createdAt',
+      familyMembers: 'id, isActive, createdAt',
+      goals: 'id, type, status, targetDate, createdAt',
+      priceHistory: 'id, holdingId, date, [holdingId+date]',
+    });
+
+    // Version 9: Add portfolio history table for portfolio performance tracking
+    this.version(9).stores({
+      accounts: 'id, type, isActive, createdAt, memberId, visibility',
+      categories: 'id, type, parentId, atoCode, isActive',
+      transactions:
+        'id, accountId, categoryId, type, date, importBatchId, memberId, [accountId+date], [categoryId+date], [type+date], [memberId+date]',
+      holdings: 'id, accountId, symbol, type',
+      investmentTransactions: 'id, holdingId, type, date, [type+date]',
+      taxItems: 'id, financialYear, atoCategory, transactionId',
+      syncMetadata: 'id',
+      importBatches: 'id, source, importedAt',
+      superannuationAccounts: 'id, provider, memberNumber, createdAt',
+      superTransactions: 'id, superAccountId, type, date, financialYear, [superAccountId+date]',
+      chatConversations: 'id, createdAt, updatedAt',
+      categorizationQueue: 'id, transactionId, status, createdAt',
+      merchantPatterns: 'id, normalizedName, categoryId, confidence, lastUsed, userConfirmed',
+      budgets: 'id, categoryId, memberId, period, isActive, createdAt',
+      familyMembers: 'id, isActive, createdAt',
+      goals: 'id, type, status, targetDate, createdAt',
+      priceHistory: 'id, holdingId, date, [holdingId+date]',
+      portfolioHistory: 'id, date',
+    });
   }
 }
 
@@ -180,4 +229,6 @@ export type {
   Budget,
   FamilyMember,
   Goal,
+  PriceHistoryEntry,
+  PortfolioSnapshot,
 };

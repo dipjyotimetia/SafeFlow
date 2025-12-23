@@ -23,7 +23,9 @@ interface AccountStore {
 
   updateAccount: (id: string, data: Partial<Account>) => Promise<void>;
 
-  deleteAccount: (id: string) => Promise<void>;
+  deleteAccount: (id: string, options?: { cascade?: boolean }) => Promise<void>;
+
+  hardDeleteAccount: (id: string) => Promise<void>;
 
   updateBalance: (id: string, balance: number) => Promise<void>;
 }
@@ -62,12 +64,89 @@ export const useAccountStore = create<AccountStore>((set) => ({
     });
   },
 
-  deleteAccount: async (id) => {
-    // Soft delete by marking inactive
-    await db.accounts.update(id, {
-      isActive: false,
-      updatedAt: new Date(),
-    });
+  deleteAccount: async (id, options = { cascade: true }) => {
+    const now = new Date();
+
+    if (options.cascade) {
+      // Cascade soft delete: mark related records inactive/deleted
+      await db.transaction(
+        "rw",
+        [db.accounts, db.transactions, db.holdings, db.investmentTransactions, db.priceHistory],
+        async () => {
+          // Get holdings for this account to cascade to investment transactions
+          const holdings = await db.holdings.where("accountId").equals(id).toArray();
+          const holdingIds = holdings.map((h) => h.id);
+
+          // Delete investment transactions for these holdings
+          if (holdingIds.length > 0) {
+            await db.investmentTransactions
+              .where("holdingId")
+              .anyOf(holdingIds)
+              .delete();
+
+            // Delete price history for these holdings
+            await db.priceHistory
+              .where("holdingId")
+              .anyOf(holdingIds)
+              .delete();
+          }
+
+          // Delete holdings for this account
+          await db.holdings.where("accountId").equals(id).delete();
+
+          // Delete transactions for this account
+          await db.transactions.where("accountId").equals(id).delete();
+
+          // Soft delete the account
+          await db.accounts.update(id, {
+            isActive: false,
+            updatedAt: now,
+          });
+        }
+      );
+    } else {
+      // Soft delete only the account
+      await db.accounts.update(id, {
+        isActive: false,
+        updatedAt: now,
+      });
+    }
+  },
+
+  hardDeleteAccount: async (id) => {
+    // Hard delete account and all related data
+    await db.transaction(
+      "rw",
+      [db.accounts, db.transactions, db.holdings, db.investmentTransactions, db.priceHistory],
+      async () => {
+        // Get holdings for this account to cascade to investment transactions
+        const holdings = await db.holdings.where("accountId").equals(id).toArray();
+        const holdingIds = holdings.map((h) => h.id);
+
+        // Delete investment transactions for these holdings
+        if (holdingIds.length > 0) {
+          await db.investmentTransactions
+            .where("holdingId")
+            .anyOf(holdingIds)
+            .delete();
+
+          // Delete price history for these holdings
+          await db.priceHistory
+            .where("holdingId")
+            .anyOf(holdingIds)
+            .delete();
+        }
+
+        // Delete holdings for this account
+        await db.holdings.where("accountId").equals(id).delete();
+
+        // Delete transactions for this account
+        await db.transactions.where("accountId").equals(id).delete();
+
+        // Hard delete the account
+        await db.accounts.delete(id);
+      }
+    );
   },
 
   updateBalance: async (id, balance) => {

@@ -69,6 +69,11 @@ export async function clearDatabase(): Promise<void> {
       db.chatConversations,
       db.categorizationQueue,
       db.merchantPatterns,
+      db.budgets,
+      db.familyMembers,
+      db.goals,
+      db.priceHistory,
+      db.portfolioHistory,
     ],
     async () => {
       await db.accounts.clear();
@@ -84,6 +89,11 @@ export async function clearDatabase(): Promise<void> {
       await db.chatConversations.clear();
       await db.categorizationQueue.clear();
       await db.merchantPatterns.clear();
+      await db.budgets.clear();
+      await db.familyMembers.clear();
+      await db.goals.clear();
+      await db.priceHistory.clear();
+      await db.portfolioHistory.clear();
     }
   );
 }
@@ -104,6 +114,11 @@ export async function exportAllData(): Promise<{
   chatConversations: unknown[];
   categorizationQueue: unknown[];
   merchantPatterns: unknown[];
+  budgets: unknown[];
+  familyMembers: unknown[];
+  goals: unknown[];
+  priceHistory: unknown[];
+  portfolioHistory: unknown[];
 }> {
   const syncMetadata = await db.syncMetadata.get('sync-state');
   const version = (syncMetadata?.lastSyncVersion ?? 0) + 1;
@@ -123,5 +138,10 @@ export async function exportAllData(): Promise<{
     chatConversations: await db.chatConversations.toArray(),
     categorizationQueue: await db.categorizationQueue.toArray(),
     merchantPatterns: await db.merchantPatterns.toArray(),
+    budgets: await db.budgets.toArray(),
+    familyMembers: await db.familyMembers.toArray(),
+    goals: await db.goals.toArray(),
+    priceHistory: await db.priceHistory.toArray(),
+    portfolioHistory: await db.portfolioHistory.toArray(),
   };
 }

@@ -1,6 +1,33 @@
 // SafeFlow AU - TypeScript Types
 
-// Account types
+// ============ Sync Versioning ============
+
+/**
+ * Interface for entities that support incremental sync.
+ * All syncable entities should extend this interface.
+ */
+export interface Versionable {
+  /** Timestamp of last modification */
+  updatedAt: Date;
+  /** Sync version number - incremented on each change */
+  syncVersion?: number;
+  /** Soft delete flag for sync */
+  isDeleted?: boolean;
+}
+
+/**
+ * Sync backend configuration types
+ */
+export type SyncBackendType = "google-drive" | "webdav" | "s3" | "local-file";
+
+export interface SyncBackendConfig {
+  type: SyncBackendType;
+  displayName: string;
+  isConfigured: boolean;
+  lastSyncAt?: Date;
+}
+
+// ============ Account types ============
 export type AccountType =
   | "bank"
   | "credit"
@@ -10,7 +37,7 @@ export type AccountType =
   | "asset"
   | "liability";
 
-export interface Account {
+export interface Account extends Versionable {
   id: string;
   name: string;
   type: AccountType;
@@ -21,14 +48,13 @@ export interface Account {
   memberId?: string; // Optional - for family member ownership
   visibility?: "private" | "shared"; // Account visibility in family
   createdAt: Date;
-  updatedAt: Date;
   metadata?: Record<string, unknown>;
 }
 
 // Category types
 export type CategoryType = "income" | "expense" | "transfer";
 
-export interface Category {
+export interface Category extends Versionable {
   id: string;
   name: string;
   type: CategoryType;
@@ -39,7 +65,6 @@ export interface Category {
   isSystem: boolean;
   isActive: boolean;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Transaction types
@@ -62,7 +87,7 @@ export type ImportSource =
   | "coinspot-pdf"
   | "swyftx-pdf";
 
-export interface Transaction {
+export interface Transaction extends Versionable {
   id: string;
   accountId: string;
   categoryId?: string;
@@ -94,13 +119,12 @@ export interface Transaction {
   tags?: string[];
   isReconciled: boolean;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Investment types (Phase 2)
 export type HoldingType = "etf" | "stock" | "crypto" | "managed-fund";
 
-export interface Holding {
+export interface Holding extends Versionable {
   id: string;
   accountId: string;
   symbol: string;
@@ -110,9 +134,21 @@ export interface Holding {
   costBasis: number; // cents
   currentPrice?: number; // cents per unit
   currentValue?: number; // cents
+  change24hPercent?: number; // 24h price change percentage
   lastPriceUpdate?: Date;
   createdAt: Date;
-  updatedAt: Date;
+}
+
+// Price history for charts and analytics
+export type PriceHistorySource = 'api' | 'manual';
+
+export interface PriceHistoryEntry {
+  id: string;
+  holdingId: string;
+  date: Date; // Date only (no time component)
+  price: number; // cents per unit
+  source: PriceHistorySource;
+  createdAt: Date;
 }
 
 export type InvestmentTransactionType =
@@ -122,7 +158,7 @@ export type InvestmentTransactionType =
   | "distribution"
   | "fee";
 
-export interface InvestmentTransaction {
+export interface InvestmentTransaction extends Versionable {
   id: string;
   holdingId: string;
   type: InvestmentTransactionType;
@@ -144,14 +180,13 @@ export interface InvestmentTransaction {
   grossedUpAmount?: number; // cents - cash dividend + franking credit
 
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Company tax rate for franking credit calculations
 export type CompanyTaxRate = 30 | 25;
 
 // Tax types (Phase 3)
-export interface TaxItem {
+export interface TaxItem extends Versionable {
   id: string;
   transactionId?: string;
   investmentTransactionId?: string;
@@ -163,7 +198,6 @@ export interface TaxItem {
   gstClaimed?: number;
   notes?: string;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Sync types
@@ -252,7 +286,7 @@ export type SuperTransactionType =
   | "rollover-in" // Transfer from another fund
   | "rollover-out"; // Transfer to another fund
 
-export interface SuperannuationAccount {
+export interface SuperannuationAccount extends Versionable {
   id: string;
   provider: SuperProvider;
   providerName: string; // "UniSuper", "Australian Super"
@@ -273,10 +307,9 @@ export interface SuperannuationAccount {
   hasIncomeProtection: boolean;
 
   createdAt: Date;
-  updatedAt: Date;
 }
 
-export interface SuperTransaction {
+export interface SuperTransaction extends Versionable {
   id: string;
   superAccountId: string;
   type: SuperTransactionType;
@@ -292,7 +325,6 @@ export interface SuperTransaction {
   importSource?: ImportSource;
   importBatchId?: string;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Contribution summary for tax and reporting
@@ -345,12 +377,11 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-export interface ChatConversation {
+export interface ChatConversation extends Versionable {
   id: string;
   title?: string;
   messages: ChatMessage[];
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export type CategorizationStatus =
@@ -410,7 +441,7 @@ export interface MerchantPattern {
 // Budget types - Simple category spending tracking
 export type BudgetPeriod = "monthly" | "yearly";
 
-export interface Budget {
+export interface Budget extends Versionable {
   id: string;
   name: string;
   categoryId?: string; // Optional - track specific category or all spending
@@ -419,7 +450,6 @@ export interface Budget {
   memberId?: string; // Optional - for family member specific budgets
   isActive: boolean;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface BudgetProgress {
@@ -435,13 +465,12 @@ export interface BudgetProgress {
 // Family/Household types
 export type AccountVisibility = "private" | "shared";
 
-export interface FamilyMember {
+export interface FamilyMember extends Versionable {
   id: string;
   name: string;
   color: string; // For UI differentiation
   isActive: boolean;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface FamilySettings {
@@ -461,7 +490,7 @@ export type GoalType =
 
 export type GoalStatus = "active" | "achieved" | "paused" | "cancelled";
 
-export interface Goal {
+export interface Goal extends Versionable {
   id: string;
   name: string;
   type: GoalType;
@@ -488,7 +517,6 @@ export interface Goal {
   color?: string;
   icon?: string;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface GoalProgress {
@@ -499,4 +527,25 @@ export interface GoalProgress {
   projectedCompletionDate?: Date;
   monthsToTarget?: number;
   onTrack: boolean;
+}
+
+// Portfolio history for tracking portfolio value over time
+export interface PortfolioSnapshot {
+  id: string;
+  date: Date; // Date only (one per day)
+  totalValue: number; // cents
+  totalCostBasis: number; // cents
+  totalGainLoss: number; // cents
+  holdingsSnapshot: HoldingSnapshot[]; // Individual holding values
+  createdAt: Date;
+}
+
+// Individual holding value at snapshot time
+export interface HoldingSnapshot {
+  holdingId: string;
+  symbol: string;
+  type: HoldingType;
+  units: number;
+  value: number; // cents
+  costBasis: number; // cents
 }

@@ -29,6 +29,41 @@ const NON_CONCESSIONAL_TYPES: SuperTransactionType[] = [
   'spouse-contribution',
 ];
 
+// Types that reduce balance
+const DEBIT_TYPES: SuperTransactionType[] = [
+  'fees',
+  'insurance',
+  'withdrawal',
+  'rollover-out',
+];
+
+/**
+ * Helper function to recalculate account balance from all transactions.
+ * This is the single source of truth for balance calculation.
+ * Must be called within a db.transaction context.
+ */
+async function recalculateAccountBalance(accountId: string): Promise<void> {
+  const transactions = await db.superTransactions
+    .where('superAccountId')
+    .equals(accountId)
+    .toArray();
+
+  let totalBalance = 0;
+  for (const t of transactions) {
+    if (DEBIT_TYPES.includes(t.type)) {
+      totalBalance -= Math.abs(t.amount);
+    } else {
+      totalBalance += t.amount;
+    }
+  }
+
+  await db.superannuationAccounts.update(accountId, {
+    totalBalance,
+    preservedBalance: totalBalance, // Simplified - assume all preserved
+    updatedAt: new Date(),
+  });
+}
+
 interface SuperannuationStore {
   // CRUD operations for accounts
   createAccount: (data: {
@@ -136,36 +171,25 @@ export const useSuperannuationStore = create<SuperannuationStore>(() => ({
     // Determine if this is a concessional contribution
     const isConcessional = CONCESSIONAL_TYPES.includes(data.type);
 
-    await db.superTransactions.add({
-      id,
-      superAccountId: data.superAccountId,
-      type: data.type,
-      amount: data.amount,
-      date: data.date,
-      description: data.description,
-      financialYear,
-      employerName: data.employerName,
-      isConcessional,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Update account balance
-    const account = await db.superannuationAccounts.get(data.superAccountId);
-    if (account) {
-      let balanceChange = data.amount;
-
-      // Fees, insurance, and withdrawals reduce balance
-      if (['fees', 'insurance', 'withdrawal', 'rollover-out'].includes(data.type)) {
-        balanceChange = -Math.abs(data.amount);
-      }
-
-      await db.superannuationAccounts.update(data.superAccountId, {
-        totalBalance: account.totalBalance + balanceChange,
-        preservedBalance: account.preservedBalance + balanceChange,
+    // Wrap in transaction for atomicity
+    await db.transaction("rw", [db.superTransactions, db.superannuationAccounts], async () => {
+      await db.superTransactions.add({
+        id,
+        superAccountId: data.superAccountId,
+        type: data.type,
+        amount: data.amount,
+        date: data.date,
+        description: data.description,
+        financialYear,
+        employerName: data.employerName,
+        isConcessional,
+        createdAt: now,
         updatedAt: now,
       });
-    }
+
+      // Recalculate balance from all transactions for consistency
+      await recalculateAccountBalance(data.superAccountId);
+    });
 
     return id;
   },
@@ -215,31 +239,16 @@ export const useSuperannuationStore = create<SuperannuationStore>(() => ({
     }
 
     if (toImport.length > 0) {
-      await db.superTransactions.bulkAdd(toImport);
+      // Wrap in transaction for atomicity
+      await db.transaction("rw", [db.superTransactions, db.superannuationAccounts], async () => {
+        await db.superTransactions.bulkAdd(toImport);
 
-      // Update account balances
-      const accountIds = [...new Set(toImport.map((t) => t.superAccountId))];
-      for (const accountId of accountIds) {
-        const accountTransactions = toImport.filter((t) => t.superAccountId === accountId);
-        const account = await db.superannuationAccounts.get(accountId);
-
-        if (account) {
-          let balanceChange = 0;
-          for (const t of accountTransactions) {
-            if (['fees', 'insurance', 'withdrawal', 'rollover-out'].includes(t.type)) {
-              balanceChange -= Math.abs(t.amount);
-            } else {
-              balanceChange += t.amount;
-            }
-          }
-
-          await db.superannuationAccounts.update(accountId, {
-            totalBalance: account.totalBalance + balanceChange,
-            preservedBalance: account.preservedBalance + balanceChange,
-            updatedAt: now,
-          });
+        // Recalculate balances for all affected accounts
+        const accountIds = [...new Set(toImport.map((t) => t.superAccountId))];
+        for (const accountId of accountIds) {
+          await recalculateAccountBalance(accountId);
         }
-      }
+      });
     }
 
     return { imported, skipped };
@@ -249,45 +258,16 @@ export const useSuperannuationStore = create<SuperannuationStore>(() => ({
     const transaction = await db.superTransactions.get(id);
     if (!transaction) return;
 
-    const account = await db.superannuationAccounts.get(transaction.superAccountId);
-    if (account) {
-      let balanceChange = -transaction.amount;
-
-      // Reverse the effect of fees/withdrawals
-      if (['fees', 'insurance', 'withdrawal', 'rollover-out'].includes(transaction.type)) {
-        balanceChange = Math.abs(transaction.amount);
-      }
-
-      await db.superannuationAccounts.update(transaction.superAccountId, {
-        totalBalance: account.totalBalance + balanceChange,
-        preservedBalance: account.preservedBalance + balanceChange,
-        updatedAt: new Date(),
-      });
-    }
-
-    await db.superTransactions.delete(id);
+    // Wrap in transaction for atomicity
+    await db.transaction("rw", [db.superTransactions, db.superannuationAccounts], async () => {
+      await db.superTransactions.delete(id);
+      await recalculateAccountBalance(transaction.superAccountId);
+    });
   },
 
   recalculateBalance: async (accountId) => {
-    const transactions = await db.superTransactions
-      .where('superAccountId')
-      .equals(accountId)
-      .toArray();
-
-    let totalBalance = 0;
-    for (const t of transactions) {
-      if (['fees', 'insurance', 'withdrawal', 'rollover-out'].includes(t.type)) {
-        totalBalance -= Math.abs(t.amount);
-      } else {
-        totalBalance += t.amount;
-      }
-    }
-
-    await db.superannuationAccounts.update(accountId, {
-      totalBalance,
-      preservedBalance: totalBalance, // Simplified - assume all preserved
-      updatedAt: new Date(),
-    });
+    // Use the centralized helper function for consistency
+    await recalculateAccountBalance(accountId);
   },
 
   getContributionSummary: async (financialYear) => {
