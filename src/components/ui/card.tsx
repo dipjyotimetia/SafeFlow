@@ -4,14 +4,33 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const cardVariants = cva(
-  "text-card-foreground flex flex-col gap-6 rounded-xl border py-6 transition-all duration-200",
+  "text-card-foreground flex flex-col gap-6 rounded-xl border py-6 transition-all duration-300",
   {
     variants: {
       variant: {
-        default: "bg-card shadow-sm",
-        gradient: "gradient-card shadow-sm",
-        glass: "backdrop-blur-md bg-card/80 border-border/50 shadow-sm",
+        default: "bg-card shadow-sm hover:shadow-md",
+        gradient: "gradient-card shadow-sm hover:shadow-md",
+        glass: "backdrop-blur-md bg-card/80 border-border/50 shadow-sm hover:shadow-md",
         elevated: "bg-card shadow-md hover:shadow-lg hover:-translate-y-0.5",
+        luxury: [
+          "bg-card border-border/40",
+          "shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)]",
+          "hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06)]",
+          "hover:-translate-y-0.5",
+          "dark:shadow-[0_1px_3px_rgba(0,0,0,0.2),0_4px_12px_rgba(0,0,0,0.15)]",
+          "dark:hover:shadow-[0_2px_6px_rgba(0,0,0,0.25),0_8px_24px_rgba(0,0,0,0.2)]",
+        ].join(" "),
+        premium: [
+          "bg-gradient-to-br from-card to-card/95",
+          "border-border/30",
+          "shadow-[0_1px_2px_rgba(0,0,0,0.03),0_2px_4px_rgba(0,0,0,0.03),0_4px_8px_rgba(0,0,0,0.03),0_8px_16px_rgba(0,0,0,0.03)]",
+          "hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_8px_16px_rgba(0,0,0,0.04),0_16px_32px_rgba(0,0,0,0.04)]",
+          "hover:-translate-y-1",
+          "dark:from-card dark:to-card/90",
+          "dark:border-border/20",
+          "dark:shadow-[0_1px_2px_rgba(0,0,0,0.15),0_2px_4px_rgba(0,0,0,0.15),0_4px_8px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)]",
+          "dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.2),0_4px_8px_rgba(0,0,0,0.2),0_8px_16px_rgba(0,0,0,0.15),0_16px_32px_rgba(0,0,0,0.15)]",
+        ].join(" "),
       },
     },
     defaultVariants: {

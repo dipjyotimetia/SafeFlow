@@ -38,15 +38,21 @@ export function CashflowChart({ data }: CashflowChartProps) {
   const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; color: string }>; label?: string }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-xl">
+        <div className="bg-popover/95 backdrop-blur-xl border border-border/40 rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] animate-scale-in">
           <p className="font-semibold text-sm mb-3 text-foreground">{label}</p>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {payload.map((entry) => (
-              <div key={entry.dataKey} className="flex items-center justify-between gap-4">
-                <span className="text-sm text-muted-foreground">
-                  {entry.dataKey === 'income' ? 'Income' : entry.dataKey === 'expenses' ? 'Expenses' : 'Net'}
-                </span>
-                <span className="text-sm font-medium tabular-nums" style={{ color: entry.color }}>
+              <div key={entry.dataKey} className="flex items-center justify-between gap-6">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {entry.dataKey === 'income' ? 'Income' : entry.dataKey === 'expenses' ? 'Expenses' : 'Net'}
+                  </span>
+                </div>
+                <span className="text-sm font-semibold tabular-nums font-display" style={{ color: entry.color }}>
                   {formatAUD(entry.value * 100)}
                 </span>
               </div>
@@ -105,28 +111,30 @@ export function CashflowChart({ data }: CashflowChartProps) {
         <Bar
           dataKey="income"
           fill="url(#incomeGradient)"
-          radius={[4, 4, 0, 0]}
+          radius={[6, 6, 0, 0]}
           isAnimationActive={true}
-          animationDuration={500}
+          animationDuration={600}
           animationEasing="ease-out"
+          className="drop-shadow-sm"
         />
         <Bar
           dataKey="expenses"
           fill="url(#expenseGradient)"
-          radius={[4, 4, 0, 0]}
+          radius={[6, 6, 0, 0]}
           isAnimationActive={true}
-          animationDuration={500}
+          animationDuration={600}
           animationEasing="ease-out"
+          className="drop-shadow-sm"
         />
         <Line
           type="monotone"
           dataKey="net"
           stroke="url(#netGradient)"
-          strokeWidth={2.5}
-          dot={{ fill: 'oklch(0.55 0.15 160)', strokeWidth: 2, r: 4, stroke: 'white' }}
-          activeDot={{ r: 6, fill: 'oklch(0.55 0.15 160)', stroke: 'white', strokeWidth: 2 }}
+          strokeWidth={3}
+          dot={{ fill: 'oklch(0.55 0.15 160)', strokeWidth: 2, r: 5, stroke: 'white', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}
+          activeDot={{ r: 8, fill: 'oklch(0.55 0.15 160)', stroke: 'white', strokeWidth: 3, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}
           isAnimationActive={true}
-          animationDuration={500}
+          animationDuration={800}
           animationEasing="ease-out"
         />
       </ComposedChart>

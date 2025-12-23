@@ -74,7 +74,7 @@ export default function DashboardPage() {
             description={`${summary.accountCount} account${summary.accountCount !== 1 ? 's' : ''}`}
             icon={Wallet}
             variant={summary.netWorth >= 0 ? 'positive' : 'negative'}
-            className={summary.netWorth >= 0 ? '[&_p:first-of-type+div>p:first-child]:text-success' : '[&_p:first-of-type+div>p:first-child]:text-destructive'}
+            className="animate-enter stagger-1"
           />
 
           <MetricCard
@@ -84,7 +84,7 @@ export default function DashboardPage() {
             icon={TrendingUp}
             trend="up"
             variant="positive"
-            className="[&_p:first-of-type+div>p:first-child]:text-success"
+            className="animate-enter stagger-2"
           />
 
           <MetricCard
@@ -94,7 +94,7 @@ export default function DashboardPage() {
             icon={TrendingDown}
             trend="down"
             variant="negative"
-            className="[&_p:first-of-type+div>p:first-child]:text-destructive"
+            className="animate-enter stagger-3"
           />
 
           <MetricCard
@@ -104,23 +104,23 @@ export default function DashboardPage() {
             icon={PiggyBank}
             trend={totals.net >= 0 ? 'up' : 'down'}
             variant={totals.net >= 0 ? 'positive' : 'negative'}
-            className={totals.net >= 0 ? '[&_p:first-of-type+div>p:first-child]:text-success' : '[&_p:first-of-type+div>p:first-child]:text-destructive'}
+            className="animate-enter stagger-4"
           />
         </div>
 
         {/* Charts Row */}
         <div className="grid gap-4 md:grid-cols-2">
-          <Card variant="elevated">
+          <Card variant="luxury" className="animate-enter stagger-5">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="space-y-1">
-                <CardTitle className="text-base">Monthly Cashflow</CardTitle>
+                <CardTitle className="text-base font-semibold">Monthly Cashflow</CardTitle>
                 <CardDescription>Income vs expenses over time</CardDescription>
               </div>
               <Select
                 value={String(cashflowMonths)}
                 onValueChange={(v) => setCashflowMonths(Number(v))}
               >
-                <SelectTrigger className="w-[110px] h-9">
+                <SelectTrigger className="w-[110px] h-9 bg-background/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -135,31 +135,33 @@ export default function DashboardPage() {
             <CardContent className="h-[300px]">
               {cashflowLoading ? (
                 <div className="h-full w-full space-y-3">
-                  <Skeleton className="h-full w-full" />
+                  <Skeleton className="h-full w-full rounded-lg" variant="premium" />
                 </div>
               ) : cashflow.length > 0 ? (
                 <CashflowChart data={cashflow} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <ArrowRightLeft className="h-12 w-12 mb-3 opacity-20" />
-                  <p className="font-medium">No cashflow data yet</p>
-                  <p className="text-sm mt-1">Import transactions to see your cashflow</p>
+                  <div className="p-4 rounded-full bg-muted/50 mb-4">
+                    <ArrowRightLeft className="h-10 w-10 opacity-30" />
+                  </div>
+                  <p className="font-semibold">No cashflow data yet</p>
+                  <p className="text-sm mt-1 text-muted-foreground/70">Import transactions to see your cashflow</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card variant="elevated">
+          <Card variant="luxury" className="animate-enter stagger-6">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="space-y-1">
-                <CardTitle className="text-base">Spending by Category</CardTitle>
+                <CardTitle className="text-base font-semibold">Spending by Category</CardTitle>
                 <CardDescription>Where your money goes</CardDescription>
               </div>
               <Select
                 value={String(categoryMonths)}
                 onValueChange={(v) => setCategoryMonths(Number(v))}
               >
-                <SelectTrigger className="w-[110px] h-9">
+                <SelectTrigger className="w-[110px] h-9 bg-background/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -174,15 +176,17 @@ export default function DashboardPage() {
             <CardContent className="h-[300px]">
               {breakdownLoading ? (
                 <div className="h-full w-full flex items-center justify-center">
-                  <Skeleton className="h-40 w-40 rounded-full" />
+                  <Skeleton className="h-40 w-40 rounded-full" variant="premium" />
                 </div>
               ) : breakdown.length > 0 ? (
                 <CategoryPieChart data={breakdown} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <PiggyBank className="h-12 w-12 mb-3 opacity-20" />
-                  <p className="font-medium">No spending data yet</p>
-                  <p className="text-sm mt-1">Add expenses to see category breakdown</p>
+                  <div className="p-4 rounded-full bg-muted/50 mb-4">
+                    <PiggyBank className="h-10 w-10 opacity-30" />
+                  </div>
+                  <p className="font-semibold">No spending data yet</p>
+                  <p className="text-sm mt-1 text-muted-foreground/70">Add expenses to see category breakdown</p>
                 </div>
               )}
             </CardContent>
@@ -190,14 +194,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Transactions */}
-        <Card variant="elevated">
+        <Card variant="luxury" className="animate-enter stagger-6">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-base">Recent Transactions</CardTitle>
+              <CardTitle className="text-base font-semibold">Recent Transactions</CardTitle>
               <CardDescription>Your latest financial activity</CardDescription>
             </div>
             <Link href="/transactions">
-              <Button variant="outline" size="sm" className="hover:bg-primary/5">
+              <Button variant="outline" size="sm" className="hover:bg-primary/5 shadow-sm">
                 View All
               </Button>
             </Link>
@@ -211,7 +215,7 @@ export default function DashboardPage() {
               </div>
             ) : recentTransactions.length > 0 ? (
               <div className="space-y-1">
-                {recentTransactions.map((transaction) => {
+                {recentTransactions.map((transaction, index) => {
                   const category = transaction.categoryId
                     ? categoryMap.get(transaction.categoryId)
                     : null;
@@ -220,12 +224,13 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={transaction.id}
-                      className="flex items-center justify-between py-3 px-2 -mx-2 rounded-lg transition-colors hover:bg-accent/50"
+                      className="flex items-center justify-between py-3 px-3 -mx-3 rounded-xl transition-all duration-200 hover:bg-accent/50 group cursor-pointer"
+                      style={{ animationDelay: `${0.4 + index * 0.05}s` }}
                     >
                       <div className="flex items-center gap-3">
                         <div
                           className={cn(
-                            'flex h-10 w-10 items-center justify-center rounded-full',
+                            'flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105',
                             transaction.type === 'income' && 'bg-success/10',
                             transaction.type === 'expense' && 'bg-destructive/10',
                             transaction.type === 'transfer' && 'bg-primary/10'
@@ -240,7 +245,7 @@ export default function DashboardPage() {
                           )}
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{transaction.description}</p>
+                          <p className="font-medium text-sm group-hover:text-foreground transition-colors">{transaction.description}</p>
                           <p className="text-xs text-muted-foreground">
                             {format(new Date(transaction.date), 'dd MMM')} • {account?.name || 'Unknown'}
                           </p>
@@ -249,7 +254,7 @@ export default function DashboardPage() {
                       <div className="text-right">
                         <p
                           className={cn(
-                            'font-semibold tabular-nums',
+                            'font-semibold tabular-nums font-display text-base',
                             transaction.type === 'income' && 'text-success',
                             transaction.type === 'expense' && 'text-destructive'
                           )}
@@ -258,7 +263,7 @@ export default function DashboardPage() {
                           {formatAUD(transaction.amount)}
                         </p>
                         {category && (
-                          <Badge variant="secondary" className="text-xs mt-1">
+                          <Badge variant="secondary" className="text-xs mt-1.5 shadow-sm">
                             {category.name}
                           </Badge>
                         )}
@@ -268,20 +273,22 @@ export default function DashboardPage() {
                 })}
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <ArrowRightLeft className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                <p className="font-medium">No transactions yet</p>
-                <p className="text-sm mt-1 mb-4">
+              <div className="text-center py-16 text-muted-foreground">
+                <div className="p-5 rounded-2xl bg-muted/30 w-fit mx-auto mb-5">
+                  <ArrowRightLeft className="h-10 w-10 opacity-30" />
+                </div>
+                <p className="font-semibold text-foreground">No transactions yet</p>
+                <p className="text-sm mt-2 mb-6 text-muted-foreground/70 max-w-xs mx-auto">
                   Import a bank statement or add a transaction to get started
                 </p>
                 <div className="flex justify-center gap-3">
                   <Link href="/import">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="shadow-sm">
                       Import Statement
                     </Button>
                   </Link>
                   <Link href="/transactions">
-                    <Button size="sm">
+                    <Button size="sm" variant="premium">
                       <Plus className="h-4 w-4 mr-1" />
                       Add Transaction
                     </Button>

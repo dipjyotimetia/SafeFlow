@@ -69,17 +69,30 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     if (active && payload && payload.length) {
       const item = payload[0].payload;
       return (
-        <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-xl min-w-[140px]">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="bg-popover/95 backdrop-blur-xl border border-border/40 rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] min-w-[160px] animate-scale-in">
+          <div className="flex items-center gap-2 mb-3">
             <span
-              className="h-3 w-3 rounded-full"
+              className="h-3 w-3 rounded-full shadow-sm"
               style={{ backgroundColor: item.fill }}
             />
             <p className="font-semibold text-sm">{item.categoryName}</p>
           </div>
-          <div className="space-y-1">
-            <p className="text-lg font-bold tabular-nums">{formatAUD(item.amount * 100)}</p>
-            <p className="text-sm text-primary font-medium">{item.percentage.toFixed(1)}% of total</p>
+          <div className="space-y-1.5">
+            <p className="text-xl font-bold tabular-nums font-display">{formatAUD(item.amount * 100)}</p>
+            <div className="flex items-center gap-1.5">
+              <div
+                className="h-1.5 rounded-full flex-1 bg-muted overflow-hidden"
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${item.percentage}%`,
+                    backgroundColor: item.fill,
+                  }}
+                />
+              </div>
+              <span className="text-sm text-muted-foreground font-medium">{item.percentage.toFixed(1)}%</span>
+            </div>
           </div>
         </div>
       );
@@ -135,33 +148,36 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
         </ResponsiveContainer>
         {/* Center label showing total - positioned absolutely */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center bg-card/50 backdrop-blur-[2px] rounded-full p-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total</p>
-            <p className="text-sm font-bold tabular-nums">{formatAUD(total)}</p>
+          <div className="text-center bg-card/80 backdrop-blur-sm rounded-full px-3 py-2 shadow-sm border border-border/20">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Total</p>
+            <p className="text-base font-bold tabular-nums font-display">{formatAUD(total)}</p>
           </div>
         </div>
       </div>
 
       {/* Custom legend with percentages */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs px-2 pt-2 max-h-[80px] overflow-y-auto">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs px-2 pt-3 max-h-[90px] overflow-y-auto">
         {chartData.map((entry, index) => (
           <div
             key={entry.categoryId}
-            className={`flex items-center justify-between gap-2 transition-opacity duration-200 ${
-              activeIndex === null || activeIndex === index ? 'opacity-100' : 'opacity-50'
+            className={`flex items-center justify-between gap-2 py-1 px-1.5 rounded-md transition-all duration-200 cursor-pointer ${
+              activeIndex === null || activeIndex === index
+                ? 'opacity-100'
+                : 'opacity-40'
+            } ${
+              activeIndex === index ? 'bg-accent/50' : 'hover:bg-accent/30'
             }`}
             onMouseEnter={() => setActiveIndex(index)}
             onMouseLeave={() => setActiveIndex(null)}
-            style={{ cursor: 'pointer' }}
           >
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
               <span
-                className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                className="h-2.5 w-2.5 rounded-full flex-shrink-0 shadow-sm"
                 style={{ backgroundColor: entry.fill }}
               />
-              <span className="text-muted-foreground truncate">{entry.categoryName}</span>
+              <span className="text-muted-foreground truncate font-medium">{entry.categoryName}</span>
             </div>
-            <span className="font-medium text-foreground flex-shrink-0">
+            <span className="font-semibold text-foreground flex-shrink-0 tabular-nums">
               {entry.percentage.toFixed(0)}%
             </span>
           </div>
