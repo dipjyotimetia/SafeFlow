@@ -129,7 +129,7 @@ const PROVIDER_DESCRIPTIONS: Record<SyncBackendType, string> = {
   'google-drive': 'Sync via your Google Drive account',
   'webdav': 'Connect to Nextcloud, Synology, or other WebDAV servers',
   's3': 'Use S3-compatible storage (Backblaze B2, Cloudflare R2, MinIO)',
-  'local-file': 'Sync to a local file on your device',
+  'local-file': 'Sync to a folder (use Dropbox, iCloud, or Syncthing to sync across devices)',
 };
 
 export function CloudSyncCard() {

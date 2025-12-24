@@ -61,8 +61,8 @@ class BackendRegistry {
       },
       {
         type: "local-file",
-        displayName: "Local File",
-        requiresAuth: true, // User must pick file
+        displayName: "Local Folder",
+        requiresAuth: true, // User must pick folder
       },
     ];
   }

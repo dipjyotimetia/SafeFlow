@@ -1,6 +1,6 @@
 // Local File Sync Backend
-// Uses the File System Access API for user-managed local file storage
-// User can sync this file with their preferred tool (Dropbox, iCloud, Syncthing, etc.)
+// Uses the File System Access API for user-managed local folder storage
+// User selects a folder (e.g., Dropbox, iCloud Drive) and app creates sync file there
 
 import type { EncryptedData } from "../encryption";
 import type { SyncBackend, SyncBackendUser, BackendConfig } from "./types";
@@ -8,22 +8,23 @@ import type { SyncBackend, SyncBackendUser, BackendConfig } from "./types";
 const DEFAULT_FILENAME = "safeflow-sync.encrypted.json";
 
 /**
- * Check if File System Access API is supported
+ * Check if File System Access API is supported (including directory picker)
  */
 function isFileSystemAccessSupported(): boolean {
   return (
     typeof window !== "undefined" &&
-    "showSaveFilePicker" in window &&
-    "showOpenFilePicker" in window
+    "showDirectoryPicker" in window
   );
 }
 
 export class LocalFileBackend implements SyncBackend {
   readonly type = "local-file" as const;
-  readonly displayName = "Local File";
-  readonly requiresAuth = true; // Requires user to pick a file
+  readonly displayName = "Local Folder";
+  readonly requiresAuth = true; // Requires user to pick a folder
 
+  private directoryHandle: FileSystemDirectoryHandle | null = null;
   private fileHandle: FileSystemFileHandle | null = null;
+  private directoryName: string | null = null;
   private lastModified: Date | null = null;
 
   async initialize(_config: BackendConfig): Promise<void> {
@@ -35,124 +36,67 @@ export class LocalFileBackend implements SyncBackend {
   }
 
   async authenticate(): Promise<void> {
-    // Prompt user to select or create a file
     try {
-      // Try to open existing file first
-      const [handle] = await window.showOpenFilePicker({
-        types: [
-          {
-            description: "SafeFlow Sync File",
-            accept: {
-              "application/json": [".json"],
-            },
-          },
-        ],
-        multiple: false,
+      // Let user pick a directory (e.g., their Dropbox or iCloud folder)
+      this.directoryHandle = await window.showDirectoryPicker({
+        mode: "readwrite",
+        startIn: "documents",
       });
 
-      this.fileHandle = handle;
+      this.directoryName = this.directoryHandle.name;
 
-      // Get last modified time
-      const file = await handle.getFile();
-      this.lastModified = new Date(file.lastModified);
-    } catch (error: unknown) {
-      // User cancelled or file doesn't exist, try to create new
-      if ((error as Error).name === "AbortError") {
-        // User cancelled - offer to create new file
-        try {
-          this.fileHandle = await window.showSaveFilePicker({
-            suggestedName: DEFAULT_FILENAME,
-            types: [
-              {
-                description: "SafeFlow Sync File",
-                accept: {
-                  "application/json": [".json"],
-                },
-              },
-            ],
-          });
-          this.lastModified = null;
-        } catch (saveError: unknown) {
-          if ((saveError as Error).name === "AbortError") {
-            throw new Error("File selection cancelled");
-          }
-          throw saveError;
-        }
+      // Get or create the sync file in that directory
+      this.fileHandle = await this.directoryHandle.getFileHandle(
+        DEFAULT_FILENAME,
+        { create: true }
+      );
+
+      // Get last modified time if file has content
+      const file = await this.fileHandle.getFile();
+      if (file.size > 0) {
+        this.lastModified = new Date(file.lastModified);
       } else {
-        throw error;
+        this.lastModified = null;
       }
+    } catch (error: unknown) {
+      if ((error as Error).name === "AbortError") {
+        throw new Error("Folder selection cancelled");
+      }
+      throw error;
     }
   }
 
   /**
-   * Alternative: directly create a new sync file
+   * Get the selected directory name for display
    */
-  async createNewFile(): Promise<void> {
-    if (!isFileSystemAccessSupported()) {
-      throw new Error("File System Access API not supported");
-    }
-
-    this.fileHandle = await window.showSaveFilePicker({
-      suggestedName: DEFAULT_FILENAME,
-      types: [
-        {
-          description: "SafeFlow Sync File",
-          accept: {
-            "application/json": [".json"],
-          },
-        },
-      ],
-    });
-    this.lastModified = null;
-  }
-
-  /**
-   * Alternative: open an existing sync file
-   */
-  async openExistingFile(): Promise<void> {
-    if (!isFileSystemAccessSupported()) {
-      throw new Error("File System Access API not supported");
-    }
-
-    const [handle] = await window.showOpenFilePicker({
-      types: [
-        {
-          description: "SafeFlow Sync File",
-          accept: {
-            "application/json": [".json"],
-          },
-        },
-      ],
-      multiple: false,
-    });
-
-    this.fileHandle = handle;
-    const file = await handle.getFile();
-    this.lastModified = new Date(file.lastModified);
+  getDirectoryName(): string | null {
+    return this.directoryName;
   }
 
   isAuthenticated(): boolean {
-    return this.fileHandle !== null;
+    return this.fileHandle !== null && this.directoryHandle !== null;
   }
 
   getUser(): SyncBackendUser | null {
-    if (!this.fileHandle) {
+    if (!this.directoryHandle) {
       return null;
     }
 
     return {
-      name: this.fileHandle.name,
+      name: `${this.directoryHandle.name}/${DEFAULT_FILENAME}`,
     };
   }
 
   async signOut(): Promise<void> {
+    this.directoryHandle = null;
     this.fileHandle = null;
+    this.directoryName = null;
     this.lastModified = null;
   }
 
   async upload(data: EncryptedData): Promise<void> {
-    if (!this.fileHandle) {
-      throw new Error("No file selected. Call authenticate() first.");
+    if (!this.fileHandle || !this.directoryHandle) {
+      throw new Error("No folder selected. Call authenticate() first.");
     }
 
     const jsonData = JSON.stringify(data, null, 2);
@@ -176,8 +120,8 @@ export class LocalFileBackend implements SyncBackend {
   }
 
   async download(): Promise<EncryptedData | null> {
-    if (!this.fileHandle) {
-      throw new Error("No file selected. Call authenticate() first.");
+    if (!this.fileHandle || !this.directoryHandle) {
+      throw new Error("No folder selected. Call authenticate() first.");
     }
 
     try {
@@ -204,7 +148,7 @@ export class LocalFileBackend implements SyncBackend {
   }
 
   async getLastModified(): Promise<Date | null> {
-    if (!this.fileHandle) {
+    if (!this.fileHandle || !this.directoryHandle) {
       return null;
     }
 
@@ -218,8 +162,8 @@ export class LocalFileBackend implements SyncBackend {
   }
 
   async deleteData(): Promise<void> {
-    if (!this.fileHandle) {
-      throw new Error("No file selected");
+    if (!this.fileHandle || !this.directoryHandle) {
+      throw new Error("No folder selected");
     }
 
     // Write empty object to file (can't actually delete with FSAA)
@@ -242,27 +186,33 @@ export const localFileBackend = new LocalFileBackend();
 // Add type declarations for File System Access API
 declare global {
   interface Window {
-    showSaveFilePicker(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
-    showOpenFilePicker(options?: OpenFilePickerOptions): Promise<FileSystemFileHandle[]>;
+    showDirectoryPicker(options?: DirectoryPickerOptions): Promise<FileSystemDirectoryHandle>;
   }
 
-  interface SaveFilePickerOptions {
-    suggestedName?: string;
-    types?: FilePickerAcceptType[];
+  interface DirectoryPickerOptions {
+    id?: string;
+    mode?: "read" | "readwrite";
+    startIn?: "desktop" | "documents" | "downloads" | "music" | "pictures" | "videos";
   }
 
-  interface OpenFilePickerOptions {
-    multiple?: boolean;
-    types?: FilePickerAcceptType[];
+  interface FileSystemDirectoryHandle {
+    readonly kind: "directory";
+    readonly name: string;
+    getFileHandle(name: string, options?: { create?: boolean }): Promise<FileSystemFileHandle>;
+    getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<FileSystemDirectoryHandle>;
+    removeEntry(name: string, options?: { recursive?: boolean }): Promise<void>;
+    resolve(possibleDescendant: FileSystemHandle): Promise<string[] | null>;
+    queryPermission(options?: { mode?: "read" | "readwrite" }): Promise<PermissionState>;
+    requestPermission(options?: { mode?: "read" | "readwrite" }): Promise<PermissionState>;
   }
 
-  interface FilePickerAcceptType {
-    description?: string;
-    accept: Record<string, string[]>;
+  interface FileSystemHandle {
+    readonly kind: "file" | "directory";
+    readonly name: string;
   }
 
-  interface FileSystemFileHandle {
-    name: string;
+  interface FileSystemFileHandle extends FileSystemHandle {
+    readonly kind: "file";
     getFile(): Promise<File>;
     createWritable(): Promise<FileSystemWritableFileStream>;
     queryPermission(options?: { mode?: "read" | "readwrite" }): Promise<PermissionState>;
