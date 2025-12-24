@@ -22,21 +22,21 @@ export function RiskMetricsCard({
   } = metrics;
 
   const getVacancyColor = (vacancy: number) => {
-    if (vacancy >= 10) return "text-green-600";
+    if (vacancy >= 10) return "text-success";
     if (vacancy >= 5) return "text-yellow-600";
-    return "text-red-600";
+    return "text-destructive";
   };
 
   const getCoverageColor = (ratio: number) => {
-    if (ratio >= 1.3) return "text-green-600";
+    if (ratio >= 1.3) return "text-success";
     if (ratio >= 1.0) return "text-yellow-600";
-    return "text-red-600";
+    return "text-destructive";
   };
 
   const getBufferColor = (months: number) => {
-    if (months >= 6) return "text-green-600";
+    if (months >= 6) return "text-success";
     if (months >= 3) return "text-yellow-600";
-    return "text-red-600";
+    return "text-destructive";
   };
 
   return (

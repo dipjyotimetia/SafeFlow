@@ -39,11 +39,11 @@ const accountIcons: Record<AccountType, typeof Building2> = {
 const accountColors: Record<AccountType, string> = {
   bank: 'text-blue-600 bg-blue-100',
   credit: 'text-orange-600 bg-orange-100',
-  cash: 'text-green-600 bg-green-100',
+  cash: 'text-success bg-green-100',
   investment: 'text-purple-600 bg-purple-100',
   crypto: 'text-yellow-600 bg-yellow-100',
   asset: 'text-teal-600 bg-teal-100',
-  liability: 'text-red-600 bg-red-100',
+  liability: 'text-destructive bg-red-100',
 };
 
 interface AccountCardProps {
@@ -90,7 +90,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onDelete(account)}
-              className="text-red-600 focus:text-red-600"
+              className="text-destructive focus:text-destructive"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
@@ -103,7 +103,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
         <div
           className={cn(
             'text-2xl font-bold',
-            isNegative ? 'text-red-600' : 'text-foreground'
+            isNegative ? 'text-destructive' : 'text-foreground'
           )}
         >
           {formatAUD(Math.abs(account.balance))}

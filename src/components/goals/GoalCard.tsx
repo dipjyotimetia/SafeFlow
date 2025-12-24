@@ -168,7 +168,7 @@ export function GoalCard({ progress, onEdit }: GoalCardProps) {
             <div
               className={cn(
                 'flex items-center gap-1 text-xs',
-                onTrack ? 'text-green-600' : 'text-amber-600'
+                onTrack ? 'text-success' : 'text-amber-600'
               )}
             >
               {onTrack ? (

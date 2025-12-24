@@ -155,7 +155,7 @@ export default function InvestmentsPage() {
         name: newHolding.name || newHolding.symbol,
         type: newHolding.type,
         units: isNaN(parsedUnits) ? 0 : parsedUnits,
-        costBasis: parseAUD(newHolding.costBasis),
+        costBasis: parseAUD(newHolding.costBasis) ?? 0,
       });
 
       toast.success('Holding added');
@@ -258,14 +258,14 @@ export default function InvestmentsPage() {
               <div
                 className={cn(
                   'text-2xl font-bold',
-                  summary.totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                  summary.totalGainLoss >= 0 ? 'text-success' : 'text-destructive'
                 )}
               >
                 {summary.totalGainLoss >= 0 ? '+' : ''}
                 {formatAUD(summary.totalGainLoss)}
               </div>
               <p className="text-xs text-muted-foreground">
-                <span className={summary.gainLossPercent >= 0 ? 'text-green-600' : 'text-red-600'}>
+                <span className={summary.gainLossPercent >= 0 ? 'text-success' : 'text-destructive'}>
                   {summary.gainLossPercent >= 0 ? '+' : ''}
                   {summary.gainLossPercent.toFixed(2)}%
                 </span>{' '}
@@ -383,7 +383,7 @@ export default function InvestmentsPage() {
                             <span
                               className={cn(
                                 'text-sm font-medium',
-                                holding.change24hPercent >= 0 ? 'text-green-600' : 'text-red-600'
+                                holding.change24hPercent >= 0 ? 'text-success' : 'text-destructive'
                               )}
                             >
                               {holding.change24hPercent >= 0 ? '+' : ''}
@@ -403,7 +403,7 @@ export default function InvestmentsPage() {
                           <div
                             className={cn(
                               'flex items-center justify-end gap-1',
-                              gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                              gainLoss >= 0 ? 'text-success' : 'text-destructive'
                             )}
                           >
                             {gainLoss >= 0 ? (
@@ -428,7 +428,7 @@ export default function InvestmentsPage() {
                                 View Details
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                className="text-red-600"
+                                className="text-destructive"
                                 onClick={() => handleDeleteHolding(holding)}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />

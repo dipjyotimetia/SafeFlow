@@ -561,8 +561,8 @@ export function CloudSyncCard() {
                   <div className="flex items-center gap-2" role="status" aria-live="polite">
                     {status === 'synced' && (
                       <>
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-green-600">Synced</span>
+                        <CheckCircle2 className="h-4 w-4 text-success" />
+                        <span className="text-sm text-success">Synced</span>
                       </>
                     )}
                     {status === 'syncing' && (
@@ -573,8 +573,8 @@ export function CloudSyncCard() {
                     )}
                     {status === 'error' && (
                       <>
-                        <AlertCircle className="h-4 w-4 text-red-600" />
-                        <span className="text-sm text-red-600">Error</span>
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                        <span className="text-sm text-destructive">Error</span>
                       </>
                     )}
                     {status === 'idle' && (
@@ -681,19 +681,19 @@ export function CloudSyncCard() {
                 <div className="text-xs space-y-1">
                   <p className="text-muted-foreground font-medium">Requirements:</p>
                   <ul className="space-y-0.5">
-                    <li className={password.length >= 12 && password.length <= MAX_PASSWORD_LENGTH ? 'text-green-600' : 'text-muted-foreground'}>
+                    <li className={password.length >= 12 && password.length <= MAX_PASSWORD_LENGTH ? 'text-success' : 'text-muted-foreground'}>
                       {password.length >= 12 && password.length <= MAX_PASSWORD_LENGTH ? '✓' : '○'} 12-{MAX_PASSWORD_LENGTH} characters
                     </li>
-                    <li className={/[A-Z]/.test(password) ? 'text-green-600' : 'text-muted-foreground'}>
+                    <li className={/[A-Z]/.test(password) ? 'text-success' : 'text-muted-foreground'}>
                       {/[A-Z]/.test(password) ? '✓' : '○'} One uppercase letter
                     </li>
-                    <li className={/[a-z]/.test(password) ? 'text-green-600' : 'text-muted-foreground'}>
+                    <li className={/[a-z]/.test(password) ? 'text-success' : 'text-muted-foreground'}>
                       {/[a-z]/.test(password) ? '✓' : '○'} One lowercase letter
                     </li>
-                    <li className={/[0-9]/.test(password) ? 'text-green-600' : 'text-muted-foreground'}>
+                    <li className={/[0-9]/.test(password) ? 'text-success' : 'text-muted-foreground'}>
                       {/[0-9]/.test(password) ? '✓' : '○'} One number
                     </li>
-                    <li className={SPECIAL_CHARS_REGEX.test(password) ? 'text-green-600' : 'text-muted-foreground'}>
+                    <li className={SPECIAL_CHARS_REGEX.test(password) ? 'text-success' : 'text-muted-foreground'}>
                       {SPECIAL_CHARS_REGEX.test(password) ? '✓' : '○'} One special character
                     </li>
                   </ul>
@@ -709,7 +709,7 @@ export function CloudSyncCard() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
               {confirmPassword.length > 0 && password !== confirmPassword && (
-                <p className="text-xs text-red-600">Passwords do not match</p>
+                <p className="text-xs text-destructive">Passwords do not match</p>
               )}
             </div>
           </div>

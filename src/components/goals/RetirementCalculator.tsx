@@ -20,9 +20,9 @@ export function RetirementCalculator() {
   const { summary } = useFinancialSummary();
 
   // Use parseAUD for consistent NaN handling and currency parsing
-  const superContributionCents = parseAUD(monthlySuperContribution);
-  const investmentContributionCents = parseAUD(monthlyInvestmentContribution);
-  const targetIncomeCents = parseAUD(targetMonthlyIncome) || 500000; // Default $5000
+  const superContributionCents = parseAUD(monthlySuperContribution) ?? 0;
+  const investmentContributionCents = parseAUD(monthlyInvestmentContribution) ?? 0;
+  const targetIncomeCents = parseAUD(targetMonthlyIncome) ?? 500000; // Default $5000
 
   const { projection } = useRetirementProjection(
     currentAge,
@@ -175,8 +175,8 @@ export function RetirementCalculator() {
                 <div className="mt-3 flex items-center justify-center gap-1 text-sm">
                   {projection.isOnTrack ? (
                     <>
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span className="text-green-600">On track</span>
+                      <CheckCircle2 className="h-4 w-4 text-success" />
+                      <span className="text-success">On track</span>
                     </>
                   ) : (
                     <>

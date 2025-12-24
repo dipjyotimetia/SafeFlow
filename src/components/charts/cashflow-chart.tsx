@@ -87,8 +87,8 @@ export function CashflowChart({ data }: CashflowChartProps) {
             <stop offset="100%" stopColor="oklch(0.55 0.18 25)" />
           </linearGradient>
           <linearGradient id="netGradient" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="oklch(0.55 0.15 160)" />
-            <stop offset="100%" stopColor="oklch(0.6 0.12 180)" />
+            <stop offset="0%" stopColor="oklch(0.55 0.18 265)" />
+            <stop offset="100%" stopColor="oklch(0.60 0.16 280)" />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -131,8 +131,8 @@ export function CashflowChart({ data }: CashflowChartProps) {
           dataKey="net"
           stroke="url(#netGradient)"
           strokeWidth={3}
-          dot={{ fill: 'oklch(0.55 0.15 160)', strokeWidth: 2, r: 5, stroke: 'white', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}
-          activeDot={{ r: 8, fill: 'oklch(0.55 0.15 160)', stroke: 'white', strokeWidth: 3, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}
+          dot={{ fill: 'oklch(0.55 0.18 265)', strokeWidth: 2, r: 5, stroke: 'white', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}
+          activeDot={{ r: 8, fill: 'oklch(0.55 0.18 265)', stroke: 'white', strokeWidth: 3, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}
           isAnimationActive={true}
           animationDuration={800}
           animationEasing="ease-out"

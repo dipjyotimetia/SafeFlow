@@ -114,7 +114,7 @@ export default function TransactionsPage() {
               <div className="text-sm text-muted-foreground">
                 This Month Income
               </div>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-success">
                 {formatAUD(totals.income)}
               </div>
             </CardContent>
@@ -124,7 +124,7 @@ export default function TransactionsPage() {
               <div className="text-sm text-muted-foreground">
                 This Month Expenses
               </div>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-2xl font-bold text-destructive">
                 {formatAUD(totals.expenses)}
               </div>
             </CardContent>
@@ -134,7 +134,7 @@ export default function TransactionsPage() {
               <div className="text-sm text-muted-foreground">Net Cashflow</div>
               <div
                 className={`text-2xl font-bold ${
-                  totals.net >= 0 ? "text-green-600" : "text-red-600"
+                  totals.net >= 0 ? "text-success" : "text-destructive"
                 }`}
               >
                 {totals.net >= 0 ? "+" : ""}
@@ -277,7 +277,7 @@ export default function TransactionsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>

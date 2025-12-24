@@ -76,7 +76,7 @@ export function HoldingDetailDialog({ holding, open, onOpenChange }: HoldingDeta
               <p
                 className={cn(
                   'text-sm font-medium',
-                  holding.change24hPercent >= 0 ? 'text-green-600' : 'text-red-600'
+                  holding.change24hPercent >= 0 ? 'text-success' : 'text-destructive'
                 )}
               >
                 {holding.change24hPercent >= 0 ? '+' : ''}
@@ -105,14 +105,14 @@ export function HoldingDetailDialog({ holding, open, onOpenChange }: HoldingDeta
             <p className="text-sm text-muted-foreground">Unrealized Gain/Loss</p>
             <div className="flex items-center gap-2 mt-1">
               {gainLoss >= 0 ? (
-                <TrendingUp className="h-5 w-5 text-green-600" />
+                <TrendingUp className="h-5 w-5 text-success" />
               ) : (
-                <TrendingDown className="h-5 w-5 text-red-600" />
+                <TrendingDown className="h-5 w-5 text-destructive" />
               )}
               <span
                 className={cn(
                   'text-lg font-semibold',
-                  gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                  gainLoss >= 0 ? 'text-success' : 'text-destructive'
                 )}
               >
                 {gainLoss >= 0 ? '+' : ''}
@@ -121,7 +121,7 @@ export function HoldingDetailDialog({ holding, open, onOpenChange }: HoldingDeta
               <span
                 className={cn(
                   'text-sm',
-                  gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                  gainLoss >= 0 ? 'text-success' : 'text-destructive'
                 )}
               >
                 ({gainLossPercent >= 0 ? '+' : ''}

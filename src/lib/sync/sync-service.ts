@@ -224,31 +224,32 @@ export async function importData(data: SyncData): Promise<void> {
         db.propertyModels.clear(),
       ]);
 
-      // Import new data (handle backward compatibility for older exports)
-      if (data.accounts?.length) await db.accounts.bulkAdd(data.accounts);
-      if (data.transactions?.length) await db.transactions.bulkAdd(data.transactions);
-      if (data.categories?.length) await db.categories.bulkAdd(data.categories);
-      if (data.holdings?.length) await db.holdings.bulkAdd(data.holdings);
-      if (data.investmentTransactions?.length) await db.investmentTransactions.bulkAdd(data.investmentTransactions);
-      if (data.taxItems?.length) await db.taxItems.bulkAdd(data.taxItems);
-      if (data.importBatches?.length) await db.importBatches.bulkAdd(data.importBatches);
-      if (data.superannuationAccounts?.length) await db.superannuationAccounts.bulkAdd(data.superannuationAccounts);
-      if (data.superTransactions?.length) await db.superTransactions.bulkAdd(data.superTransactions);
-      if (data.chatConversations?.length) await db.chatConversations.bulkAdd(data.chatConversations);
-      if (data.categorizationQueue?.length) await db.categorizationQueue.bulkAdd(data.categorizationQueue);
-      if (data.merchantPatterns?.length) await db.merchantPatterns.bulkAdd(data.merchantPatterns);
-      if (data.budgets?.length) await db.budgets.bulkAdd(data.budgets);
-      if (data.familyMembers?.length) await db.familyMembers.bulkAdd(data.familyMembers);
-      if (data.goals?.length) await db.goals.bulkAdd(data.goals);
-      if (data.priceHistory?.length) await db.priceHistory.bulkAdd(data.priceHistory);
-      if (data.portfolioHistory?.length) await db.portfolioHistory.bulkAdd(data.portfolioHistory);
+      // Import new data using bulkPut to handle conflicts gracefully (upsert behavior)
+      // This prevents sync failures when records already exist
+      if (data.accounts?.length) await db.accounts.bulkPut(data.accounts);
+      if (data.transactions?.length) await db.transactions.bulkPut(data.transactions);
+      if (data.categories?.length) await db.categories.bulkPut(data.categories);
+      if (data.holdings?.length) await db.holdings.bulkPut(data.holdings);
+      if (data.investmentTransactions?.length) await db.investmentTransactions.bulkPut(data.investmentTransactions);
+      if (data.taxItems?.length) await db.taxItems.bulkPut(data.taxItems);
+      if (data.importBatches?.length) await db.importBatches.bulkPut(data.importBatches);
+      if (data.superannuationAccounts?.length) await db.superannuationAccounts.bulkPut(data.superannuationAccounts);
+      if (data.superTransactions?.length) await db.superTransactions.bulkPut(data.superTransactions);
+      if (data.chatConversations?.length) await db.chatConversations.bulkPut(data.chatConversations);
+      if (data.categorizationQueue?.length) await db.categorizationQueue.bulkPut(data.categorizationQueue);
+      if (data.merchantPatterns?.length) await db.merchantPatterns.bulkPut(data.merchantPatterns);
+      if (data.budgets?.length) await db.budgets.bulkPut(data.budgets);
+      if (data.familyMembers?.length) await db.familyMembers.bulkPut(data.familyMembers);
+      if (data.goals?.length) await db.goals.bulkPut(data.goals);
+      if (data.priceHistory?.length) await db.priceHistory.bulkPut(data.priceHistory);
+      if (data.portfolioHistory?.length) await db.portfolioHistory.bulkPut(data.portfolioHistory);
       // Property tables (backward compatible - optional in older exports)
-      if (data.properties?.length) await db.properties.bulkAdd(data.properties);
-      if (data.propertyLoans?.length) await db.propertyLoans.bulkAdd(data.propertyLoans);
-      if (data.propertyExpenses?.length) await db.propertyExpenses.bulkAdd(data.propertyExpenses);
-      if (data.propertyRentals?.length) await db.propertyRentals.bulkAdd(data.propertyRentals);
-      if (data.propertyDepreciation?.length) await db.propertyDepreciation.bulkAdd(data.propertyDepreciation);
-      if (data.propertyModels?.length) await db.propertyModels.bulkAdd(data.propertyModels);
+      if (data.properties?.length) await db.properties.bulkPut(data.properties);
+      if (data.propertyLoans?.length) await db.propertyLoans.bulkPut(data.propertyLoans);
+      if (data.propertyExpenses?.length) await db.propertyExpenses.bulkPut(data.propertyExpenses);
+      if (data.propertyRentals?.length) await db.propertyRentals.bulkPut(data.propertyRentals);
+      if (data.propertyDepreciation?.length) await db.propertyDepreciation.bulkPut(data.propertyDepreciation);
+      if (data.propertyModels?.length) await db.propertyModels.bulkPut(data.propertyModels);
     }
   );
 }

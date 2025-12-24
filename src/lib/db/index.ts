@@ -74,6 +74,13 @@ export async function clearDatabase(): Promise<void> {
       db.goals,
       db.priceHistory,
       db.portfolioHistory,
+      // Property tables
+      db.properties,
+      db.propertyLoans,
+      db.propertyExpenses,
+      db.propertyRentals,
+      db.propertyDepreciation,
+      db.propertyModels,
     ],
     async () => {
       await db.accounts.clear();
@@ -94,6 +101,13 @@ export async function clearDatabase(): Promise<void> {
       await db.goals.clear();
       await db.priceHistory.clear();
       await db.portfolioHistory.clear();
+      // Property tables
+      await db.properties.clear();
+      await db.propertyLoans.clear();
+      await db.propertyExpenses.clear();
+      await db.propertyRentals.clear();
+      await db.propertyDepreciation.clear();
+      await db.propertyModels.clear();
     }
   );
 }
@@ -119,6 +133,13 @@ export async function exportAllData(): Promise<{
   goals: unknown[];
   priceHistory: unknown[];
   portfolioHistory: unknown[];
+  // Property tables
+  properties: unknown[];
+  propertyLoans: unknown[];
+  propertyExpenses: unknown[];
+  propertyRentals: unknown[];
+  propertyDepreciation: unknown[];
+  propertyModels: unknown[];
 }> {
   const syncMetadata = await db.syncMetadata.get('sync-state');
   const version = (syncMetadata?.lastSyncVersion ?? 0) + 1;
@@ -143,5 +164,12 @@ export async function exportAllData(): Promise<{
     goals: await db.goals.toArray(),
     priceHistory: await db.priceHistory.toArray(),
     portfolioHistory: await db.portfolioHistory.toArray(),
+    // Property tables
+    properties: await db.properties.toArray(),
+    propertyLoans: await db.propertyLoans.toArray(),
+    propertyExpenses: await db.propertyExpenses.toArray(),
+    propertyRentals: await db.propertyRentals.toArray(),
+    propertyDepreciation: await db.propertyDepreciation.toArray(),
+    propertyModels: await db.propertyModels.toArray(),
   };
 }

@@ -16,8 +16,8 @@ export function CompoundInterestCalculator() {
   const [years, setYears] = useState(10);
 
   // Use parseAUD for consistent NaN handling and currency parsing
-  const principalCents = parseAUD(principal);
-  const monthlyCents = parseAUD(monthlyContribution);
+  const principalCents = parseAUD(principal) ?? 0;
+  const monthlyCents = parseAUD(monthlyContribution) ?? 0;
 
   const { result } = useCompoundInterest(principalCents, monthlyCents, annualRate / 100, years);
 
@@ -122,7 +122,7 @@ export function CompoundInterestCalculator() {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Interest Earned</span>
-              <span className="font-medium text-green-600">
+              <span className="font-medium text-success">
                 +{formatAUD(result.interestEarned)}
               </span>
             </div>

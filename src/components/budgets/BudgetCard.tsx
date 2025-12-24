@@ -58,7 +58,7 @@ export function BudgetCard({ progress, onEdit, onDelete }: BudgetCardProps) {
                 </DropdownMenuItem>
               )}
               {onDelete && (
-                <DropdownMenuItem onClick={onDelete} className="text-red-600">
+                <DropdownMenuItem onClick={onDelete} className="text-destructive">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
                 </DropdownMenuItem>
@@ -75,7 +75,7 @@ export function BudgetCard({ progress, onEdit, onDelete }: BudgetCardProps) {
             </span>
             <span
               className={
-                isOverBudget ? 'text-red-600 font-medium' : 'text-muted-foreground'
+                isOverBudget ? 'text-destructive font-medium' : 'text-muted-foreground'
               }
             >
               {Math.round(percentUsed)}%
@@ -94,10 +94,10 @@ export function BudgetCard({ progress, onEdit, onDelete }: BudgetCardProps) {
             <span
               className={
                 isOverBudget
-                  ? 'text-red-600 font-medium'
+                  ? 'text-destructive font-medium'
                   : remaining < budget.amount * 0.1
                   ? 'text-yellow-600 font-medium'
-                  : 'text-green-600 font-medium'
+                  : 'text-success font-medium'
               }
             >
               {formatCurrency(Math.abs(remaining))}

@@ -153,14 +153,17 @@ export const useSuperannuationStore = create<SuperannuationStore>(() => ({
   },
 
   deleteAccount: async (id) => {
-    // Delete related transactions first
-    const transactions = await db.superTransactions
-      .where('superAccountId')
-      .equals(id)
-      .toArray();
-
-    await db.superTransactions.bulkDelete(transactions.map((t) => t.id));
-    await db.superannuationAccounts.delete(id);
+    // Use transaction for atomic cascade delete to prevent orphaned records
+    await db.transaction(
+      'rw',
+      [db.superTransactions, db.superannuationAccounts],
+      async () => {
+        // Delete related transactions first
+        await db.superTransactions.where('superAccountId').equals(id).delete();
+        // Then delete the account
+        await db.superannuationAccounts.delete(id);
+      }
+    );
   },
 
   addTransaction: async (data) => {

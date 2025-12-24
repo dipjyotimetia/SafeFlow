@@ -10,6 +10,7 @@ import type {
 } from "./types";
 
 const DEFAULT_PATH = "/safeflow/sync.json";
+const NETWORK_TIMEOUT_MS = 30000; // 30 seconds
 
 export class WebDAVBackend implements SyncBackend {
   readonly type = "webdav" as const;
@@ -101,14 +102,29 @@ export class WebDAVBackend implements SyncBackend {
     const url = `${this.serverUrl}${path}`;
     const authHeader = `Basic ${btoa(`${this.username}:${this.password}`)}`;
 
-    return fetch(url, {
-      method,
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: authHeader,
-      },
-    });
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), NETWORK_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        method,
+        ...options,
+        headers: {
+          ...options.headers,
+          Authorization: authHeader,
+        },
+        signal: controller.signal,
+      });
+      return response;
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(`Network timeout after ${NETWORK_TIMEOUT_MS / 1000}s`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   isAuthenticated(): boolean {

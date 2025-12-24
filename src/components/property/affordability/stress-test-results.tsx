@@ -81,8 +81,8 @@ export function StressTestResults({
                     <span
                       className={
                         scenario.monthlyCashflow >= 0
-                          ? "text-green-600"
-                          : "text-red-600"
+                          ? "text-success"
+                          : "text-destructive"
                       }
                     >
                       {scenario.monthlyCashflow >= 0 ? "+" : ""}

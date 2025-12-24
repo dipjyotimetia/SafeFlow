@@ -24,6 +24,7 @@ import type {
   PropertyRental,
   PropertyDepreciation,
   PropertyModel,
+  SyncSnapshot,
 } from '@/types';
 
 export class SafeFlowDB extends Dexie {
@@ -51,6 +52,7 @@ export class SafeFlowDB extends Dexie {
   propertyRentals!: Table<PropertyRental>;
   propertyDepreciation!: Table<PropertyDepreciation>;
   propertyModels!: Table<PropertyModel>;
+  syncSnapshots!: Table<SyncSnapshot>;
 
   constructor() {
     super('safeflow-db');
@@ -248,6 +250,75 @@ export class SafeFlowDB extends Dexie {
       propertyDepreciation: 'id, propertyId, financialYear, [propertyId+financialYear]',
       propertyModels: 'id, propertyId, isActive, createdAt',
     });
+
+    // Version 11: Add syncVersion and isDeleted indexes for incremental sync
+    // Also add symbol index for holdings and date indexes for investment/super transactions
+    this.version(11).stores({
+      accounts: 'id, type, isActive, createdAt, memberId, visibility, syncVersion, isDeleted',
+      categories: 'id, type, parentId, atoCode, isActive, syncVersion, isDeleted',
+      transactions:
+        'id, accountId, categoryId, type, date, importBatchId, memberId, syncVersion, isDeleted, [accountId+date], [categoryId+date], [type+date], [memberId+date]',
+      holdings: 'id, accountId, symbol, type, syncVersion, isDeleted',
+      investmentTransactions: 'id, holdingId, type, date, syncVersion, isDeleted, [type+date], [holdingId+date]',
+      taxItems: 'id, financialYear, atoCategory, transactionId, syncVersion, isDeleted',
+      syncMetadata: 'id',
+      importBatches: 'id, source, importedAt, syncVersion, isDeleted',
+      superannuationAccounts: 'id, provider, memberNumber, createdAt, syncVersion, isDeleted',
+      superTransactions: 'id, superAccountId, type, date, financialYear, syncVersion, isDeleted, [superAccountId+date], [superAccountId+financialYear]',
+      chatConversations: 'id, createdAt, updatedAt, syncVersion, isDeleted',
+      categorizationQueue: 'id, transactionId, status, createdAt, syncVersion, isDeleted',
+      merchantPatterns: 'id, normalizedName, categoryId, confidence, lastUsed, userConfirmed, syncVersion, isDeleted',
+      budgets: 'id, categoryId, memberId, period, isActive, createdAt, syncVersion, isDeleted',
+      familyMembers: 'id, isActive, createdAt, syncVersion, isDeleted',
+      goals: 'id, type, status, targetDate, createdAt, syncVersion, isDeleted',
+      priceHistory: 'id, holdingId, date, syncVersion, isDeleted, [holdingId+date]',
+      portfolioHistory: 'id, date, syncVersion, isDeleted',
+      // Property portfolio tables
+      properties: 'id, state, status, purpose, memberId, createdAt, syncVersion, isDeleted, [state+status]',
+      propertyLoans: 'id, propertyId, lender, createdAt, syncVersion, isDeleted',
+      propertyExpenses: 'id, propertyId, category, financialYear, isRecurring, syncVersion, isDeleted, [propertyId+category], [propertyId+financialYear]',
+      propertyRentals: 'id, propertyId, leaseStartDate, leaseEndDate, syncVersion, isDeleted, [propertyId+leaseStartDate]',
+      propertyDepreciation: 'id, propertyId, financialYear, syncVersion, isDeleted, [propertyId+financialYear]',
+      propertyModels: 'id, propertyId, isActive, createdAt, syncVersion, isDeleted',
+      // New table for sync snapshots (rollback capability)
+      syncSnapshots: 'id, createdAt',
+    });
+
+    // Version 12: Add missing performance indexes
+    // - date index on investmentTransactions/superTransactions for date range queries
+    // - [categoryId+period] compound index on budgets for efficient filtering
+    this.version(12).stores({
+      accounts: 'id, type, isActive, createdAt, memberId, visibility, syncVersion, isDeleted',
+      categories: 'id, type, parentId, atoCode, isActive, syncVersion, isDeleted',
+      transactions:
+        'id, accountId, categoryId, type, date, importBatchId, memberId, syncVersion, isDeleted, [accountId+date], [categoryId+date], [type+date], [memberId+date]',
+      holdings: 'id, accountId, symbol, type, syncVersion, isDeleted',
+      // Added date index for date range queries
+      investmentTransactions: 'id, holdingId, type, date, syncVersion, isDeleted, [type+date], [holdingId+date]',
+      taxItems: 'id, financialYear, atoCategory, transactionId, syncVersion, isDeleted',
+      syncMetadata: 'id',
+      importBatches: 'id, source, importedAt, syncVersion, isDeleted',
+      superannuationAccounts: 'id, provider, memberNumber, createdAt, syncVersion, isDeleted',
+      // Added date index for date range queries
+      superTransactions: 'id, superAccountId, type, date, financialYear, syncVersion, isDeleted, [superAccountId+date], [superAccountId+financialYear]',
+      chatConversations: 'id, createdAt, updatedAt, syncVersion, isDeleted',
+      categorizationQueue: 'id, transactionId, status, createdAt, syncVersion, isDeleted',
+      merchantPatterns: 'id, normalizedName, categoryId, confidence, lastUsed, userConfirmed, syncVersion, isDeleted',
+      // Added [categoryId+period] compound index for efficient budget filtering
+      budgets: 'id, categoryId, memberId, period, isActive, createdAt, syncVersion, isDeleted, [categoryId+period]',
+      familyMembers: 'id, isActive, createdAt, syncVersion, isDeleted',
+      goals: 'id, type, status, targetDate, createdAt, syncVersion, isDeleted',
+      priceHistory: 'id, holdingId, date, syncVersion, isDeleted, [holdingId+date]',
+      portfolioHistory: 'id, date, syncVersion, isDeleted',
+      // Property portfolio tables
+      properties: 'id, state, status, purpose, memberId, createdAt, syncVersion, isDeleted, [state+status]',
+      propertyLoans: 'id, propertyId, lender, createdAt, syncVersion, isDeleted',
+      propertyExpenses: 'id, propertyId, category, financialYear, isRecurring, syncVersion, isDeleted, [propertyId+category], [propertyId+financialYear]',
+      propertyRentals: 'id, propertyId, leaseStartDate, leaseEndDate, syncVersion, isDeleted, [propertyId+leaseStartDate]',
+      propertyDepreciation: 'id, propertyId, financialYear, syncVersion, isDeleted, [propertyId+financialYear]',
+      propertyModels: 'id, propertyId, isActive, createdAt, syncVersion, isDeleted',
+      syncSnapshots: 'id, createdAt',
+    });
   }
 }
 
@@ -279,4 +350,5 @@ export type {
   PropertyRental,
   PropertyDepreciation,
   PropertyModel,
+  SyncSnapshot,
 };

@@ -56,97 +56,97 @@
 
 :root {
   --radius: 0.625rem;
-  /* Premium Emerald/Teal Theme - Light Mode */
-  --background: oklch(0.99 0.005 160);
-  --foreground: oklch(0.2 0.02 160);
+  /* Premium Slate + Indigo Theme - Light Mode */
+  --background: oklch(0.99 0.002 265);
+  --foreground: oklch(0.15 0.015 265);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 160);
+  --card-foreground: oklch(0.15 0.015 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 160);
-  /* Primary: Deep Emerald */
-  --primary: oklch(0.45 0.12 160);
+  --popover-foreground: oklch(0.15 0.015 265);
+  /* Primary: Rich Indigo */
+  --primary: oklch(0.50 0.18 265);
   --primary-foreground: oklch(0.99 0 0);
-  /* Secondary: Soft Sage */
-  --secondary: oklch(0.96 0.02 160);
-  --secondary-foreground: oklch(0.35 0.08 160);
-  /* Muted: Neutral with teal tint */
-  --muted: oklch(0.96 0.01 160);
-  --muted-foreground: oklch(0.5 0.03 160);
-  /* Accent: Teal highlight */
-  --accent: oklch(0.94 0.03 180);
-  --accent-foreground: oklch(0.3 0.08 160);
-  /* Status Colors */
+  /* Secondary: Light Slate */
+  --secondary: oklch(0.96 0.01 265);
+  --secondary-foreground: oklch(0.35 0.04 265);
+  /* Muted: Cool neutral gray */
+  --muted: oklch(0.96 0.005 265);
+  --muted-foreground: oklch(0.50 0.02 265);
+  /* Accent: Indigo highlight */
+  --accent: oklch(0.95 0.02 265);
+  --accent-foreground: oklch(0.30 0.06 265);
+  /* Status Colors - Preserved */
   --destructive: oklch(0.6 0.2 25);
   --success: oklch(0.6 0.18 145);
   --success-foreground: oklch(0.99 0 0);
   --warning: oklch(0.75 0.15 80);
   --warning-foreground: oklch(0.25 0.05 80);
   /* Borders & Inputs */
-  --border: oklch(0.9 0.02 160);
-  --input: oklch(0.92 0.015 160);
-  --ring: oklch(0.45 0.12 160);
-  /* Chart Colors - Coordinated Emerald/Teal/Gold Spectrum */
-  --chart-1: oklch(0.55 0.15 160);
-  --chart-2: oklch(0.6 0.12 180);
-  --chart-3: oklch(0.65 0.1 200);
-  --chart-4: oklch(0.7 0.14 85);
-  --chart-5: oklch(0.5 0.08 220);
+  --border: oklch(0.92 0.008 265);
+  --input: oklch(0.94 0.006 265);
+  --ring: oklch(0.50 0.18 265);
+  /* Chart Colors - Indigo/Violet/Purple Spectrum */
+  --chart-1: oklch(0.55 0.20 265);
+  --chart-2: oklch(0.60 0.16 280);
+  --chart-3: oklch(0.65 0.14 300);
+  --chart-4: oklch(0.70 0.12 320);
+  --chart-5: oklch(0.50 0.10 240);
   /* Sidebar */
-  --sidebar: oklch(0.99 0.005 160);
-  --sidebar-foreground: oklch(0.25 0.03 160);
-  --sidebar-primary: oklch(0.45 0.12 160);
+  --sidebar: oklch(0.99 0.002 265);
+  --sidebar-foreground: oklch(0.25 0.02 265);
+  --sidebar-primary: oklch(0.50 0.18 265);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.04 160);
-  --sidebar-accent-foreground: oklch(0.3 0.08 160);
-  --sidebar-border: oklch(0.92 0.02 160);
-  --sidebar-ring: oklch(0.45 0.12 160);
+  --sidebar-accent: oklch(0.95 0.025 265);
+  --sidebar-accent-foreground: oklch(0.30 0.06 265);
+  --sidebar-border: oklch(0.92 0.008 265);
+  --sidebar-ring: oklch(0.50 0.18 265);
 }
 
 .dark {
-  /* Premium Emerald/Teal Theme - Dark Mode */
-  --background: oklch(0.15 0.015 160);
-  --foreground: oklch(0.95 0.01 160);
-  --card: oklch(0.18 0.02 160);
-  --card-foreground: oklch(0.95 0.01 160);
-  --popover: oklch(0.2 0.02 160);
-  --popover-foreground: oklch(0.95 0.01 160);
-  /* Primary: Bright Emerald */
-  --primary: oklch(0.65 0.15 160);
-  --primary-foreground: oklch(0.12 0.02 160);
-  /* Secondary: Dark Sage */
-  --secondary: oklch(0.25 0.03 160);
-  --secondary-foreground: oklch(0.9 0.02 160);
-  /* Muted: Deep teal-tinted neutral */
-  --muted: oklch(0.25 0.02 160);
-  --muted-foreground: oklch(0.65 0.03 160);
-  /* Accent: Teal glow */
-  --accent: oklch(0.28 0.04 180);
-  --accent-foreground: oklch(0.9 0.02 160);
-  /* Status Colors */
+  /* Premium Slate + Indigo Theme - Dark Mode */
+  --background: oklch(0.14 0.012 265);
+  --foreground: oklch(0.95 0.008 265);
+  --card: oklch(0.17 0.015 265);
+  --card-foreground: oklch(0.95 0.008 265);
+  --popover: oklch(0.19 0.015 265);
+  --popover-foreground: oklch(0.95 0.008 265);
+  /* Primary: Bright Indigo */
+  --primary: oklch(0.68 0.18 265);
+  --primary-foreground: oklch(0.12 0.015 265);
+  /* Secondary: Dark Slate */
+  --secondary: oklch(0.25 0.02 265);
+  --secondary-foreground: oklch(0.90 0.01 265);
+  /* Muted: Deep slate neutral */
+  --muted: oklch(0.25 0.015 265);
+  --muted-foreground: oklch(0.65 0.02 265);
+  /* Accent: Indigo glow */
+  --accent: oklch(0.28 0.03 265);
+  --accent-foreground: oklch(0.90 0.01 265);
+  /* Status Colors - Preserved */
   --destructive: oklch(0.65 0.2 25);
   --success: oklch(0.65 0.18 145);
   --success-foreground: oklch(0.12 0.02 145);
   --warning: oklch(0.75 0.15 80);
   --warning-foreground: oklch(0.15 0.05 80);
   /* Borders & Inputs */
-  --border: oklch(0.3 0.02 160);
-  --input: oklch(0.28 0.02 160);
-  --ring: oklch(0.65 0.15 160);
+  --border: oklch(0.28 0.015 265);
+  --input: oklch(0.26 0.015 265);
+  --ring: oklch(0.68 0.18 265);
   /* Chart Colors - Vibrant for dark mode */
-  --chart-1: oklch(0.65 0.18 160);
-  --chart-2: oklch(0.7 0.14 180);
-  --chart-3: oklch(0.75 0.12 200);
-  --chart-4: oklch(0.8 0.16 85);
-  --chart-5: oklch(0.6 0.1 220);
+  --chart-1: oklch(0.68 0.20 265);
+  --chart-2: oklch(0.72 0.18 280);
+  --chart-3: oklch(0.76 0.16 300);
+  --chart-4: oklch(0.78 0.14 320);
+  --chart-5: oklch(0.62 0.12 240);
   /* Sidebar */
-  --sidebar: oklch(0.15 0.015 160);
-  --sidebar-foreground: oklch(0.9 0.02 160);
-  --sidebar-primary: oklch(0.65 0.15 160);
-  --sidebar-primary-foreground: oklch(0.12 0.02 160);
-  --sidebar-accent: oklch(0.25 0.04 160);
-  --sidebar-accent-foreground: oklch(0.9 0.02 160);
-  --sidebar-border: oklch(0.28 0.02 160);
-  --sidebar-ring: oklch(0.65 0.15 160);
+  --sidebar: oklch(0.14 0.012 265);
+  --sidebar-foreground: oklch(0.90 0.01 265);
+  --sidebar-primary: oklch(0.68 0.18 265);
+  --sidebar-primary-foreground: oklch(0.12 0.015 265);
+  --sidebar-accent: oklch(0.25 0.03 265);
+  --sidebar-accent-foreground: oklch(0.90 0.01 265);
+  --sidebar-border: oklch(0.26 0.015 265);
+  --sidebar-ring: oklch(0.68 0.18 265);
 }
 
 @layer base {
@@ -201,10 +201,10 @@
 
 @keyframes glowPulse {
   0%, 100% {
-    box-shadow: 0 0 8px 2px oklch(0.55 0.15 160 / 0.3);
+    box-shadow: 0 0 8px 2px oklch(0.55 0.18 265 / 0.3);
   }
   50% {
-    box-shadow: 0 0 16px 4px oklch(0.55 0.15 160 / 0.5);
+    box-shadow: 0 0 16px 4px oklch(0.55 0.18 265 / 0.5);
   }
 }
 
@@ -310,15 +310,15 @@
     background: linear-gradient(
       135deg,
       oklch(1 0 0) 0%,
-      oklch(0.98 0.01 160) 100%
+      oklch(0.98 0.01 265) 100%
     );
   }
 
   .dark .gradient-card {
     background: linear-gradient(
       135deg,
-      oklch(0.18 0.02 160) 0%,
-      oklch(0.22 0.03 180) 100%
+      oklch(0.17 0.015 265) 0%,
+      oklch(0.20 0.025 280) 100%
     );
   }
 
@@ -326,7 +326,7 @@
   .gradient-border {
     position: relative;
     background: linear-gradient(var(--background), var(--background)) padding-box,
-                linear-gradient(135deg, oklch(0.55 0.15 160), oklch(0.6 0.12 180)) border-box;
+                linear-gradient(135deg, oklch(0.55 0.18 265), oklch(0.60 0.16 280)) border-box;
     border: 1px solid transparent;
   }
 
@@ -367,7 +367,7 @@
   }
 
   .glow-primary {
-    box-shadow: 0 0 20px -5px oklch(0.55 0.15 160 / 0.4);
+    box-shadow: 0 0 20px -5px oklch(0.55 0.18 265 / 0.4);
   }
 
   .glow-destructive {
@@ -410,6 +410,6 @@
     outline: none;
     box-shadow:
       0 0 0 2px var(--background),
-      0 0 0 4px oklch(0.55 0.15 160);
+      0 0 0 4px oklch(0.55 0.18 265);
   }
 }

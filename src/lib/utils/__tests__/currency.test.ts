@@ -87,10 +87,12 @@ describe('Currency Utilities', () => {
       expect(parseAUD(' $1,234.56 ')).toBe(123456);
     });
 
-    it('should return 0 for invalid input', () => {
-      expect(parseAUD('')).toBe(0);
-      expect(parseAUD('abc')).toBe(0);
-      expect(parseAUD('$abc')).toBe(0);
+    it('should return null for invalid input', () => {
+      expect(parseAUD('')).toBeNull();
+      expect(parseAUD('abc')).toBeNull();
+      expect(parseAUD('$abc')).toBeNull();
+      expect(parseAUD('   ')).toBeNull();
+      expect(parseAUD('$')).toBeNull();
     });
 
     it('should handle edge cases', () => {
@@ -198,29 +200,29 @@ describe('Currency Utilities', () => {
     it('should format positive change with + prefix', () => {
       const result = formatChange(12345);
       expect(result.text).toBe('+$123.45');
-      expect(result.className).toBe('text-green-600');
+      expect(result.className).toBe('text-success');
     });
 
     it('should format negative change with - prefix', () => {
       const result = formatChange(-12345);
       expect(result.text).toBe('-$123.45');
-      expect(result.className).toBe('text-red-600');
+      expect(result.className).toBe('text-destructive');
     });
 
     it('should format zero change', () => {
       const result = formatChange(0);
       expect(result.text).toBe('$0.00');
-      expect(result.className).toBe('text-gray-600');
+      expect(result.className).toBe('text-muted-foreground');
     });
 
     it('should handle small changes', () => {
       const positive = formatChange(1);
       expect(positive.text).toBe('+$0.01');
-      expect(positive.className).toBe('text-green-600');
+      expect(positive.className).toBe('text-success');
 
       const negative = formatChange(-1);
       expect(negative.text).toBe('-$0.01');
-      expect(negative.className).toBe('text-red-600');
+      expect(negative.className).toBe('text-destructive');
     });
   });
 

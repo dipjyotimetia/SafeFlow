@@ -157,7 +157,7 @@ export function PropertyCard({
                 <TrendingDown className="h-4 w-4 text-red-500" />
               )}
               <span
-                className={`text-sm font-medium ${growth >= 0 ? "text-green-600" : "text-red-600"}`}
+                className={`text-sm font-medium ${growth >= 0 ? "text-success" : "text-destructive"}`}
               >
                 {formatPercent(growthPercent)}
               </span>
@@ -166,7 +166,7 @@ export function PropertyCard({
           <div>
             <p className="text-xs text-muted-foreground">LVR</p>
             <p
-              className={`text-sm font-medium ${lvr > 80 ? "text-amber-600" : "text-green-600"}`}
+              className={`text-sm font-medium ${lvr > 80 ? "text-amber-600" : "text-success"}`}
             >
               {formatPercent(lvr)}
             </p>

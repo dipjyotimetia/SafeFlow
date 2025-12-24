@@ -121,7 +121,7 @@ export function TransactionFormDialog({
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      const amount = parseAUD(values.amount);
+      const amount = parseAUD(values.amount) ?? 0;
 
       if (transaction) {
         await updateTransaction(transaction.id, {

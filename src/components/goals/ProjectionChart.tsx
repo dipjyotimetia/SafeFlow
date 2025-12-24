@@ -17,7 +17,7 @@ export function ProjectionChart() {
 
   const { summary } = useFinancialSummary();
   // Use parseAUD for consistent NaN handling and currency parsing
-  const contributionCents = parseAUD(monthlyContribution);
+  const contributionCents = parseAUD(monthlyContribution) ?? 0;
 
   const { projection } = useNetWorthProjection(contributionCents, returnRate / 100, years * 12);
 
@@ -63,7 +63,7 @@ export function ProjectionChart() {
             <CardTitle className="text-sm font-medium">Projected Growth</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">+{formatAUD(growth)}</p>
+            <p className="text-2xl font-bold text-success">+{formatAUD(growth)}</p>
             <p className="text-xs text-muted-foreground">+{growthPercent}% from today</p>
           </CardContent>
         </Card>
@@ -160,7 +160,7 @@ export function ProjectionChart() {
             </div>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Estimated Investment Earnings</p>
-              <p className="text-lg font-bold text-green-600">
+              <p className="text-lg font-bold text-success">
                 +{formatAUD(growth - contributionCents * years * 12)}
               </p>
             </div>

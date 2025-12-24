@@ -201,7 +201,7 @@ export function AffordabilityResults({ results }: AffordabilityResultsProps) {
                 <span className="font-medium">Monthly Surplus/Shortfall</span>
                 <span
                   className={`font-bold ${
-                    surplus >= 0 ? "text-green-600" : "text-red-600"
+                    surplus >= 0 ? "text-success" : "text-destructive"
                   }`}
                 >
                   {surplus >= 0 ? "+" : ""}
@@ -216,10 +216,10 @@ export function AffordabilityResults({ results }: AffordabilityResultsProps) {
                   <span
                     className={`font-bold ${
                       rentalCoverageRatio >= 1.3
-                        ? "text-green-600"
+                        ? "text-success"
                         : rentalCoverageRatio >= 1.0
                         ? "text-yellow-600"
-                        : "text-red-600"
+                        : "text-destructive"
                     }`}
                   >
                     {rentalCoverageRatio.toFixed(2)}x

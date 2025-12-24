@@ -108,13 +108,38 @@ export function usePropertyWithRelated(id: string | undefined) {
 
 /**
  * Get portfolio summary (total value, equity, LVR, etc.)
+ * Optimized: only loads loans for active properties using indexed query
  */
 export function usePropertyPortfolioSummary() {
   return useLiveQuery(async () => {
-    const [properties, loans] = await Promise.all([
-      db.properties.where("status").equals("active").toArray(),
-      db.propertyLoans.toArray(),
-    ]);
+    const properties = await db.properties.where("status").equals("active").toArray();
+
+    if (properties.length === 0) {
+      return {
+        propertyCount: 0,
+        totalValue: 0,
+        totalPurchasePrice: 0,
+        totalDebt: 0,
+        totalEquity: 0,
+        averageLVR: 0,
+        totalGrowth: 0,
+      };
+    }
+
+    // Only fetch loans for active properties using indexed query
+    const propertyIds = properties.map((p) => p.id);
+    const loans = await db.propertyLoans
+      .where("propertyId")
+      .anyOf(propertyIds)
+      .toArray();
+
+    // Create a map for O(1) loan lookups
+    const loansByPropertyId = new Map<string, PropertyLoan[]>();
+    for (const loan of loans) {
+      const existing = loansByPropertyId.get(loan.propertyId) || [];
+      existing.push(loan);
+      loansByPropertyId.set(loan.propertyId, existing);
+    }
 
     let totalValue = 0;
     let totalPurchasePrice = 0;
@@ -124,8 +149,8 @@ export function usePropertyPortfolioSummary() {
       totalValue += property.valuationAmount;
       totalPurchasePrice += property.purchasePrice;
 
-      // Sum loans for this property
-      const propertyLoans = loans.filter((l) => l.propertyId === property.id);
+      // Sum loans for this property using the map
+      const propertyLoans = loansByPropertyId.get(property.id) || [];
       const propertyDebt = propertyLoans.reduce((sum, loan) => {
         const effectiveBalance =
           loan.currentBalance - (loan.offsetBalance || 0);
@@ -319,22 +344,44 @@ export function useCurrentRental(propertyId: string | undefined) {
 
 /**
  * Get total rental income across all properties
+ * Optimized: only loads rentals for active properties using indexed query
  */
 export function useRentalIncomeSummary() {
   return useLiveQuery(async () => {
-    const [properties, rentals] = await Promise.all([
-      db.properties.where("status").equals("active").toArray(),
-      db.propertyRentals.toArray(),
-    ]);
+    const properties = await db.properties.where("status").equals("active").toArray();
+
+    if (properties.length === 0) {
+      return {
+        totalWeeklyRent: 0,
+        totalMonthlyRent: 0,
+        totalAnnualRent: 0,
+        occupiedCount: 0,
+        vacantCount: 0,
+        occupancyRate: 0,
+      };
+    }
+
+    // Only fetch rentals for active properties using indexed query
+    const propertyIds = properties.map((p) => p.id);
+    const rentals = await db.propertyRentals
+      .where("propertyId")
+      .anyOf(propertyIds)
+      .toArray();
+
+    // Create a map for O(1) rental lookups
+    const rentalsByPropertyId = new Map<string, PropertyRental[]>();
+    for (const rental of rentals) {
+      const existing = rentalsByPropertyId.get(rental.propertyId) || [];
+      existing.push(rental);
+      rentalsByPropertyId.set(rental.propertyId, existing);
+    }
 
     let totalWeeklyRent = 0;
     let occupiedCount = 0;
     const now = new Date();
 
     for (const property of properties) {
-      const propertyRentals = rentals.filter(
-        (r) => r.propertyId === property.id
-      );
+      const propertyRentals = rentalsByPropertyId.get(property.id) || [];
 
       // Find current active rental
       const currentRental = propertyRentals.find(
@@ -479,27 +526,51 @@ export function useStandaloneModels() {
 
 /**
  * Get property tax summary for a financial year
+ * Optimized: only loads rentals for active properties using indexed query
  */
 export function usePropertyTaxSummary(financialYear: string) {
   return useLiveQuery(async () => {
-    const [properties, expenses, depreciation, rentals] = await Promise.all([
-      db.properties.where("status").equals("active").toArray(),
+    const properties = await db.properties.where("status").equals("active").toArray();
+
+    if (properties.length === 0) {
+      return {
+        financialYear,
+        totalRentalIncome: 0,
+        totalDeductibleExpenses: 0,
+        totalDepreciation: 0,
+        totalGstClaimed: 0,
+        netRentalIncome: 0,
+        isNegativelyGeared: false,
+        expensesByCategory: {},
+        propertyCount: 0,
+      };
+    }
+
+    const propertyIds = properties.map((p) => p.id);
+
+    const [expenses, depreciation, rentals] = await Promise.all([
       db.propertyExpenses.where("financialYear").equals(financialYear).toArray(),
       db.propertyDepreciation
         .where("financialYear")
         .equals(financialYear)
         .toArray(),
-      db.propertyRentals.toArray(),
+      // Only fetch rentals for active properties using indexed query
+      db.propertyRentals.where("propertyId").anyOf(propertyIds).toArray(),
     ]);
+
+    // Create a map for O(1) rental lookups
+    const rentalsByPropertyId = new Map<string, PropertyRental[]>();
+    for (const rental of rentals) {
+      const existing = rentalsByPropertyId.get(rental.propertyId) || [];
+      existing.push(rental);
+      rentalsByPropertyId.set(rental.propertyId, existing);
+    }
 
     // Calculate total rental income (assuming full year occupancy for FY)
     let totalRentalIncome = 0;
-    const now = new Date();
 
     for (const property of properties) {
-      const propertyRentals = rentals.filter(
-        (r) => r.propertyId === property.id
-      );
+      const propertyRentals = rentalsByPropertyId.get(property.id) || [];
 
       // Use most recent rental rate
       const sortedRentals = propertyRentals.sort(

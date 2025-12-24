@@ -49,7 +49,7 @@ const badgeVariants = cva(
         ].join(" "),
         glow: [
           "border-transparent bg-primary text-primary-foreground",
-          "shadow-[0_0_10px_oklch(0.55_0.15_160/0.3)]",
+          "shadow-[0_0_10px_oklch(0.55_0.18_265/0.3)]",
           "animate-pulse-subtle",
         ].join(" "),
       },

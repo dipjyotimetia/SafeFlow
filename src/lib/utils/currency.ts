@@ -47,14 +47,32 @@ export function formatNumber(cents: number): string {
 /**
  * Parse AUD string to cents
  * @param value Currency string like "$1,234.56" or "1234.56"
- * @returns Amount in cents
+ * @returns Amount in cents, or null if parsing fails
  */
-export function parseAUD(value: string): number {
+export function parseAUD(value: string): number | null {
+  // Handle empty or whitespace-only strings
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
   // Remove $ and commas, then convert to cents
-  const cleaned = value.replace(/[$,\s]/g, '');
+  const cleaned = trimmed.replace(/[$,\s]/g, '');
+
+  // Check if the result is a valid number string (allowing negative)
+  if (!/^-?\d*\.?\d+$/.test(cleaned)) return null;
+
   const dollars = parseFloat(cleaned);
-  if (isNaN(dollars)) return 0;
+  if (isNaN(dollars)) return null;
   return Math.round(dollars * 100);
+}
+
+/**
+ * Parse AUD string to cents, returning 0 for invalid input
+ * @deprecated Use parseAUD() which returns null for invalid input
+ * @param value Currency string like "$1,234.56" or "1234.56"
+ * @returns Amount in cents, or 0 if parsing fails
+ */
+export function parseAUDSafe(value: string): number {
+  return parseAUD(value) ?? 0;
 }
 
 /**
@@ -81,12 +99,23 @@ export function centsToDollars(cents: number): number {
 }
 
 /**
- * Format percentage
+ * Format percentage from decimal value
  * @param value Decimal value (e.g., 0.15 for 15%)
  * @returns Formatted string like "15.00%"
  */
 export function formatPercent(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
+}
+
+/**
+ * Format a value that is already a percentage
+ * Use this for values that are already in percentage form (e.g., yield calculations)
+ * @param value Percentage value (e.g., 4.42 for 4.42%)
+ * @param decimals Number of decimal places (default: 2)
+ * @returns Formatted string like "4.42%"
+ */
+export function formatPercentValue(value: number, decimals: number = 2): string {
+  return `${value.toFixed(decimals)}%`;
 }
 
 /**
@@ -97,9 +126,9 @@ export function formatPercent(value: number): string {
 export function formatChange(cents: number): { text: string; className: string } {
   const formatted = formatAUD(Math.abs(cents));
   if (cents > 0) {
-    return { text: `+${formatted}`, className: 'text-green-600' };
+    return { text: `+${formatted}`, className: 'text-success' };
   } else if (cents < 0) {
-    return { text: `-${formatted}`, className: 'text-red-600' };
+    return { text: `-${formatted}`, className: 'text-destructive' };
   }
-  return { text: formatted, className: 'text-gray-600' };
+  return { text: formatted, className: 'text-muted-foreground' };
 }

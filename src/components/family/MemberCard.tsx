@@ -58,7 +58,7 @@ export function MemberCard({ member, spending = 0, transactionCount = 0, onEdit,
                 </DropdownMenuItem>
               )}
               {onDelete && (
-                <DropdownMenuItem onClick={onDelete} className="text-red-600">
+                <DropdownMenuItem onClick={onDelete} className="text-destructive">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Remove
                 </DropdownMenuItem>

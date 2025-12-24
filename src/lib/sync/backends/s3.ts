@@ -10,6 +10,33 @@ import type {
 } from "./types";
 
 const DEFAULT_PATH = "safeflow-sync.json";
+const NETWORK_TIMEOUT_MS = 30000; // 30 seconds
+
+/**
+ * Fetch with timeout wrapper
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), NETWORK_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Network timeout after ${NETWORK_TIMEOUT_MS / 1000}s`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 /**
  * AWS Signature V4 signing implementation for browser use.
@@ -165,7 +192,7 @@ export class S3Backend implements SyncBackend {
         this.region
       );
 
-      const response = await fetch(url.toString(), {
+      const response = await fetchWithTimeout(url.toString(), {
         method: "HEAD",
         headers,
       });
@@ -230,7 +257,7 @@ export class S3Backend implements SyncBackend {
       this.region
     );
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchWithTimeout(url.toString(), {
       method: "PUT",
       headers,
       body: jsonData,
@@ -259,7 +286,7 @@ export class S3Backend implements SyncBackend {
       this.region
     );
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchWithTimeout(url.toString(), {
       method: "GET",
       headers,
     });
@@ -293,7 +320,7 @@ export class S3Backend implements SyncBackend {
       this.region
     );
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchWithTimeout(url.toString(), {
       method: "HEAD",
       headers,
     });
@@ -327,7 +354,7 @@ export class S3Backend implements SyncBackend {
       this.region
     );
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchWithTimeout(url.toString(), {
       method: "DELETE",
       headers,
     });

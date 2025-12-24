@@ -221,6 +221,21 @@ export interface SyncMetadata {
   backendConfig?: string; // Serialized JSON config (credentials stored here)
 }
 
+/**
+ * Snapshot of all data for rollback capability during sync
+ */
+export interface SyncSnapshot {
+  id: string;
+  /** Compressed JSON of all synced data */
+  data: string;
+  /** When the snapshot was created */
+  createdAt: Date;
+  /** Size in bytes for UI display */
+  sizeBytes: number;
+  /** Reason for creating snapshot */
+  reason: "pre-sync" | "pre-import" | "manual";
+}
+
 // Import types
 export type ImportStatus = "pending" | "completed" | "partial" | "failed";
 

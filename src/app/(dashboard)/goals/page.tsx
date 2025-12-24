@@ -121,7 +121,7 @@ export default function GoalsPage() {
                 {/* Achieved Goals */}
                 {achievedGoals.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-medium mb-4 text-green-600">Achieved Goals</h3>
+                    <h3 className="text-lg font-medium mb-4 text-success">Achieved Goals</h3>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {achievedGoals.map((progress) => (
                         <GoalCard key={progress.goal.id} progress={progress} onEdit={handleEdit} />

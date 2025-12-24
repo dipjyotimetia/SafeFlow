@@ -147,10 +147,10 @@ export function PortfolioPerformance() {
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-2">
               {trendDirection === 'positive' && (
-                <TrendingUp className="h-5 w-5 text-green-600" />
+                <TrendingUp className="h-5 w-5 text-success" />
               )}
               {trendDirection === 'negative' && (
-                <TrendingDown className="h-5 w-5 text-red-600" />
+                <TrendingDown className="h-5 w-5 text-destructive" />
               )}
               {trendDirection === 'neutral' && (
                 <Minus className="h-5 w-5 text-muted-foreground" />
@@ -158,8 +158,8 @@ export function PortfolioPerformance() {
               <span
                 className={cn(
                   'text-lg font-bold',
-                  trendDirection === 'positive' && 'text-green-600',
-                  trendDirection === 'negative' && 'text-red-600'
+                  trendDirection === 'positive' && 'text-success',
+                  trendDirection === 'negative' && 'text-destructive'
                 )}
               >
                 {performance.valueChange >= 0 ? '+' : ''}

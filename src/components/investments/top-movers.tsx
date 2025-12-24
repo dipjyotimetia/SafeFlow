@@ -40,8 +40,8 @@ function MoverItem({
           className={cn(
             'p-1.5 rounded-full',
             isPositive
-              ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+              ? 'bg-green-100 text-success dark:bg-green-900/30 dark:text-green-400'
+              : 'bg-red-100 text-destructive dark:bg-red-900/30 dark:text-red-400'
           )}
         >
           {isPositive ? (
@@ -68,7 +68,7 @@ function MoverItem({
         <p
           className={cn(
             'text-sm font-semibold tabular-nums',
-            isPositive ? 'text-green-600' : 'text-red-600'
+            isPositive ? 'text-success' : 'text-destructive'
           )}
         >
           {isPositive ? '+' : ''}

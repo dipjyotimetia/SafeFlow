@@ -23,6 +23,7 @@ import type {
   PropertyStatus,
 } from "@/types";
 import { calculatePropertyModel } from "@/lib/utils/property-cashflow";
+import { handleStoreError } from "@/lib/errors";
 
 interface PropertyStore {
   // UI State
@@ -91,254 +92,364 @@ export const usePropertyStore = create<PropertyStore>((set) => ({
 
   // Property CRUD
   createProperty: async (data) => {
-    const id = uuidv4();
-    const now = new Date();
-
-    const property: Property = {
-      ...data,
-      id,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await db.properties.add(property);
-    return id;
-  },
-
-  updateProperty: async (id, data) => {
-    await db.properties.update(id, {
-      ...data,
-      updatedAt: new Date(),
-    });
-  },
-
-  deleteProperty: async (id, options = { cascade: true }) => {
-    if (options.cascade) {
-      // Use transaction for atomic cascade delete
-      await db.transaction(
-        "rw",
-        [
-          db.properties,
-          db.propertyLoans,
-          db.propertyExpenses,
-          db.propertyRentals,
-          db.propertyDepreciation,
-          db.propertyModels,
-        ],
-        async () => {
-          // Delete all related records
-          await db.propertyLoans.where("propertyId").equals(id).delete();
-          await db.propertyExpenses.where("propertyId").equals(id).delete();
-          await db.propertyRentals.where("propertyId").equals(id).delete();
-          await db.propertyDepreciation.where("propertyId").equals(id).delete();
-          await db.propertyModels.where("propertyId").equals(id).delete();
-
-          // Delete the property
-          await db.properties.delete(id);
-        }
-      );
-    } else {
-      await db.properties.delete(id);
-    }
-  },
-
-  updatePropertyStatus: async (id, status) => {
-    await db.properties.update(id, {
-      status,
-      updatedAt: new Date(),
-    });
-  },
-
-  // Loan CRUD
-  createLoan: async (data) => {
-    const id = uuidv4();
-    const now = new Date();
-
-    const loan: PropertyLoan = {
-      ...data,
-      id,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await db.propertyLoans.add(loan);
-    return id;
-  },
-
-  updateLoan: async (id, data) => {
-    await db.propertyLoans.update(id, {
-      ...data,
-      updatedAt: new Date(),
-    });
-  },
-
-  deleteLoan: async (id) => {
-    await db.propertyLoans.delete(id);
-  },
-
-  updateLoanBalance: async (id, newBalance) => {
-    await db.propertyLoans.update(id, {
-      currentBalance: newBalance,
-      updatedAt: new Date(),
-    });
-  },
-
-  // Expense CRUD
-  createExpense: async (data) => {
-    const id = uuidv4();
-    const now = new Date();
-
-    const expense: PropertyExpense = {
-      ...data,
-      id,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await db.propertyExpenses.add(expense);
-    return id;
-  },
-
-  updateExpense: async (id, data) => {
-    await db.propertyExpenses.update(id, {
-      ...data,
-      updatedAt: new Date(),
-    });
-  },
-
-  deleteExpense: async (id) => {
-    await db.propertyExpenses.delete(id);
-  },
-
-  bulkCreateExpenses: async (expenses) => {
-    const now = new Date();
-    const ids: string[] = [];
-
-    const expensesWithIds = expenses.map((data) => {
+    try {
       const id = uuidv4();
-      ids.push(id);
-      return {
+      const now = new Date();
+
+      const property: Property = {
         ...data,
         id,
         createdAt: now,
         updatedAt: now,
-      } as PropertyExpense;
-    });
+      };
 
-    await db.propertyExpenses.bulkAdd(expensesWithIds);
-    return ids;
+      await db.properties.add(property);
+      return id;
+    } catch (error) {
+      handleStoreError("PropertyStore.createProperty", error);
+      throw error;
+    }
+  },
+
+  updateProperty: async (id, data) => {
+    try {
+      await db.properties.update(id, {
+        ...data,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      handleStoreError("PropertyStore.updateProperty", error);
+      throw error;
+    }
+  },
+
+  deleteProperty: async (id, options = { cascade: true }) => {
+    try {
+      if (options.cascade) {
+        // Use transaction for atomic cascade delete
+        await db.transaction(
+          "rw",
+          [
+            db.properties,
+            db.propertyLoans,
+            db.propertyExpenses,
+            db.propertyRentals,
+            db.propertyDepreciation,
+            db.propertyModels,
+          ],
+          async () => {
+            // Delete all related records
+            await db.propertyLoans.where("propertyId").equals(id).delete();
+            await db.propertyExpenses.where("propertyId").equals(id).delete();
+            await db.propertyRentals.where("propertyId").equals(id).delete();
+            await db.propertyDepreciation.where("propertyId").equals(id).delete();
+            await db.propertyModels.where("propertyId").equals(id).delete();
+
+            // Delete the property
+            await db.properties.delete(id);
+          }
+        );
+      } else {
+        await db.properties.delete(id);
+      }
+    } catch (error) {
+      handleStoreError("PropertyStore.deleteProperty", error);
+      throw error;
+    }
+  },
+
+  updatePropertyStatus: async (id, status) => {
+    try {
+      await db.properties.update(id, {
+        status,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      handleStoreError("PropertyStore.updatePropertyStatus", error);
+      throw error;
+    }
+  },
+
+  // Loan CRUD
+  createLoan: async (data) => {
+    try {
+      const id = uuidv4();
+      const now = new Date();
+
+      const loan: PropertyLoan = {
+        ...data,
+        id,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await db.propertyLoans.add(loan);
+      return id;
+    } catch (error) {
+      handleStoreError("PropertyStore.createLoan", error);
+      throw error;
+    }
+  },
+
+  updateLoan: async (id, data) => {
+    try {
+      await db.propertyLoans.update(id, {
+        ...data,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      handleStoreError("PropertyStore.updateLoan", error);
+      throw error;
+    }
+  },
+
+  deleteLoan: async (id) => {
+    try {
+      await db.propertyLoans.delete(id);
+    } catch (error) {
+      handleStoreError("PropertyStore.deleteLoan", error);
+      throw error;
+    }
+  },
+
+  updateLoanBalance: async (id, newBalance) => {
+    try {
+      await db.propertyLoans.update(id, {
+        currentBalance: newBalance,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      handleStoreError("PropertyStore.updateLoanBalance", error);
+      throw error;
+    }
+  },
+
+  // Expense CRUD
+  createExpense: async (data) => {
+    try {
+      const id = uuidv4();
+      const now = new Date();
+
+      const expense: PropertyExpense = {
+        ...data,
+        id,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await db.propertyExpenses.add(expense);
+      return id;
+    } catch (error) {
+      handleStoreError("PropertyStore.createExpense", error);
+      throw error;
+    }
+  },
+
+  updateExpense: async (id, data) => {
+    try {
+      await db.propertyExpenses.update(id, {
+        ...data,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      handleStoreError("PropertyStore.updateExpense", error);
+      throw error;
+    }
+  },
+
+  deleteExpense: async (id) => {
+    try {
+      await db.propertyExpenses.delete(id);
+    } catch (error) {
+      handleStoreError("PropertyStore.deleteExpense", error);
+      throw error;
+    }
+  },
+
+  bulkCreateExpenses: async (expenses) => {
+    try {
+      const now = new Date();
+      const ids: string[] = [];
+
+      const expensesWithIds = expenses.map((data) => {
+        const id = uuidv4();
+        ids.push(id);
+        return {
+          ...data,
+          id,
+          createdAt: now,
+          updatedAt: now,
+        } as PropertyExpense;
+      });
+
+      await db.propertyExpenses.bulkAdd(expensesWithIds);
+      return ids;
+    } catch (error) {
+      handleStoreError("PropertyStore.bulkCreateExpenses", error);
+      throw error;
+    }
   },
 
   // Rental CRUD
   createRental: async (data) => {
-    const id = uuidv4();
-    const now = new Date();
+    try {
+      const id = uuidv4();
+      const now = new Date();
 
-    const rental: PropertyRental = {
-      ...data,
-      id,
-      createdAt: now,
-      updatedAt: now,
-    };
+      const rental: PropertyRental = {
+        ...data,
+        id,
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    await db.propertyRentals.add(rental);
-    return id;
+      await db.propertyRentals.add(rental);
+      return id;
+    } catch (error) {
+      handleStoreError("PropertyStore.createRental", error);
+      throw error;
+    }
   },
 
   updateRental: async (id, data) => {
-    await db.propertyRentals.update(id, {
-      ...data,
-      updatedAt: new Date(),
-    });
+    try {
+      await db.propertyRentals.update(id, {
+        ...data,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      handleStoreError("PropertyStore.updateRental", error);
+      throw error;
+    }
   },
 
   deleteRental: async (id) => {
-    await db.propertyRentals.delete(id);
+    try {
+      await db.propertyRentals.delete(id);
+    } catch (error) {
+      handleStoreError("PropertyStore.deleteRental", error);
+      throw error;
+    }
   },
 
   // Depreciation CRUD
   createDepreciation: async (data) => {
-    const id = uuidv4();
-    const now = new Date();
+    try {
+      const id = uuidv4();
+      const now = new Date();
 
-    const depreciation: PropertyDepreciation = {
-      ...data,
-      id,
-      createdAt: now,
-      updatedAt: now,
-    };
+      const depreciation: PropertyDepreciation = {
+        ...data,
+        id,
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    await db.propertyDepreciation.add(depreciation);
-    return id;
+      await db.propertyDepreciation.add(depreciation);
+      return id;
+    } catch (error) {
+      handleStoreError("PropertyStore.createDepreciation", error);
+      throw error;
+    }
   },
 
   updateDepreciation: async (id, data) => {
-    await db.propertyDepreciation.update(id, {
-      ...data,
-      updatedAt: new Date(),
-    });
+    try {
+      await db.propertyDepreciation.update(id, {
+        ...data,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      handleStoreError("PropertyStore.updateDepreciation", error);
+      throw error;
+    }
   },
 
   deleteDepreciation: async (id) => {
-    await db.propertyDepreciation.delete(id);
+    try {
+      await db.propertyDepreciation.delete(id);
+    } catch (error) {
+      handleStoreError("PropertyStore.deleteDepreciation", error);
+      throw error;
+    }
   },
 
   // Model CRUD
   createModel: async (data) => {
-    const id = uuidv4();
-    const now = new Date();
+    try {
+      const id = uuidv4();
+      const now = new Date();
 
-    // Calculate results if assumptions are provided
-    let calculatedResults = data.calculatedResults;
-    if (data.assumptions && !calculatedResults) {
-      calculatedResults = calculatePropertyModel(data.assumptions);
+      // Calculate results if assumptions are provided
+      let calculatedResults = data.calculatedResults;
+      if (data.assumptions && !calculatedResults) {
+        calculatedResults = calculatePropertyModel(data.assumptions);
+      }
+
+      const model: PropertyModel = {
+        ...data,
+        id,
+        calculatedResults,
+        lastCalculatedAt: calculatedResults ? now : undefined,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await db.propertyModels.add(model);
+      return id;
+    } catch (error) {
+      handleStoreError("PropertyStore.createModel", error);
+      throw error;
     }
-
-    const model: PropertyModel = {
-      ...data,
-      id,
-      calculatedResults,
-      lastCalculatedAt: calculatedResults ? now : undefined,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await db.propertyModels.add(model);
-    return id;
   },
 
   updateModel: async (id, data) => {
-    const updates: Partial<PropertyModel> = {
-      ...data,
-      updatedAt: new Date(),
-    };
+    try {
+      const updates: Partial<PropertyModel> = {
+        ...data,
+        updatedAt: new Date(),
+      };
 
-    // Recalculate if assumptions changed
-    if (data.assumptions) {
-      updates.calculatedResults = calculatePropertyModel(data.assumptions);
-      updates.lastCalculatedAt = new Date();
+      // Recalculate if assumptions changed
+      if (data.assumptions) {
+        updates.calculatedResults = calculatePropertyModel(data.assumptions);
+        updates.lastCalculatedAt = new Date();
+      }
+
+      await db.propertyModels.update(id, updates);
+    } catch (error) {
+      handleStoreError("PropertyStore.updateModel", error);
+      throw error;
     }
-
-    await db.propertyModels.update(id, updates);
   },
 
   deleteModel: async (id) => {
-    await db.propertyModels.delete(id);
+    try {
+      await db.propertyModels.delete(id);
+    } catch (error) {
+      handleStoreError("PropertyStore.deleteModel", error);
+      throw error;
+    }
   },
 
   calculateAndSaveModel: async (id) => {
-    const model = await db.propertyModels.get(id);
-    if (!model) {
-      throw new Error(`Model not found: ${id}`);
+    try {
+      const model = await db.propertyModels.get(id);
+      if (!model) {
+        throw new Error(`Model not found: ${id}`);
+      }
+
+      const calculatedResults = calculatePropertyModel(model.assumptions);
+      const now = new Date();
+
+      await db.propertyModels.update(id, {
+        calculatedResults,
+        lastCalculatedAt: now,
+        updatedAt: now,
+      });
+    } catch (error) {
+      handleStoreError("PropertyStore.calculateAndSaveModel", error);
+      throw error;
     }
-
-    const calculatedResults = calculatePropertyModel(model.assumptions);
-    const now = new Date();
-
-    await db.propertyModels.update(id, {
-      calculatedResults,
-      lastCalculatedAt: now,
-      updatedAt: now,
-    });
   },
 }));

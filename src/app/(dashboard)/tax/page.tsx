@@ -149,7 +149,7 @@ export default function TaxPage() {
                   <CardTitle className="text-sm font-medium">Total Income</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-success">
                     {formatAUD(incomeSummary.combinedIncome)}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -192,7 +192,7 @@ export default function TaxPage() {
                   <div
                     className={cn(
                       'text-2xl font-bold',
-                      capitalGainsData.netCapitalGain >= 0 ? 'text-amber-600' : 'text-green-600'
+                      capitalGainsData.netCapitalGain >= 0 ? 'text-warning' : 'text-success'
                     )}
                   >
                     {formatAUD(Math.abs(capitalGainsData.netCapitalGain))}
@@ -222,19 +222,19 @@ export default function TaxPage() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Short-term gains (&lt;12 months)</span>
-                        <span className="font-medium text-amber-600">
+                        <span className="font-medium text-warning">
                           {formatAUD(capitalGainsData.shortTermGains)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Long-term gains (12+ months)</span>
-                        <span className="font-medium text-amber-600">
+                        <span className="font-medium text-warning">
                           {formatAUD(capitalGainsData.longTermGains)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center border-t pt-2">
                         <span className="text-sm text-muted-foreground">50% CGT discount applied</span>
-                        <span className="font-medium text-green-600">
+                        <span className="font-medium text-success">
                           -{formatAUD(capitalGainsData.longTermGains - capitalGainsData.discountedLongTermGains)}
                         </span>
                       </div>
@@ -242,13 +242,13 @@ export default function TaxPage() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Total gains</span>
-                        <span className="font-medium text-amber-600">
+                        <span className="font-medium text-warning">
                           {formatAUD(capitalGainsData.totalGains)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Total losses</span>
-                        <span className="font-medium text-green-600">
+                        <span className="font-medium text-success">
                           -{formatAUD(capitalGainsData.totalLosses)}
                         </span>
                       </div>
@@ -257,7 +257,7 @@ export default function TaxPage() {
                         <span
                           className={cn(
                             'font-bold',
-                            capitalGainsData.netCapitalGain >= 0 ? 'text-amber-600' : 'text-green-600'
+                            capitalGainsData.netCapitalGain >= 0 ? 'text-warning' : 'text-success'
                           )}
                         >
                           {formatAUD(capitalGainsData.netCapitalGain)}
@@ -291,7 +291,7 @@ export default function TaxPage() {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Franking credits</span>
-                        <span className="font-medium text-green-600">
+                        <span className="font-medium text-success">
                           +{formatAUD(frankingSummary.totalFrankingCredits)}
                         </span>
                       </div>
@@ -303,11 +303,11 @@ export default function TaxPage() {
 
                     {/* Tax Offset */}
                     <div className="space-y-4">
-                      <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
-                        <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                      <div className="p-4 bg-success/10 rounded-lg border border-success/20">
+                        <p className="text-sm font-medium text-success">
                           Tax Offset Available
                         </p>
-                        <p className="text-2xl font-bold text-green-600">
+                        <p className="text-2xl font-bold text-success">
                           {formatAUD(frankingSummary.totalFrankingCredits)}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -335,7 +335,7 @@ export default function TaxPage() {
                             </div>
                             <div className="flex items-center gap-4">
                               <span className="text-muted-foreground">{formatAUD(h.dividends)}</span>
-                              <span className="text-green-600 font-medium">
+                              <span className="text-success font-medium">
                                 +{formatAUD(h.frankingCredits)}
                               </span>
                             </div>

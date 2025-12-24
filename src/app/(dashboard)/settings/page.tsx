@@ -160,7 +160,7 @@ export default function SettingsPage() {
         {/* Danger Zone */}
         <Card className="border-red-200">
           <CardHeader>
-            <CardTitle className="text-red-600">Danger Zone</CardTitle>
+            <CardTitle className="text-destructive">Danger Zone</CardTitle>
             <CardDescription>
               Irreversible actions that will affect your data
             </CardDescription>

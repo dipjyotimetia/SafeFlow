@@ -52,9 +52,9 @@ export function TransactionList({
   const getTypeIcon = (type: Transaction['type']) => {
     switch (type) {
       case 'income':
-        return <ArrowUpCircle className="h-4 w-4 text-green-600" />;
+        return <ArrowUpCircle className="h-4 w-4 text-success" />;
       case 'expense':
-        return <ArrowDownCircle className="h-4 w-4 text-red-600" />;
+        return <ArrowDownCircle className="h-4 w-4 text-destructive" />;
       case 'transfer':
         return <ArrowRightLeft className="h-4 w-4 text-blue-600" />;
     }
@@ -148,8 +148,8 @@ export function TransactionList({
                 <span
                   className={cn(
                     'font-medium',
-                    transaction.type === 'income' ? 'text-green-600' : '',
-                    transaction.type === 'expense' ? 'text-red-600' : ''
+                    transaction.type === 'income' ? 'text-success' : '',
+                    transaction.type === 'expense' ? 'text-destructive' : ''
                   )}
                 >
                   {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}
@@ -170,7 +170,7 @@ export function TransactionList({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onDelete(transaction)}
-                      className="text-red-600 focus:text-red-600"
+                      className="text-destructive focus:text-destructive"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete

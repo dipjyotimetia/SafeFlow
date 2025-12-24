@@ -144,7 +144,7 @@ export default function PropertyDetailPage() {
               {formatAUD(property.valuationAmount)}
             </div>
             <p
-              className={`text-xs ${growthPercent >= 0 ? "text-green-600" : "text-red-600"}`}
+              className={`text-xs ${growthPercent >= 0 ? "text-success" : "text-destructive"}`}
             >
               {growthPercent >= 0 ? "+" : ""}
               {formatPercent(growthPercent)} from purchase
@@ -173,7 +173,7 @@ export default function PropertyDetailPage() {
           <CardContent>
             <div className="text-2xl font-bold">{formatAUD(totalDebt)}</div>
             <p
-              className={`text-xs ${lvr > 80 ? "text-amber-600" : "text-green-600"}`}
+              className={`text-xs ${lvr > 80 ? "text-amber-600" : "text-success"}`}
             >
               {formatPercent(lvr)} LVR
             </p>
@@ -479,7 +479,7 @@ export default function PropertyDetailPage() {
                     {loan.offsetBalance && loan.offsetBalance > 0 && (
                       <div>
                         <p className="text-sm text-muted-foreground">Offset</p>
-                        <p className="font-medium text-green-600">
+                        <p className="font-medium text-success">
                           {formatAUD(loan.offsetBalance)}
                         </p>
                       </div>

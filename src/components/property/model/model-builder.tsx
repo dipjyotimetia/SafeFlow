@@ -109,7 +109,12 @@ export function ModelBuilder({
         {/* Right Column - Results */}
         <div>
           <h3 className="text-lg font-semibold mb-4">Calculated Results</h3>
-          <ModelResults results={results} />
+          <ModelResults
+            results={results}
+            assumptions={assumptions}
+            onAssumptionsChange={handleAssumptionsChange}
+            purchasePrice={assumptions.purchasePrice}
+          />
         </div>
       </div>
     </div>
