@@ -1,10 +1,20 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +32,16 @@ import {
   FileUp,
   Trash2,
   TrendingUp,
+  Palette,
+  Eye,
+  Bot,
+  AlertCircle,
+  Server,
+  RefreshCw,
 } from 'lucide-react';
 import { useSyncStore } from '@/stores/sync.store';
+import { useUIStore } from '@/stores/ui.store';
+import { useAIStore } from '@/stores/ai.store';
 import { toast } from 'sonner';
 import { db } from '@/lib/db';
 import { CloudSyncCard } from '@/components/settings/cloud-sync-card';
@@ -34,6 +52,48 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { exportBackup, importBackup } = useSyncStore();
+
+  // UI Store
+  const theme = useUIStore((state) => state.theme);
+  const setTheme = useUIStore((state) => state.setTheme);
+  const transactionViewMode = useUIStore((state) => state.transactionViewMode);
+  const setTransactionViewMode = useUIStore((state) => state.setTransactionViewMode);
+  const autoRefreshPrices = useUIStore((state) => state.autoRefreshPrices);
+  const setAutoRefreshPrices = useUIStore((state) => state.setAutoRefreshPrices);
+
+  // AI Store
+  const aiSettings = useAIStore((state) => state.settings);
+  const updateAISettings = useAIStore((state) => state.updateSettings);
+  const connectionStatus = useAIStore((state) => state.connectionStatus);
+  const connectionError = useAIStore((state) => state.connectionError);
+  const isModelReady = useAIStore((state) => state.isModelReady);
+  const checkConnection = useAIStore((state) => state.checkConnection);
+  const availableModels = useAIStore((state) => state.availableModels);
+
+  // Local state for AI settings form
+  const [ollamaHost, setOllamaHost] = useState(aiSettings.ollamaHost);
+  const [selectedModel, setSelectedModel] = useState(aiSettings.model);
+
+  // Update local state when settings change
+  useEffect(() => {
+    setOllamaHost(aiSettings.ollamaHost);
+    setSelectedModel(aiSettings.model);
+  }, [aiSettings.ollamaHost, aiSettings.model]);
+
+  // Apply theme to document
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(theme);
+    }
+  }, [theme]);
 
   const handleExportBackup = async () => {
     try {
@@ -81,10 +141,93 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSaveAISettings = () => {
+    updateAISettings({
+      ollamaHost,
+      model: selectedModel,
+    });
+    toast.success('AI settings saved');
+  };
+
+  const handleTestConnection = async () => {
+    await checkConnection();
+    if (connectionStatus === 'connected') {
+      toast.success('Connected to Ollama');
+    }
+  };
+
   return (
     <>
       <Header title="Settings" />
       <div className="p-6 space-y-6 max-w-3xl">
+        {/* Appearance */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Appearance
+            </CardTitle>
+            <CardDescription>
+              Customize how SafeFlow looks on your device
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="font-medium">Theme</p>
+                <p className="text-sm text-muted-foreground">
+                  Choose between light, dark, or system theme
+                </p>
+              </div>
+              <Select value={theme} onValueChange={(v) => setTheme(v as 'light' | 'dark' | 'system')}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="dark">Dark</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Display Preferences */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Display Preferences
+            </CardTitle>
+            <CardDescription>
+              Configure how data is displayed throughout the app
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="font-medium">Transaction View</p>
+                <p className="text-sm text-muted-foreground">
+                  How transactions are displayed on the transactions page
+                </p>
+              </div>
+              <Select
+                value={transactionViewMode}
+                onValueChange={(v) => setTransactionViewMode(v as 'list' | 'grouped')}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="list">List View</SelectItem>
+                  <SelectItem value="grouped">Grouped by Date</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Cloud Sync - Multi-backend support */}
         <CloudSyncCard />
 
@@ -107,10 +250,10 @@ export default function SettingsPage() {
                   Automatically refresh prices when visiting the Investments page if data is stale (over 1 hour old)
                 </p>
               </div>
-              <Badge variant="default" className="text-xs">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Enabled
-              </Badge>
+              <Switch
+                checked={autoRefreshPrices}
+                onCheckedChange={setAutoRefreshPrices}
+              />
             </div>
             <div className="pt-2 border-t">
               <p className="text-xs text-muted-foreground">
@@ -118,6 +261,120 @@ export default function SettingsPage() {
                 Prices are stored locally and a 30-day history is kept for trend charts.
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* AI Assistant Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot className="h-5 w-5" />
+              AI Assistant
+            </CardTitle>
+            <CardDescription>
+              Configure the local AI assistant powered by Ollama
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Connection Status */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="font-medium">Connection Status</p>
+                <div className="flex items-center gap-2">
+                  {connectionStatus === 'connected' ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span className="text-sm text-green-600">Connected</span>
+                      {isModelReady && (
+                        <Badge variant="secondary" className="text-xs">
+                          Model Ready
+                        </Badge>
+                      )}
+                    </>
+                  ) : connectionStatus === 'connecting' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                      <span className="text-sm text-blue-600">Connecting...</span>
+                    </>
+                  ) : connectionStatus === 'error' ? (
+                    <>
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      <span className="text-sm text-red-600">Error</span>
+                    </>
+                  ) : (
+                    <>
+                      <Server className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Disconnected</span>
+                    </>
+                  )}
+                </div>
+                {connectionError && (
+                  <p className="text-xs text-destructive">{connectionError}</p>
+                )}
+              </div>
+              <Button variant="outline" size="sm" onClick={handleTestConnection}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Test
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ollamaHost">Ollama Host URL</Label>
+              <Input
+                id="ollamaHost"
+                placeholder="http://127.0.0.1:11434"
+                value={ollamaHost}
+                onChange={(e) => setOllamaHost(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                The URL where Ollama is running. Default is http://127.0.0.1:11434
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="model">Model</Label>
+              {availableModels.length > 0 ? (
+                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                  <SelectTrigger id="model">
+                    <SelectValue placeholder="Select a model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableModels.map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="model"
+                  placeholder="llama3.1:8b"
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                />
+              )}
+              <p className="text-xs text-muted-foreground">
+                The Ollama model to use for AI features. Run &quot;ollama pull llama3.1:8b&quot; to download.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="font-medium">Auto-categorize transactions</p>
+                <p className="text-sm text-muted-foreground">
+                  Automatically categorize imported transactions using AI
+                </p>
+              </div>
+              <Switch
+                checked={aiSettings.autoCategorize}
+                onCheckedChange={(checked) => updateAISettings({ autoCategorize: checked })}
+              />
+            </div>
+
+            <Button onClick={handleSaveAISettings} className="w-full">
+              Save AI Settings
+            </Button>
           </CardContent>
         </Card>
 

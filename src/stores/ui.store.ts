@@ -28,6 +28,10 @@ interface UIStore {
   // Theme
   theme: 'light' | 'dark' | 'system';
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
+
+  // Investment settings
+  autoRefreshPrices: boolean;
+  setAutoRefreshPrices: (enabled: boolean) => void;
 }
 
 // Get current financial year
@@ -65,6 +69,9 @@ export const useUIStore = create<UIStore>()(
 
       theme: 'system',
       setTheme: (theme) => set({ theme }),
+
+      autoRefreshPrices: true,
+      setAutoRefreshPrices: (enabled) => set({ autoRefreshPrices: enabled }),
     }),
     {
       name: 'safeflow-ui',
@@ -72,6 +79,7 @@ export const useUIStore = create<UIStore>()(
         selectedFinancialYear: state.selectedFinancialYear,
         transactionViewMode: state.transactionViewMode,
         theme: state.theme,
+        autoRefreshPrices: state.autoRefreshPrices,
       }),
     }
   )

@@ -635,3 +635,608 @@ export function usePropertyTaxSummary(financialYear: string) {
     };
   }, [financialYear]);
 }
+
+// ============ Portfolio Analytics Hooks ============
+
+/**
+ * Geographic and property type diversification breakdown
+ * Returns percentage allocation by state and property type
+ */
+export function usePortfolioDiversification() {
+  return useLiveQuery(async () => {
+    const properties = await db.properties
+      .where("status")
+      .equals("active")
+      .toArray();
+
+    if (properties.length === 0) {
+      return {
+        byState: {} as Record<AustralianState, { count: number; value: number; percentage: number }>,
+        byType: {} as Record<string, { count: number; value: number; percentage: number }>,
+        totalValue: 0,
+        propertyCount: 0,
+        concentrationRisk: {
+          topStatePercentage: 0,
+          topState: null as AustralianState | null,
+          isHighlyConcentrated: false, // > 80% in one state
+        },
+      };
+    }
+
+    // Calculate total portfolio value
+    const totalValue = properties.reduce((sum, p) => sum + p.valuationAmount, 0);
+
+    // Group by state
+    const byState: Record<string, { count: number; value: number; percentage: number }> = {};
+    for (const property of properties) {
+      if (!byState[property.state]) {
+        byState[property.state] = { count: 0, value: 0, percentage: 0 };
+      }
+      byState[property.state].count++;
+      byState[property.state].value += property.valuationAmount;
+    }
+
+    // Calculate percentages for states
+    for (const state of Object.keys(byState)) {
+      byState[state].percentage =
+        totalValue > 0
+          ? Math.round((byState[state].value / totalValue) * 10000) / 100
+          : 0;
+    }
+
+    // Group by property type
+    const byType: Record<string, { count: number; value: number; percentage: number }> = {};
+    for (const property of properties) {
+      if (!byType[property.propertyType]) {
+        byType[property.propertyType] = { count: 0, value: 0, percentage: 0 };
+      }
+      byType[property.propertyType].count++;
+      byType[property.propertyType].value += property.valuationAmount;
+    }
+
+    // Calculate percentages for types
+    for (const type of Object.keys(byType)) {
+      byType[type].percentage =
+        totalValue > 0
+          ? Math.round((byType[type].value / totalValue) * 10000) / 100
+          : 0;
+    }
+
+    // Find concentration risk (top state)
+    let topState: AustralianState | null = null;
+    let topStatePercentage = 0;
+    for (const [state, data] of Object.entries(byState)) {
+      if (data.percentage > topStatePercentage) {
+        topStatePercentage = data.percentage;
+        topState = state as AustralianState;
+      }
+    }
+
+    return {
+      byState: byState as Record<AustralianState, { count: number; value: number; percentage: number }>,
+      byType,
+      totalValue,
+      propertyCount: properties.length,
+      concentrationRisk: {
+        topStatePercentage,
+        topState,
+        isHighlyConcentrated: topStatePercentage > 80,
+      },
+    };
+  }, []);
+}
+
+/**
+ * Weighted average portfolio yield
+ * Calculates gross and net rental yields across the entire portfolio
+ */
+export function usePortfolioYield() {
+  return useLiveQuery(async () => {
+    const properties = await db.properties
+      .where("status")
+      .equals("active")
+      .toArray();
+
+    if (properties.length === 0) {
+      return {
+        weightedGrossYield: 0,
+        weightedNetYield: 0,
+        totalAnnualRent: 0,
+        totalAnnualExpenses: 0,
+        totalPropertyValue: 0,
+        yieldByProperty: [] as Array<{
+          propertyId: string;
+          address: string;
+          grossYield: number;
+          netYield: number;
+          annualRent: number;
+          annualExpenses: number;
+          value: number;
+        }>,
+      };
+    }
+
+    const propertyIds = properties.map((p) => p.id);
+
+    // Fetch rentals and expenses for all active properties
+    const [rentals, expenses] = await Promise.all([
+      db.propertyRentals.where("propertyId").anyOf(propertyIds).toArray(),
+      db.propertyExpenses.where("propertyId").anyOf(propertyIds).toArray(),
+    ]);
+
+    // Create maps for O(1) lookups
+    const rentalsByPropertyId = new Map<string, PropertyRental[]>();
+    for (const rental of rentals) {
+      const existing = rentalsByPropertyId.get(rental.propertyId) || [];
+      existing.push(rental);
+      rentalsByPropertyId.set(rental.propertyId, existing);
+    }
+
+    const expensesByPropertyId = new Map<string, PropertyExpense[]>();
+    for (const expense of expenses) {
+      const existing = expensesByPropertyId.get(expense.propertyId) || [];
+      existing.push(expense);
+      expensesByPropertyId.set(expense.propertyId, existing);
+    }
+
+    let totalPropertyValue = 0;
+    let totalAnnualRent = 0;
+    let totalAnnualExpenses = 0;
+    const yieldByProperty: Array<{
+      propertyId: string;
+      address: string;
+      grossYield: number;
+      netYield: number;
+      annualRent: number;
+      annualExpenses: number;
+      value: number;
+    }> = [];
+
+    const now = new Date();
+
+    for (const property of properties) {
+      const propertyRentals = rentalsByPropertyId.get(property.id) || [];
+      const propertyExpenses = expensesByPropertyId.get(property.id) || [];
+
+      // Find current active rental
+      const currentRental = propertyRentals.find(
+        (r) => r.isCurrentlyOccupied && new Date(r.leaseEndDate) >= now
+      );
+
+      const annualRent = currentRental ? currentRental.weeklyRent * 52 : 0;
+
+      // Calculate annualized expenses
+      let annualExpenses = 0;
+      for (const expense of propertyExpenses) {
+        if (expense.isRecurring) {
+          annualExpenses += normalizeToAnnual(expense.amount, expense.frequency);
+        }
+      }
+
+      const value = property.valuationAmount;
+      const grossYield = value > 0 ? (annualRent / value) * 100 : 0;
+      const netYield = value > 0 ? ((annualRent - annualExpenses) / value) * 100 : 0;
+
+      totalPropertyValue += value;
+      totalAnnualRent += annualRent;
+      totalAnnualExpenses += annualExpenses;
+
+      yieldByProperty.push({
+        propertyId: property.id,
+        address: property.address,
+        grossYield: Math.round(grossYield * 100) / 100,
+        netYield: Math.round(netYield * 100) / 100,
+        annualRent,
+        annualExpenses,
+        value,
+      });
+    }
+
+    // Calculate weighted averages
+    const weightedGrossYield =
+      totalPropertyValue > 0
+        ? (totalAnnualRent / totalPropertyValue) * 100
+        : 0;
+    const weightedNetYield =
+      totalPropertyValue > 0
+        ? ((totalAnnualRent - totalAnnualExpenses) / totalPropertyValue) * 100
+        : 0;
+
+    // Sort by gross yield (highest first)
+    yieldByProperty.sort((a, b) => b.grossYield - a.grossYield);
+
+    return {
+      weightedGrossYield: Math.round(weightedGrossYield * 100) / 100,
+      weightedNetYield: Math.round(weightedNetYield * 100) / 100,
+      totalAnnualRent,
+      totalAnnualExpenses,
+      totalPropertyValue,
+      yieldByProperty,
+    };
+  }, []);
+}
+
+/**
+ * Equity extraction calculator
+ * Calculates usable equity per property and total accessible equity
+ * Based on 80% LVR for available equity (conservative lending threshold)
+ */
+export function useEquityExtraction(targetLVR: number = 80) {
+  return useLiveQuery(async () => {
+    const properties = await db.properties
+      .where("status")
+      .equals("active")
+      .toArray();
+
+    if (properties.length === 0) {
+      return {
+        totalUsableEquity: 0,
+        totalCurrentEquity: 0,
+        totalPropertyValue: 0,
+        totalCurrentDebt: 0,
+        equityByProperty: [] as Array<{
+          propertyId: string;
+          address: string;
+          propertyValue: number;
+          currentDebt: number;
+          currentEquity: number;
+          currentLVR: number;
+          maxDebtAtTargetLVR: number;
+          usableEquity: number;
+          canExtractEquity: boolean;
+        }>,
+        targetLVR,
+      };
+    }
+
+    const propertyIds = properties.map((p) => p.id);
+
+    // Fetch loans for all active properties
+    const loans = await db.propertyLoans
+      .where("propertyId")
+      .anyOf(propertyIds)
+      .toArray();
+
+    // Create map for O(1) lookups
+    const loansByPropertyId = new Map<string, PropertyLoan[]>();
+    for (const loan of loans) {
+      const existing = loansByPropertyId.get(loan.propertyId) || [];
+      existing.push(loan);
+      loansByPropertyId.set(loan.propertyId, existing);
+    }
+
+    let totalUsableEquity = 0;
+    let totalCurrentEquity = 0;
+    let totalPropertyValue = 0;
+    let totalCurrentDebt = 0;
+
+    const equityByProperty: Array<{
+      propertyId: string;
+      address: string;
+      propertyValue: number;
+      currentDebt: number;
+      currentEquity: number;
+      currentLVR: number;
+      maxDebtAtTargetLVR: number;
+      usableEquity: number;
+      canExtractEquity: boolean;
+    }> = [];
+
+    for (const property of properties) {
+      const propertyLoans = loansByPropertyId.get(property.id) || [];
+
+      // Calculate effective debt (current balance minus offset)
+      const currentDebt = propertyLoans.reduce((sum, loan) => {
+        const effectiveBalance = loan.currentBalance - (loan.offsetBalance || 0);
+        return sum + Math.max(0, effectiveBalance);
+      }, 0);
+
+      const propertyValue = property.valuationAmount;
+      const currentEquity = propertyValue - currentDebt;
+      const currentLVR = propertyValue > 0 ? (currentDebt / propertyValue) * 100 : 0;
+
+      // Calculate max debt at target LVR (e.g., 80%)
+      const maxDebtAtTargetLVR = (propertyValue * targetLVR) / 100;
+
+      // Usable equity is the difference between max debt and current debt
+      const usableEquity = Math.max(0, maxDebtAtTargetLVR - currentDebt);
+      const canExtractEquity = usableEquity > 0;
+
+      totalPropertyValue += propertyValue;
+      totalCurrentDebt += currentDebt;
+      totalCurrentEquity += currentEquity;
+      totalUsableEquity += usableEquity;
+
+      equityByProperty.push({
+        propertyId: property.id,
+        address: property.address,
+        propertyValue,
+        currentDebt,
+        currentEquity,
+        currentLVR: Math.round(currentLVR * 100) / 100,
+        maxDebtAtTargetLVR,
+        usableEquity,
+        canExtractEquity,
+      });
+    }
+
+    // Sort by usable equity (highest first)
+    equityByProperty.sort((a, b) => b.usableEquity - a.usableEquity);
+
+    return {
+      totalUsableEquity,
+      totalCurrentEquity,
+      totalPropertyValue,
+      totalCurrentDebt,
+      equityByProperty,
+      targetLVR,
+    };
+  }, [targetLVR]);
+}
+
+/**
+ * Cross-collateralization risk analysis
+ * Identifies properties with cross-secured loans and calculates risk exposure
+ */
+export function useCrossCollateralizationRisk() {
+  return useLiveQuery(async () => {
+    const properties = await db.properties
+      .where("status")
+      .equals("active")
+      .toArray();
+
+    if (properties.length === 0) {
+      return {
+        hasCrossCollateralization: false,
+        crossSecuredGroups: [] as Array<{
+          lender: string;
+          propertyIds: string[];
+          totalValue: number;
+          totalDebt: number;
+        }>,
+        riskLevel: "low" as "low" | "medium" | "high",
+        independentProperties: 0,
+        crossSecuredProperties: 0,
+      };
+    }
+
+    const propertyIds = properties.map((p) => p.id);
+    const loans = await db.propertyLoans
+      .where("propertyId")
+      .anyOf(propertyIds)
+      .toArray();
+
+    // Group loans by lender to identify potential cross-collateralization
+    const loansByLender = new Map<string, PropertyLoan[]>();
+    for (const loan of loans) {
+      const existing = loansByLender.get(loan.lender) || [];
+      existing.push(loan);
+      loansByLender.set(loan.lender, existing);
+    }
+
+    // Create property lookup map
+    const propertyMap = new Map<string, Property>();
+    for (const property of properties) {
+      propertyMap.set(property.id, property);
+    }
+
+    const crossSecuredGroups: Array<{
+      lender: string;
+      propertyIds: string[];
+      totalValue: number;
+      totalDebt: number;
+    }> = [];
+
+    const crossSecuredPropertyIds = new Set<string>();
+
+    // Identify cross-secured groups (multiple properties with same lender)
+    for (const [lender, lenderLoans] of loansByLender) {
+      const uniquePropertyIds = [...new Set(lenderLoans.map((l) => l.propertyId))];
+
+      if (uniquePropertyIds.length > 1) {
+        let totalValue = 0;
+        let totalDebt = 0;
+
+        for (const propId of uniquePropertyIds) {
+          const property = propertyMap.get(propId);
+          if (property) {
+            totalValue += property.valuationAmount;
+          }
+          crossSecuredPropertyIds.add(propId);
+        }
+
+        for (const loan of lenderLoans) {
+          const effectiveBalance = loan.currentBalance - (loan.offsetBalance || 0);
+          totalDebt += Math.max(0, effectiveBalance);
+        }
+
+        crossSecuredGroups.push({
+          lender,
+          propertyIds: uniquePropertyIds,
+          totalValue,
+          totalDebt,
+        });
+      }
+    }
+
+    const crossSecuredProperties = crossSecuredPropertyIds.size;
+    const independentProperties = properties.length - crossSecuredProperties;
+    const hasCrossCollateralization = crossSecuredGroups.length > 0;
+
+    // Determine risk level
+    let riskLevel: "low" | "medium" | "high" = "low";
+    if (crossSecuredProperties > 0) {
+      const crossSecuredPercentage =
+        (crossSecuredProperties / properties.length) * 100;
+      if (crossSecuredPercentage > 50) {
+        riskLevel = "high";
+      } else if (crossSecuredPercentage > 25) {
+        riskLevel = "medium";
+      }
+    }
+
+    return {
+      hasCrossCollateralization,
+      crossSecuredGroups,
+      riskLevel,
+      independentProperties,
+      crossSecuredProperties,
+    };
+  }, []);
+}
+
+/**
+ * Portfolio cashflow summary
+ * Calculates monthly cashflow position across all properties (before and after tax)
+ */
+export function usePortfolioCashflow() {
+  return useLiveQuery(async () => {
+    const properties = await db.properties
+      .where("status")
+      .equals("active")
+      .toArray();
+
+    if (properties.length === 0) {
+      return {
+        monthlyRentalIncome: 0,
+        monthlyLoanRepayments: 0,
+        monthlyExpenses: 0,
+        monthlyCashflowBeforeTax: 0,
+        annualCashflowBeforeTax: 0,
+        positiveCashflowProperties: 0,
+        negativeCashflowProperties: 0,
+        cashflowByProperty: [] as Array<{
+          propertyId: string;
+          address: string;
+          monthlyRent: number;
+          monthlyRepayment: number;
+          monthlyExpenses: number;
+          monthlyCashflow: number;
+          isPositive: boolean;
+        }>,
+      };
+    }
+
+    const propertyIds = properties.map((p) => p.id);
+
+    const [loans, rentals, expenses] = await Promise.all([
+      db.propertyLoans.where("propertyId").anyOf(propertyIds).toArray(),
+      db.propertyRentals.where("propertyId").anyOf(propertyIds).toArray(),
+      db.propertyExpenses.where("propertyId").anyOf(propertyIds).toArray(),
+    ]);
+
+    // Create maps for O(1) lookups
+    const loansByPropertyId = new Map<string, PropertyLoan[]>();
+    for (const loan of loans) {
+      const existing = loansByPropertyId.get(loan.propertyId) || [];
+      existing.push(loan);
+      loansByPropertyId.set(loan.propertyId, existing);
+    }
+
+    const rentalsByPropertyId = new Map<string, PropertyRental[]>();
+    for (const rental of rentals) {
+      const existing = rentalsByPropertyId.get(rental.propertyId) || [];
+      existing.push(rental);
+      rentalsByPropertyId.set(rental.propertyId, existing);
+    }
+
+    const expensesByPropertyId = new Map<string, PropertyExpense[]>();
+    for (const expense of expenses) {
+      const existing = expensesByPropertyId.get(expense.propertyId) || [];
+      existing.push(expense);
+      expensesByPropertyId.set(expense.propertyId, existing);
+    }
+
+    let totalMonthlyRent = 0;
+    let totalMonthlyRepayments = 0;
+    let totalMonthlyExpenses = 0;
+    let positiveCashflowProperties = 0;
+    let negativeCashflowProperties = 0;
+
+    const cashflowByProperty: Array<{
+      propertyId: string;
+      address: string;
+      monthlyRent: number;
+      monthlyRepayment: number;
+      monthlyExpenses: number;
+      monthlyCashflow: number;
+      isPositive: boolean;
+    }> = [];
+
+    const now = new Date();
+
+    for (const property of properties) {
+      const propertyLoans = loansByPropertyId.get(property.id) || [];
+      const propertyRentals = rentalsByPropertyId.get(property.id) || [];
+      const propertyExpenses = expensesByPropertyId.get(property.id) || [];
+
+      // Monthly rent from current active rental
+      const currentRental = propertyRentals.find(
+        (r) => r.isCurrentlyOccupied && new Date(r.leaseEndDate) >= now
+      );
+      const monthlyRent = currentRental
+        ? Math.round((currentRental.weeklyRent * 52) / 12)
+        : 0;
+
+      // Monthly loan repayments (convert from repaymentAmount based on frequency)
+      // Note: If repaymentFrequency is missing, we assume the amount is monthly.
+      // This is a safe default but may be incorrect if data was entered as weekly/fortnightly.
+      const monthlyRepayment = propertyLoans.reduce((sum, loan) => {
+        if (!loan.repaymentAmount || loan.repaymentAmount <= 0) return sum;
+        const monthlyAmount = loan.repaymentFrequency
+          ? normalizeToAnnual(loan.repaymentAmount, loan.repaymentFrequency) / 12
+          : loan.repaymentAmount;
+        return sum + Math.round(monthlyAmount);
+      }, 0);
+
+      // Monthly expenses (recurring only)
+      let monthlyExpenses = 0;
+      for (const expense of propertyExpenses) {
+        if (expense.isRecurring) {
+          const annual = normalizeToAnnual(expense.amount, expense.frequency);
+          monthlyExpenses += Math.round(annual / 12);
+        }
+      }
+
+      const monthlyCashflow = monthlyRent - monthlyRepayment - monthlyExpenses;
+      const isPositive = monthlyCashflow >= 0;
+
+      if (isPositive) {
+        positiveCashflowProperties++;
+      } else {
+        negativeCashflowProperties++;
+      }
+
+      totalMonthlyRent += monthlyRent;
+      totalMonthlyRepayments += monthlyRepayment;
+      totalMonthlyExpenses += monthlyExpenses;
+
+      cashflowByProperty.push({
+        propertyId: property.id,
+        address: property.address,
+        monthlyRent,
+        monthlyRepayment,
+        monthlyExpenses,
+        monthlyCashflow,
+        isPositive,
+      });
+    }
+
+    // Sort by cashflow (best first)
+    cashflowByProperty.sort((a, b) => b.monthlyCashflow - a.monthlyCashflow);
+
+    const monthlyCashflowBeforeTax =
+      totalMonthlyRent - totalMonthlyRepayments - totalMonthlyExpenses;
+
+    return {
+      monthlyRentalIncome: totalMonthlyRent,
+      monthlyLoanRepayments: totalMonthlyRepayments,
+      monthlyExpenses: totalMonthlyExpenses,
+      monthlyCashflowBeforeTax,
+      annualCashflowBeforeTax: monthlyCashflowBeforeTax * 12,
+      positiveCashflowProperties,
+      negativeCashflowProperties,
+      cashflowByProperty,
+    };
+  }, []);
+}

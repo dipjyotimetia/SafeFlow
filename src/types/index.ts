@@ -1085,6 +1085,11 @@ export interface AffordabilityResults {
   dsrStatus: AffordabilityStatus;
   lsrStatus: AffordabilityStatus;
 
+  // Debt-to-Income ratio (APRA limit: 20% cap on DTI > 6x from Feb 2026)
+  debtToIncomeRatio: number; // multiple (e.g., 5.2 means 5.2x income)
+  dtiStatus: AffordabilityStatus; // green < 5x, amber 5-6x, red > 6x
+  dtiWarning?: string; // Warning message if approaching APRA limit
+
   // Monthly breakdown (cents)
   monthlyGrossIncome: number;
   monthlyNetIncome: number; // estimated after tax
@@ -1093,6 +1098,9 @@ export interface AffordabilityResults {
   availableForHousing: number;
   proposedRepayment: number;
   surplus: number; // can be negative
+
+  // Total debt for DTI calculation (cents)
+  totalProposedDebt: number; // proposed loan + existing debt balances
 
   // Coverage ratio (for investment)
   rentalCoverageRatio?: number; // rental income / interest payments

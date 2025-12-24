@@ -3,9 +3,25 @@
  *
  * Rates as of 2025-26 financial year.
  * All amounts in cents (integers) to avoid floating-point issues.
+ *
+ * Recent updates:
+ * - QLD (May 2025): Full FHB exemption for new homes (no value cap) and vacant land
+ * - VIC (until Oct 2026): Off-the-plan concessions for all buyers including investors
  */
 
 import type { AustralianState, StampDutyResult } from "@/types";
+
+/**
+ * Extended options for stamp duty calculation
+ */
+export interface StampDutyOptions {
+  isFirstHomeBuyer?: boolean;
+  isInvestment?: boolean;
+  isNewHome?: boolean; // For QLD FHB new home exemption (May 2025+)
+  isVacantLand?: boolean; // For QLD FHB vacant land exemption
+  isOffPlan?: boolean; // For VIC off-the-plan concession (until Oct 2026)
+  constructionValuePercent?: number; // For VIC off-plan: % of value that is construction (default 40%)
+}
 
 // Stamp duty brackets for each state
 // Each bracket: { threshold: number, rate: number, base: number }
@@ -118,19 +134,46 @@ const STATE_BRACKETS: Record<AustralianState, StampDutyBracket[]> = {
 };
 
 // First Home Buyer thresholds by state (full exemption below, nil above)
+// Note: QLD has different thresholds for established vs new homes (see below)
 const FHB_EXEMPTION_THRESHOLDS: Record<
   AustralianState,
   { fullExemption: number; partialExemption: number }
 > = {
   NSW: { fullExemption: 800000, partialExemption: 1000000 }, // New/existing homes
   VIC: { fullExemption: 600000, partialExemption: 750000 },
-  QLD: { fullExemption: 700000, partialExemption: 800000 }, // Home concession
+  QLD: { fullExemption: 700000, partialExemption: 800000 }, // Established homes only
   SA: { fullExemption: 650000, partialExemption: 650000 }, // No partial, just full
   WA: { fullExemption: 430000, partialExemption: 530000 },
   TAS: { fullExemption: 750000, partialExemption: 750000 }, // 50% discount
   NT: { fullExemption: 650000, partialExemption: 650000 },
   ACT: { fullExemption: 1000000, partialExemption: 1000000 }, // Phasing out
 };
+
+/**
+ * QLD First Home Buyer Concessions (updated May 2025)
+ *
+ * - NEW HOMES: Full exemption with NO VALUE CAP
+ * - VACANT LAND: Full exemption with NO VALUE CAP (for building first home)
+ * - ESTABLISHED HOMES: Standard thresholds ($700k full / $800k partial)
+ *
+ * https://www.qld.gov.au/housing/buying-owning-home/first-home-concession
+ */
+const QLD_FHB_NEW_HOME_FULL_EXEMPTION = true; // From 1 May 2025, no value cap for new homes
+const QLD_FHB_VACANT_LAND_FULL_EXEMPTION = true; // From 1 May 2025, no value cap for vacant land
+
+/**
+ * VIC Off-the-Plan Concession (available until October 2026)
+ *
+ * Available to ALL buyers including investors (not just FHBs)
+ * Concession is based on the percentage of construction remaining at contract date.
+ * The dutiable value excludes the construction component.
+ *
+ * Average savings: ~$24,500
+ *
+ * https://www.sro.vic.gov.au/off-plan-concession
+ */
+const VIC_OFF_PLAN_CONCESSION_AVAILABLE = true; // Until October 2026
+const VIC_OFF_PLAN_DEFAULT_CONSTRUCTION_PERCENT = 40; // Default % of value as construction
 
 // Transfer fees by state (approximate)
 const TRANSFER_FEES: Record<AustralianState, number> = {
@@ -187,10 +230,11 @@ function calculateBracketDuty(
  */
 function calculateNTDuty(purchasePriceDollars: number): number {
   if (purchasePriceDollars <= 525000) {
-    // NT formula: D = (0.06571441 × V) + 15
+    // NT formula: D = (0.06571441 × V²) + 15V
     // Where V is value / 1000
+    // Example: $500,000 property → V=500 → D = 0.06571441 × 250000 + 7500 = $23,928.60
     const v = purchasePriceDollars / 1000;
-    const duty = 0.06571441 * v * v + 15;
+    const duty = 0.06571441 * v * v + 15 * v;
     return Math.round(duty);
   } else if (purchasePriceDollars <= 3000000) {
     return Math.round(purchasePriceDollars * 0.0495);
@@ -200,7 +244,7 @@ function calculateNTDuty(purchasePriceDollars: number): number {
 }
 
 /**
- * Calculate first home buyer concession
+ * Calculate first home buyer concession for established homes
  */
 function calculateFHBConcession(
   purchasePriceDollars: number,
@@ -224,6 +268,63 @@ function calculateFHBConcession(
 }
 
 /**
+ * Calculate QLD First Home Buyer concession for NEW homes (May 2025+)
+ *
+ * From 1 May 2025, QLD provides FULL exemption for:
+ * - New homes with NO VALUE CAP
+ * - Vacant land (for building first home) with NO VALUE CAP
+ *
+ * This is separate from the established home concession which has thresholds.
+ */
+function calculateQLDNewHomeFHBConcession(
+  standardDuty: number,
+  isNewHome: boolean,
+  isVacantLand: boolean
+): number {
+  // Check if eligible for the uncapped exemption
+  if (QLD_FHB_NEW_HOME_FULL_EXEMPTION && isNewHome) {
+    return standardDuty; // Full exemption, no cap
+  }
+  if (QLD_FHB_VACANT_LAND_FULL_EXEMPTION && isVacantLand) {
+    return standardDuty; // Full exemption, no cap
+  }
+  return 0; // Not eligible for uncapped exemption
+}
+
+/**
+ * Calculate VIC Off-the-Plan concession
+ *
+ * Available to ALL buyers (including investors) until October 2026.
+ * The concession reduces the dutiable value by the construction component.
+ *
+ * Formula: Dutiable Value = Purchase Price × (1 - Construction %)
+ * The stamp duty is then calculated on this reduced value.
+ *
+ * @param purchasePriceDollars - Full purchase price in dollars
+ * @param standardDuty - Stamp duty on full price in dollars
+ * @param constructionPercent - Percentage of value that is construction (default 40%)
+ * @returns Concession amount in dollars
+ */
+function calculateVICOffPlanConcession(
+  purchasePriceDollars: number,
+  standardDuty: number,
+  constructionPercent: number = VIC_OFF_PLAN_DEFAULT_CONSTRUCTION_PERCENT
+): number {
+  if (!VIC_OFF_PLAN_CONCESSION_AVAILABLE) {
+    return 0;
+  }
+
+  // Calculate the reduced dutiable value (excluding construction)
+  const dutiableValueDollars = purchasePriceDollars * (1 - constructionPercent / 100);
+
+  // Calculate duty on the reduced value
+  const reducedDuty = calculateBracketDuty(dutiableValueDollars, VIC_BRACKETS);
+
+  // Concession is the difference between standard and reduced duty
+  return Math.max(0, standardDuty - reducedDuty);
+}
+
+/**
  * Calculate stamp duty for a property purchase
  *
  * @param purchasePrice - Purchase price in cents
@@ -238,6 +339,39 @@ export function calculateStampDuty(
   isFirstHomeBuyer: boolean = false,
   isInvestment: boolean = true
 ): StampDutyResult {
+  return calculateStampDutyWithOptions(purchasePrice, state, {
+    isFirstHomeBuyer,
+    isInvestment,
+  });
+}
+
+/**
+ * Calculate stamp duty with extended options
+ *
+ * Supports additional concessions:
+ * - QLD: New home FHB exemption (no value cap from May 2025)
+ * - QLD: Vacant land FHB exemption (no value cap from May 2025)
+ * - VIC: Off-the-plan concession (all buyers, until Oct 2026)
+ *
+ * @param purchasePrice - Purchase price in cents
+ * @param state - Australian state/territory
+ * @param options - Extended calculation options
+ * @returns StampDutyResult with all government charges in cents
+ */
+export function calculateStampDutyWithOptions(
+  purchasePrice: number,
+  state: AustralianState,
+  options: StampDutyOptions = {}
+): StampDutyResult {
+  const {
+    isFirstHomeBuyer = false,
+    isInvestment = true,
+    isNewHome = false,
+    isVacantLand = false,
+    isOffPlan = false,
+    constructionValuePercent = VIC_OFF_PLAN_DEFAULT_CONSTRUCTION_PERCENT,
+  } = options;
+
   // Convert cents to dollars for calculation
   const purchasePriceDollars = purchasePrice / 100;
 
@@ -253,16 +387,29 @@ export function calculateStampDuty(
     );
   }
 
-  // Calculate FHB concession if applicable
+  // Track original duty for concession calculation
+  const originalDuty = stampDutyDollars;
   let concessionDollars = 0;
   let isFirstHomeBuyerExempt = false;
+  let offPlanConcessionDollars = 0;
 
+  // Apply FHB concessions if applicable (not for investment properties)
   if (isFirstHomeBuyer && !isInvestment) {
-    concessionDollars = calculateFHBConcession(
-      purchasePriceDollars,
-      stampDutyDollars,
-      state
-    );
+    // QLD special handling for new homes/vacant land (May 2025+)
+    if (state === "QLD" && (isNewHome || isVacantLand)) {
+      concessionDollars = calculateQLDNewHomeFHBConcession(
+        stampDutyDollars,
+        isNewHome,
+        isVacantLand
+      );
+    } else {
+      // Standard FHB concession for established homes
+      concessionDollars = calculateFHBConcession(
+        purchasePriceDollars,
+        stampDutyDollars,
+        state
+      );
+    }
 
     if (concessionDollars === stampDutyDollars) {
       isFirstHomeBuyerExempt = true;
@@ -270,6 +417,38 @@ export function calculateStampDuty(
 
     stampDutyDollars -= concessionDollars;
   }
+
+  // Apply VIC off-the-plan concession (available to ALL buyers including investors)
+  if (state === "VIC" && isOffPlan) {
+    offPlanConcessionDollars = calculateVICOffPlanConcession(
+      purchasePriceDollars,
+      originalDuty, // Calculate from original, not after FHB
+      constructionValuePercent
+    );
+
+    // If FHB concession was also applied, don't double-count
+    // The off-plan concession effectively reduces what would have been paid
+    if (concessionDollars > 0) {
+      // FHB already got exemption, off-plan doesn't stack beyond that
+      // But if FHB was partial, off-plan might give additional savings
+      const fhbDutyAfter = originalDuty - concessionDollars;
+      const offPlanDutyAfter = originalDuty - offPlanConcessionDollars;
+
+      // Take the better concession (lower final duty)
+      if (offPlanDutyAfter < fhbDutyAfter) {
+        // Off-plan is better, use it instead
+        concessionDollars = offPlanConcessionDollars;
+        stampDutyDollars = offPlanDutyAfter;
+      }
+    } else {
+      // No FHB concession, apply off-plan directly
+      concessionDollars = offPlanConcessionDollars;
+      stampDutyDollars -= offPlanConcessionDollars;
+    }
+  }
+
+  // Ensure stamp duty doesn't go negative
+  stampDutyDollars = Math.max(0, stampDutyDollars);
 
   // Get transfer and mortgage registration fees
   const transferFeeDollars = TRANSFER_FEES[state] / 100;
@@ -341,20 +520,47 @@ export function getStampDutyBreakdown(
  */
 export function checkFHBEligibility(
   purchasePrice: number,
-  state: AustralianState
+  state: AustralianState,
+  options?: { isNewHome?: boolean; isVacantLand?: boolean }
 ): {
   eligible: boolean;
   fullExemption: boolean;
   partialConcession: boolean;
   estimatedSavings: number;
+  note?: string;
 } {
   const purchasePriceDollars = purchasePrice / 100;
   const thresholds = FHB_EXEMPTION_THRESHOLDS[state];
+  const { isNewHome = false, isVacantLand = false } = options || {};
 
-  const standardDuty = calculateStampDuty(purchasePrice, state, false, false);
-  const fhbDuty = calculateStampDuty(purchasePrice, state, true, false);
+  const standardDuty = calculateStampDutyWithOptions(purchasePrice, state, {
+    isFirstHomeBuyer: false,
+    isInvestment: false,
+    isNewHome,
+    isVacantLand,
+  });
+
+  const fhbDuty = calculateStampDutyWithOptions(purchasePrice, state, {
+    isFirstHomeBuyer: true,
+    isInvestment: false,
+    isNewHome,
+    isVacantLand,
+  });
 
   const savings = standardDuty.stampDuty - fhbDuty.stampDuty;
+
+  // QLD special case: new homes and vacant land have no value cap
+  if (state === "QLD" && (isNewHome || isVacantLand)) {
+    return {
+      eligible: true, // Always eligible for new home/vacant land in QLD
+      fullExemption: true, // Full exemption with no cap
+      partialConcession: false,
+      estimatedSavings: savings,
+      note: isNewHome
+        ? "QLD: Full exemption for new homes (no value cap from May 2025)"
+        : "QLD: Full exemption for vacant land (no value cap from May 2025)",
+    };
+  }
 
   return {
     eligible: purchasePriceDollars <= thresholds.partialExemption,
@@ -363,5 +569,49 @@ export function checkFHBEligibility(
       purchasePriceDollars > thresholds.fullExemption &&
       purchasePriceDollars <= thresholds.partialExemption,
     estimatedSavings: savings,
+  };
+}
+
+/**
+ * Check VIC off-the-plan concession eligibility and estimate savings
+ *
+ * Available to ALL buyers (including investors) until October 2026.
+ */
+export function checkVICOffPlanEligibility(
+  purchasePrice: number,
+  constructionPercent: number = VIC_OFF_PLAN_DEFAULT_CONSTRUCTION_PERCENT
+): {
+  eligible: boolean;
+  estimatedSavings: number;
+  constructionPercent: number;
+  note: string;
+} {
+  if (!VIC_OFF_PLAN_CONCESSION_AVAILABLE) {
+    return {
+      eligible: false,
+      estimatedSavings: 0,
+      constructionPercent,
+      note: "VIC off-the-plan concession has expired",
+    };
+  }
+
+  const standardDuty = calculateStampDutyWithOptions(purchasePrice, "VIC", {
+    isInvestment: true,
+    isOffPlan: false,
+  });
+
+  const offPlanDuty = calculateStampDutyWithOptions(purchasePrice, "VIC", {
+    isInvestment: true,
+    isOffPlan: true,
+    constructionValuePercent: constructionPercent,
+  });
+
+  const savings = standardDuty.stampDuty - offPlanDuty.stampDuty;
+
+  return {
+    eligible: true,
+    estimatedSavings: savings,
+    constructionPercent,
+    note: `VIC off-the-plan concession available until October 2026. ${constructionPercent}% construction value excluded.`,
   };
 }

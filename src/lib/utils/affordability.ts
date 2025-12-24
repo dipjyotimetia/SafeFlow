@@ -52,6 +52,18 @@ export const LSR_AMBER_MAX = 35; // 28-35% is acceptable
 // Above 35% is stretched
 
 /**
+ * Debt-to-Income (DTI) Ratio thresholds
+ *
+ * From 1 February 2026, APRA requires banks to limit loans with DTI > 6x
+ * to no more than 20% of new mortgage lending.
+ * https://www.apra.gov.au
+ */
+export const DTI_GREEN_MAX = 5.0; // Below 5x is comfortable
+export const DTI_AMBER_MAX = 6.0; // 5-6x is elevated risk
+// Above 6x triggers APRA lending restrictions (from Feb 2026)
+export const DTI_APRA_LIMIT = 6.0; // APRA's limit for restricted lending
+
+/**
  * Credit card liability assumption for serviceability.
  * Banks assume 3% of credit limit as monthly repayment.
  */
@@ -215,6 +227,45 @@ export function getHEM(
 
   // Return monthly HEM in cents
   return Math.round((baseHem + dependentCost) * 100);
+}
+
+/**
+ * Calculate total existing debt balances for DTI calculation
+ *
+ * @param debts - Array of existing debts
+ * @returns Total debt balance in cents
+ */
+export function calculateExistingDebtBalance(debts: ExistingDebt[]): number {
+  return debts.reduce((total, debt) => {
+    // For credit cards, use the credit limit (conservative) or current balance
+    // For other debts, use current balance
+    if (debt.type === "credit-card") {
+      return total + (debt.creditLimit || debt.currentBalance);
+    }
+    return total + debt.currentBalance;
+  }, 0);
+}
+
+/**
+ * Calculate DTI status based on ratio
+ */
+export function getDTIStatus(dti: number): AffordabilityStatus {
+  if (dti <= DTI_GREEN_MAX) return "green";
+  if (dti <= DTI_AMBER_MAX) return "amber";
+  return "red";
+}
+
+/**
+ * Get DTI warning message if applicable
+ */
+export function getDTIWarning(dti: number): string | undefined {
+  if (dti > DTI_APRA_LIMIT) {
+    return `DTI ratio of ${dti.toFixed(1)}x exceeds APRA's 6x threshold. From February 2026, banks must limit high-DTI lending. Loan approval may be more difficult.`;
+  }
+  if (dti > DTI_GREEN_MAX) {
+    return `DTI ratio of ${dti.toFixed(1)}x is elevated. Consider increasing deposit or reducing debt to improve approval chances.`;
+  }
+  return undefined;
 }
 
 /**
@@ -520,7 +571,7 @@ export function calculateAffordability(
   const debtServiceRatio = (totalDebtPayments / monthlyGross) * 100;
   const loanServiceRatio = (proposedRepayment / monthlyGross) * 100;
 
-  // Determine status
+  // Determine DSR/LSR status
   const dsrStatus = getRatioStatus(
     debtServiceRatio,
     DSR_GREEN_MAX,
@@ -531,6 +582,16 @@ export function calculateAffordability(
     LSR_GREEN_MAX,
     LSR_AMBER_MAX
   );
+
+  // Calculate Debt-to-Income (DTI) ratio
+  // DTI = (Proposed Loan + Existing Debt Balances) / Gross Annual Income
+  const existingDebtBalance = calculateExistingDebtBalance(existingDebts);
+  const totalProposedDebt = proposedLoan + existingDebtBalance;
+  const debtToIncomeRatio = totalGrossAnnual > 0
+    ? new Decimal(totalProposedDebt).dividedBy(totalGrossAnnual).toDecimalPlaces(1).toNumber()
+    : 0;
+  const dtiStatus = getDTIStatus(debtToIncomeRatio);
+  const dtiWarning = getDTIWarning(debtToIncomeRatio);
 
   // Calculate rental coverage ratio for investment properties
   let rentalCoverageRatio: number | undefined;
@@ -548,25 +609,35 @@ export function calculateAffordability(
     }
   }
 
-  // Overall status (worst of the two ratios, or red if negative surplus)
+  // Overall status (worst of all ratios, or red if negative surplus)
   let overallStatus: AffordabilityStatus = "green";
-  if (dsrStatus === "red" || lsrStatus === "red" || surplus < 0) {
+  if (dsrStatus === "red" || lsrStatus === "red" || dtiStatus === "red" || surplus < 0) {
     overallStatus = "red";
-  } else if (dsrStatus === "amber" || lsrStatus === "amber") {
+  } else if (dsrStatus === "amber" || lsrStatus === "amber" || dtiStatus === "amber") {
     overallStatus = "amber";
   }
 
-  // Status description
+  // Status description - include DTI concerns
   let statusDescription: string;
   if (overallStatus === "green") {
     statusDescription =
       "Strong affordability position. Loan is well within serviceability limits.";
   } else if (overallStatus === "amber") {
-    statusDescription =
-      "Moderate affordability. Consider reducing loan amount or clearing existing debts.";
+    if (dtiStatus === "amber") {
+      statusDescription =
+        "Moderate affordability. DTI ratio is elevated - consider a larger deposit or paying down existing debt.";
+    } else {
+      statusDescription =
+        "Moderate affordability. Consider reducing loan amount or clearing existing debts.";
+    }
   } else {
-    statusDescription =
-      "Loan may not be serviceable. Reduce loan amount, clear debts, or increase income.";
+    if (dtiStatus === "red") {
+      statusDescription =
+        "DTI exceeds APRA's 6x threshold. From Feb 2026, high-DTI loans face lending restrictions. Reduce loan or increase income.";
+    } else {
+      statusDescription =
+        "Loan may not be serviceable. Reduce loan amount, clear debts, or increase income.";
+    }
   }
 
   return {
@@ -576,6 +647,9 @@ export function calculateAffordability(
     loanServiceRatio: Math.round(loanServiceRatio * 10) / 10,
     dsrStatus,
     lsrStatus,
+    debtToIncomeRatio,
+    dtiStatus,
+    dtiWarning,
     monthlyGrossIncome: monthlyGross,
     monthlyNetIncome: monthlyNet,
     monthlyLivingExpenses: monthlyLiving,
@@ -583,6 +657,7 @@ export function calculateAffordability(
     availableForHousing: available,
     proposedRepayment,
     surplus,
+    totalProposedDebt,
     rentalCoverageRatio,
     overallStatus,
     statusDescription,
