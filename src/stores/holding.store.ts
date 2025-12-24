@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { db } from '@/lib/db';
+import { logError } from '@/lib/errors';
 import { fetchPrices } from '@/lib/prices';
 import { calculateFrankingCredit, calculateGrossedUpDividend } from '@/lib/utils/franking';
+import { calculateSellTransactionCGT, getEarliestPurchaseDate } from '@/lib/utils/investment-cgt';
 import { getDateOnly, getDateKey } from '@/lib/utils/date';
 import { usePortfolioStore } from './portfolio.store';
 import type {
@@ -59,41 +61,74 @@ export const useHoldingStore = create<HoldingStore>((set, get) => ({
   priceRefreshError: null,
 
   createHolding: async (data) => {
-    const id = uuidv4();
-    const now = new Date();
+    try {
+      // Validate that the account exists
+      const account = await db.accounts.get(data.accountId);
+      if (!account) {
+        throw new Error(`Account not found: ${data.accountId}`);
+      }
 
-    await db.holdings.add({
-      id,
-      accountId: data.accountId,
-      symbol: data.symbol.toUpperCase(),
-      name: data.name,
-      type: data.type,
-      units: data.units,
-      costBasis: data.costBasis,
-      createdAt: now,
-      updatedAt: now,
-    });
+      const id = uuidv4();
+      const now = new Date();
 
-    return id;
+      await db.holdings.add({
+        id,
+        accountId: data.accountId,
+        symbol: data.symbol.toUpperCase(),
+        name: data.name,
+        type: data.type,
+        units: data.units,
+        costBasis: data.costBasis,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      return id;
+    } catch (error) {
+      logError('HoldingStore.createHolding', error);
+      throw error;
+    }
   },
 
   updateHolding: async (id, data) => {
-    await db.holdings.update(id, {
-      ...data,
-      updatedAt: new Date(),
-    });
+    try {
+      const existing = await db.holdings.get(id);
+      if (!existing) {
+        throw new Error(`Holding not found: ${id}`);
+      }
+
+      await db.holdings.update(id, {
+        ...data,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      logError('HoldingStore.updateHolding', error);
+      throw error;
+    }
   },
 
   deleteHolding: async (id) => {
-    // Use transaction to ensure atomicity - delete holding and all related data
-    await db.transaction('rw', [db.holdings, db.investmentTransactions, db.priceHistory], async () => {
-      // Delete related investment transactions
-      await db.investmentTransactions.where('holdingId').equals(id).delete();
-      // Delete related price history entries
-      await db.priceHistory.where('holdingId').equals(id).delete();
-      // Delete the holding itself
-      await db.holdings.delete(id);
-    });
+    try {
+      const existing = await db.holdings.get(id);
+      if (!existing) {
+        throw new Error(`Holding not found: ${id}`);
+      }
+
+      // Use transaction to ensure atomicity - delete holding and all related data
+      await db.transaction('rw', [db.holdings, db.investmentTransactions, db.priceHistory, db.taxLots], async () => {
+        // Delete related investment transactions
+        await db.investmentTransactions.where('holdingId').equals(id).delete();
+        // Delete related price history entries
+        await db.priceHistory.where('holdingId').equals(id).delete();
+        // Delete related tax lots (for CGT cost basis tracking)
+        await db.taxLots.where('holdingId').equals(id).delete();
+        // Delete the holding itself
+        await db.holdings.delete(id);
+      });
+    } catch (error) {
+      logError('HoldingStore.deleteHolding', error);
+      throw error;
+    }
   },
 
   refreshPrices: async () => {
@@ -148,7 +183,7 @@ export const useHoldingStore = create<HoldingStore>((set, get) => ({
             await db.priceHistory.put(historyEntry);
           } catch (err) {
             // Log the error but continue with other holdings
-            console.error(`Failed to update holding ${holding.symbol}:`, err);
+            logError(`HoldingStore.refreshPrices.${holding.symbol}`, err);
             failedUpdates.push(holding.symbol);
           }
         }
@@ -169,7 +204,7 @@ export const useHoldingStore = create<HoldingStore>((set, get) => ({
       try {
         await usePortfolioStore.getState().takeSnapshot();
       } catch (err) {
-        console.error('Failed to take portfolio snapshot:', err);
+        logError('HoldingStore.refreshPrices.takeSnapshot', err);
       }
     } catch (error) {
       set({
@@ -201,9 +236,13 @@ export const useHoldingStore = create<HoldingStore>((set, get) => ({
       grossedUpAmount = calculateGrossedUpDividend(totalAmount, frankingCreditAmount);
     }
 
+    // Calculate capital gain for sell transactions
+    let capitalGain: number | undefined;
+    let holdingPeriod: number | undefined;
+
     // Use transaction to ensure atomicity - either both succeed or both fail
     await db.transaction('rw', [db.investmentTransactions, db.holdings], async () => {
-      // Validate sell transactions before processing
+      // Validate sell transactions and calculate CGT before processing
       if (data.type === 'sell') {
         const holding = await db.holdings.get(data.holdingId);
         if (!holding) {
@@ -214,6 +253,28 @@ export const useHoldingStore = create<HoldingStore>((set, get) => ({
             `Cannot sell ${data.units} units. Only ${holding.units} units available.`
           );
         }
+
+        // Get earliest purchase date for holding period calculation
+        const existingTransactions = await db.investmentTransactions
+          .where('holdingId')
+          .equals(data.holdingId)
+          .toArray();
+        const firstPurchaseDate = getEarliestPurchaseDate(existingTransactions) || holding.createdAt;
+
+        // Calculate capital gain using average cost basis
+        const cgtResult = calculateSellTransactionCGT({
+          holdingId: data.holdingId,
+          units: data.units,
+          pricePerUnit: data.pricePerUnit,
+          fees: data.fees,
+          saleDate: data.date,
+          totalUnits: holding.units,
+          totalCostBasis: holding.costBasis,
+          firstPurchaseDate,
+        });
+
+        capitalGain = cgtResult.netCapitalGain; // After 50% discount if applicable
+        holdingPeriod = cgtResult.holdingPeriodDays;
       }
 
       // Create the transaction
@@ -232,6 +293,9 @@ export const useHoldingStore = create<HoldingStore>((set, get) => ({
         companyTaxRate: data.companyTaxRate,
         frankingCreditAmount,
         grossedUpAmount,
+        // Capital gain fields (for sell transactions)
+        capitalGain,
+        holdingPeriod,
         createdAt: now,
         updatedAt: now,
       });

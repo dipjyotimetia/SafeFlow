@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -48,7 +49,16 @@ import { CloudSyncCard } from '@/components/settings/cloud-sync-card';
 export default function SettingsPage() {
   const [showClearDataDialog, setShowClearDataDialog] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [confirmClearData, setConfirmClearData] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset confirmation checkbox when dialog closes
+  const handleClearDialogChange = useCallback((open: boolean) => {
+    setShowClearDataDialog(open);
+    if (!open) {
+      setConfirmClearData(false);
+    }
+  }, []);
 
   const { exportBackup, importBackup } = useSyncStore();
 
@@ -458,21 +468,53 @@ export default function SettingsPage() {
       </div>
 
       {/* Clear Data Dialog */}
-      <AlertDialog open={showClearDataDialog} onOpenChange={setShowClearDataDialog}>
+      <AlertDialog open={showClearDataDialog} onOpenChange={handleClearDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete all your local data including accounts,
-              transactions, categories, and settings. This action cannot be undone.
+            <AlertDialogTitle className="text-destructive">
+              Are you absolutely sure?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>
+                  This will permanently delete all your local data including:
+                </p>
+                <ul className="list-disc list-inside text-sm space-y-1 ml-2">
+                  <li>All accounts and transactions</li>
+                  <li>Investment holdings and price history</li>
+                  <li>Superannuation records</li>
+                  <li>Categories and budgets</li>
+                  <li>Tax records and CGT data</li>
+                  <li>All imported bank statements</li>
+                </ul>
+                <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md p-3">
+                  <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                    We strongly recommend exporting a backup before proceeding.
+                  </p>
+                </div>
+                <div className="flex items-start gap-2 pt-2">
+                  <Checkbox
+                    id="confirm-delete"
+                    checked={confirmClearData}
+                    onCheckedChange={(checked) => setConfirmClearData(checked === true)}
+                    disabled={isClearing}
+                  />
+                  <label
+                    htmlFor="confirm-delete"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    I understand this action cannot be undone and I want to delete all my data
+                  </label>
+                </div>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isClearing}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleClearAllData}
-              disabled={isClearing}
-              className="bg-red-600 hover:bg-red-700"
+              disabled={isClearing || !confirmClearData}
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50"
             >
               {isClearing ? (
                 <>

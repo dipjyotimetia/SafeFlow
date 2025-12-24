@@ -81,6 +81,9 @@ export async function clearDatabase(): Promise<void> {
       db.propertyRentals,
       db.propertyDepreciation,
       db.propertyModels,
+      // Sync and investment tables
+      db.syncSnapshots,
+      db.taxLots,
     ],
     async () => {
       await db.accounts.clear();
@@ -108,6 +111,9 @@ export async function clearDatabase(): Promise<void> {
       await db.propertyRentals.clear();
       await db.propertyDepreciation.clear();
       await db.propertyModels.clear();
+      // Sync and investment tables
+      await db.syncSnapshots.clear();
+      await db.taxLots.clear();
     }
   );
 }
@@ -140,6 +146,9 @@ export async function exportAllData(): Promise<{
   propertyRentals: unknown[];
   propertyDepreciation: unknown[];
   propertyModels: unknown[];
+  // Sync and investment tables
+  syncSnapshots: unknown[];
+  taxLots: unknown[];
 }> {
   const syncMetadata = await db.syncMetadata.get('sync-state');
   const version = (syncMetadata?.lastSyncVersion ?? 0) + 1;
@@ -171,5 +180,8 @@ export async function exportAllData(): Promise<{
     propertyRentals: await db.propertyRentals.toArray(),
     propertyDepreciation: await db.propertyDepreciation.toArray(),
     propertyModels: await db.propertyModels.toArray(),
+    // Sync and investment tables
+    syncSnapshots: await db.syncSnapshots.toArray(),
+    taxLots: await db.taxLots.toArray(),
   };
 }

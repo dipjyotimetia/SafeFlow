@@ -63,8 +63,11 @@ import {
 interface PasswordValidation {
   isValid: boolean;
   errors: string[];
+  strength: 'weak' | 'fair' | 'good' | 'strong';
+  strengthPercent: number;
 }
 
+const MIN_PASSWORD_LENGTH = 16; // Increased from 12 for stronger encryption
 const MAX_PASSWORD_LENGTH = 128;
 const SPECIAL_CHARS_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
 
@@ -92,29 +95,60 @@ function isValidPath(path: string): boolean {
 
 function validatePassword(password: string): PasswordValidation {
   const errors: string[] = [];
+  let strengthScore = 0;
 
-  if (password.length < 12) {
-    errors.push('At least 12 characters');
+  // Length checks
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    errors.push(`At least ${MIN_PASSWORD_LENGTH} characters`);
+  } else {
+    strengthScore += 1;
+    if (password.length >= 20) strengthScore += 1;
+    if (password.length >= 24) strengthScore += 1;
   }
+
   if (password.length > MAX_PASSWORD_LENGTH) {
     errors.push(`Maximum ${MAX_PASSWORD_LENGTH} characters`);
   }
+
+  // Character variety checks
   if (!/[A-Z]/.test(password)) {
     errors.push('One uppercase letter');
+  } else {
+    strengthScore += 1;
   }
+
   if (!/[a-z]/.test(password)) {
     errors.push('One lowercase letter');
+  } else {
+    strengthScore += 1;
   }
+
   if (!/[0-9]/.test(password)) {
     errors.push('One number');
+  } else {
+    strengthScore += 1;
   }
+
   if (!SPECIAL_CHARS_REGEX.test(password)) {
     errors.push('One special character (!@#$%^&*...)');
+  } else {
+    strengthScore += 1;
   }
+
+  // Calculate strength
+  const maxScore = 7; // 3 for length + 4 for character types
+  const strengthPercent = Math.round((strengthScore / maxScore) * 100);
+
+  let strength: PasswordValidation['strength'] = 'weak';
+  if (strengthPercent >= 85) strength = 'strong';
+  else if (strengthPercent >= 70) strength = 'good';
+  else if (strengthPercent >= 50) strength = 'fair';
 
   return {
     isValid: errors.length === 0,
     errors,
+    strength,
+    strengthPercent,
   };
 }
 
@@ -676,27 +710,55 @@ export function CloudSyncCard() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              {/* Password requirements */}
+              {/* Password strength indicator */}
               {password.length > 0 && (
-                <div className="text-xs space-y-1">
-                  <p className="text-muted-foreground font-medium">Requirements:</p>
-                  <ul className="space-y-0.5">
-                    <li className={password.length >= 12 && password.length <= MAX_PASSWORD_LENGTH ? 'text-success' : 'text-muted-foreground'}>
-                      {password.length >= 12 && password.length <= MAX_PASSWORD_LENGTH ? '✓' : '○'} 12-{MAX_PASSWORD_LENGTH} characters
-                    </li>
-                    <li className={/[A-Z]/.test(password) ? 'text-success' : 'text-muted-foreground'}>
-                      {/[A-Z]/.test(password) ? '✓' : '○'} One uppercase letter
-                    </li>
-                    <li className={/[a-z]/.test(password) ? 'text-success' : 'text-muted-foreground'}>
-                      {/[a-z]/.test(password) ? '✓' : '○'} One lowercase letter
-                    </li>
-                    <li className={/[0-9]/.test(password) ? 'text-success' : 'text-muted-foreground'}>
-                      {/[0-9]/.test(password) ? '✓' : '○'} One number
-                    </li>
-                    <li className={SPECIAL_CHARS_REGEX.test(password) ? 'text-success' : 'text-muted-foreground'}>
-                      {SPECIAL_CHARS_REGEX.test(password) ? '✓' : '○'} One special character
-                    </li>
-                  </ul>
+                <div className="space-y-2">
+                  {/* Strength bar */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Password strength</span>
+                      <span className={
+                        passwordValidation.strength === 'strong' ? 'text-green-600' :
+                        passwordValidation.strength === 'good' ? 'text-blue-600' :
+                        passwordValidation.strength === 'fair' ? 'text-yellow-600' :
+                        'text-red-600'
+                      }>
+                        {passwordValidation.strength.charAt(0).toUpperCase() + passwordValidation.strength.slice(1)}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          passwordValidation.strength === 'strong' ? 'bg-green-500' :
+                          passwordValidation.strength === 'good' ? 'bg-blue-500' :
+                          passwordValidation.strength === 'fair' ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`}
+                        style={{ width: `${passwordValidation.strengthPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                  {/* Requirements checklist */}
+                  <div className="text-xs space-y-1">
+                    <p className="text-muted-foreground font-medium">Requirements:</p>
+                    <ul className="space-y-0.5">
+                      <li className={password.length >= MIN_PASSWORD_LENGTH && password.length <= MAX_PASSWORD_LENGTH ? 'text-success' : 'text-muted-foreground'}>
+                        {password.length >= MIN_PASSWORD_LENGTH && password.length <= MAX_PASSWORD_LENGTH ? '✓' : '○'} {MIN_PASSWORD_LENGTH}-{MAX_PASSWORD_LENGTH} characters
+                      </li>
+                      <li className={/[A-Z]/.test(password) ? 'text-success' : 'text-muted-foreground'}>
+                        {/[A-Z]/.test(password) ? '✓' : '○'} One uppercase letter
+                      </li>
+                      <li className={/[a-z]/.test(password) ? 'text-success' : 'text-muted-foreground'}>
+                        {/[a-z]/.test(password) ? '✓' : '○'} One lowercase letter
+                      </li>
+                      <li className={/[0-9]/.test(password) ? 'text-success' : 'text-muted-foreground'}>
+                        {/[0-9]/.test(password) ? '✓' : '○'} One number
+                      </li>
+                      <li className={SPECIAL_CHARS_REGEX.test(password) ? 'text-success' : 'text-muted-foreground'}>
+                        {SPECIAL_CHARS_REGEX.test(password) ? '✓' : '○'} One special character
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               )}
             </div>

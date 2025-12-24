@@ -76,6 +76,38 @@ export interface SyncResult {
 const SYNC_VERSION = 1;
 const SYNC_METADATA_ID = 'primary'; // Single record ID for sync metadata
 
+// Timeout for network operations (60 seconds)
+const SYNC_TIMEOUT_MS = 60 * 1000;
+
+/**
+ * Wrap a promise with a timeout
+ * @param promise The promise to wrap
+ * @param timeoutMs Timeout in milliseconds
+ * @param operation Description of the operation for error messages
+ */
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  operation: string
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${operation} timed out after ${Math.round(timeoutMs / 1000)} seconds`));
+    }, timeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timeoutId!);
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId!);
+    throw error;
+  }
+}
+
 /**
  * Export all data from IndexedDB
  */
@@ -700,8 +732,12 @@ export async function syncWithBackend(
   const metadata = await getSyncMetadata();
   const localVersion = metadata?.lastSyncVersion || 0;
 
-  // Get remote last modified time
-  const remoteModified = await backend.getLastModified();
+  // Get remote last modified time (with timeout)
+  const remoteModified = await withTimeout(
+    backend.getLastModified(),
+    SYNC_TIMEOUT_MS,
+    'Checking remote status'
+  );
   const localLastSync = metadata?.lastSyncAt ? new Date(metadata.lastSyncAt) : null;
 
   // Determine sync direction
@@ -726,7 +762,11 @@ export async function syncWithBackend(
       // Export and encrypt local data
       const data = await exportData();
       const encrypted = await encrypt(JSON.stringify(data), password);
-      await backend.upload(encrypted);
+      await withTimeout(
+        backend.upload(encrypted),
+        SYNC_TIMEOUT_MS,
+        'Uploading data'
+      );
 
       await saveSyncMetadata({
         lastSyncAt: new Date(),
@@ -740,8 +780,12 @@ export async function syncWithBackend(
         timestamp: new Date(),
       };
     } else if (direction === 'download') {
-      // Download and decrypt remote data
-      const encrypted = await backend.download();
+      // Download and decrypt remote data (with timeout)
+      const encrypted = await withTimeout(
+        backend.download(),
+        SYNC_TIMEOUT_MS,
+        'Downloading data'
+      );
       if (!encrypted) {
         return {
           success: false,
@@ -814,7 +858,11 @@ export async function forceUploadToBackend(
   try {
     const data = await exportData();
     const encrypted = await encrypt(JSON.stringify(data), password);
-    await backend.upload(encrypted);
+    await withTimeout(
+      backend.upload(encrypted),
+      SYNC_TIMEOUT_MS,
+      'Uploading data'
+    );
 
     const metadata = await getSyncMetadata();
     await saveSyncMetadata({
@@ -853,7 +901,11 @@ export async function forceDownloadFromBackend(
   }
 
   try {
-    const encrypted = await backend.download();
+    const encrypted = await withTimeout(
+      backend.download(),
+      SYNC_TIMEOUT_MS,
+      'Downloading data'
+    );
     if (!encrypted) {
       return {
         success: false,

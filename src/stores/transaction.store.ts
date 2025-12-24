@@ -120,6 +120,52 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     const now = new Date();
 
     try {
+      // Validate that the source account exists
+      const account = await db.accounts.get(validData.accountId);
+      if (!account) {
+        throw new SafeFlowError(
+          `Account not found: ${validData.accountId}`,
+          ErrorCode.VALIDATION_FAILED
+        );
+      }
+
+      // Validate category exists if provided
+      if (validData.categoryId) {
+        const category = await db.categories.get(validData.categoryId);
+        if (!category) {
+          throw new SafeFlowError(
+            `Category not found: ${validData.categoryId}`,
+            ErrorCode.VALIDATION_FAILED
+          );
+        }
+      }
+
+      // Transfer-specific validations
+      if (validData.type === "transfer") {
+        if (!validData.transferToAccountId) {
+          throw new SafeFlowError(
+            "Transfer transactions require a destination account (transferToAccountId)",
+            ErrorCode.VALIDATION_FAILED
+          );
+        }
+
+        if (validData.transferToAccountId === validData.accountId) {
+          throw new SafeFlowError(
+            "Cannot transfer to the same account",
+            ErrorCode.VALIDATION_FAILED
+          );
+        }
+
+        // Validate destination account exists
+        const destAccount = await db.accounts.get(validData.transferToAccountId);
+        if (!destAccount) {
+          throw new SafeFlowError(
+            `Destination account not found: ${validData.transferToAccountId}`,
+            ErrorCode.VALIDATION_FAILED
+          );
+        }
+      }
+
       // Wrap in transaction for atomicity - if balance update fails, transaction is rolled back
       await db.transaction("rw", [db.transactions, db.accounts], async () => {
         await db.transactions.add({
@@ -135,6 +181,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
           isDeductible: validData.isDeductible,
           gstAmount: validData.gstAmount,
           atoCategory: validData.atoCategory,
+          transferToAccountId: validData.transferToAccountId,
           importSource: "manual",
           isReconciled: false,
           createdAt: now,
@@ -142,20 +189,44 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
         });
 
         // Update account balance atomically
-        const account = await db.accounts.get(validData.accountId);
-        if (account) {
-          const balanceChange =
-            validData.type === "income" ? validData.amount : -validData.amount;
-          await db.accounts.update(validData.accountId, {
-            balance: account.balance + balanceChange,
-            updatedAt: now,
-          });
+        if (validData.type === "transfer" && validData.transferToAccountId) {
+          // For transfers: deduct from source, add to destination
+          const sourceAccount = await db.accounts.get(validData.accountId);
+          const destAccount = await db.accounts.get(validData.transferToAccountId);
+
+          if (sourceAccount) {
+            await db.accounts.update(validData.accountId, {
+              balance: sourceAccount.balance - validData.amount,
+              updatedAt: now,
+            });
+          }
+
+          if (destAccount) {
+            await db.accounts.update(validData.transferToAccountId, {
+              balance: destAccount.balance + validData.amount,
+              updatedAt: now,
+            });
+          }
+        } else {
+          // For income/expense: adjust source account only
+          const sourceAccount = await db.accounts.get(validData.accountId);
+          if (sourceAccount) {
+            const balanceChange =
+              validData.type === "income" ? validData.amount : -validData.amount;
+            await db.accounts.update(validData.accountId, {
+              balance: sourceAccount.balance + balanceChange,
+              updatedAt: now,
+            });
+          }
         }
       });
 
       return id;
     } catch (error) {
       logError("createTransaction", error);
+      if (error instanceof SafeFlowError) {
+        throw error;
+      }
       throw new SafeFlowError(
         "Failed to create transaction",
         ErrorCode.DB_OPERATION_FAILED,
@@ -450,7 +521,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
             // Apply categorizations to transactions
             if (categorizations.size > 0) {
               const updateNow = new Date();
-              await Promise.all(
+              const results = await Promise.allSettled(
                 Array.from(categorizations.entries()).map(([txId, result]) =>
                   db.transactions.update(txId, {
                     categoryId: result.categoryId,
@@ -458,9 +529,27 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
                   })
                 )
               );
-              toast.success(
-                `AI categorized ${categorizations.size} transaction(s)`
-              );
+
+              // Count successful and failed updates
+              const successful = results.filter(
+                (r) => r.status === "fulfilled"
+              ).length;
+              const failed = results.filter(
+                (r) => r.status === "rejected"
+              ).length;
+
+              if (failed > 0) {
+                console.error(
+                  `[TransactionStore] ${failed} categorization update(s) failed`
+                );
+                toast.success(
+                  `AI categorized ${successful} transaction(s) (${failed} failed)`
+                );
+              } else {
+                toast.success(
+                  `AI categorized ${successful} transaction(s)`
+                );
+              }
             }
 
             const uncategorizedCount =

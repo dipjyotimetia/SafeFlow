@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { SyncStatus } from '@/types';
+import { logError } from '@/lib/errors';
 import {
   isEncryptionSetUp,
   exportLocalBackup,
@@ -15,6 +16,39 @@ import {
   type SyncBackendType,
   type BackendConfig,
 } from '@/lib/sync';
+
+// Password auto-clear timeout (30 minutes of inactivity)
+const PASSWORD_TIMEOUT_MS = 30 * 60 * 1000;
+
+// Track the password timeout globally
+let passwordTimeoutRef: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Clear password timeout and reset timer
+ */
+function resetPasswordTimeout(clearFn: () => void) {
+  // Clear existing timeout
+  if (passwordTimeoutRef) {
+    clearTimeout(passwordTimeoutRef);
+    passwordTimeoutRef = null;
+  }
+
+  // Set new timeout
+  passwordTimeoutRef = setTimeout(() => {
+    clearFn();
+    passwordTimeoutRef = null;
+  }, PASSWORD_TIMEOUT_MS);
+}
+
+/**
+ * Clear the password timeout
+ */
+function cancelPasswordTimeout() {
+  if (passwordTimeoutRef) {
+    clearTimeout(passwordTimeoutRef);
+    passwordTimeoutRef = null;
+  }
+}
 
 interface ConnectionUser {
   email?: string;
@@ -121,7 +155,7 @@ export const useSyncStore = create<SyncStore>()(
             });
           }
         } catch (error) {
-          console.error('[SyncStore] Failed to initialize from storage:', error);
+          logError('SyncStore.initializeFromStorage', error);
           set({ error: 'Failed to restore sync connection' });
         }
       },
@@ -170,7 +204,7 @@ export const useSyncStore = create<SyncStore>()(
             await backend.signOut();
           }
         } catch (error) {
-          console.error('[SyncStore] Sign out error:', error);
+          logError('SyncStore.disconnectProvider', error);
         }
 
         // Clear stored config
@@ -200,9 +234,14 @@ export const useSyncStore = create<SyncStore>()(
           encryptionPassword: password,
           encryptionPasswordSet: true,
         });
+        // Start auto-clear timeout
+        resetPasswordTimeout(() => {
+          set({ encryptionPassword: null });
+        });
       },
 
       clearEncryptionPassword: () => {
+        cancelPasswordTimeout();
         set({ encryptionPassword: null });
       },
 
@@ -222,6 +261,11 @@ export const useSyncStore = create<SyncStore>()(
           setError('Encryption password required');
           return;
         }
+
+        // Reset password timeout on activity
+        resetPasswordTimeout(() => {
+          set({ encryptionPassword: null });
+        });
 
         setStatus('syncing');
         setError(null);
@@ -262,6 +306,11 @@ export const useSyncStore = create<SyncStore>()(
           return;
         }
 
+        // Reset password timeout on activity
+        resetPasswordTimeout(() => {
+          set({ encryptionPassword: null });
+        });
+
         setStatus('syncing');
         setError(null);
 
@@ -300,6 +349,11 @@ export const useSyncStore = create<SyncStore>()(
           setError('Encryption password required');
           return;
         }
+
+        // Reset password timeout on activity
+        resetPasswordTimeout(() => {
+          set({ encryptionPassword: null });
+        });
 
         setStatus('syncing');
         setError(null);

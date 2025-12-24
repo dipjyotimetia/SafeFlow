@@ -43,6 +43,8 @@ import {
   Trash2,
   AlertCircle,
   LineChart,
+  Pencil,
+  Receipt,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -67,6 +69,8 @@ import { HoldingDetailDialog } from '@/components/investments/holding-detail-dia
 import { PortfolioAllocation } from '@/components/investments/portfolio-allocation';
 import { PortfolioPerformance } from '@/components/investments/portfolio-performance';
 import { TopMovers } from '@/components/investments/top-movers';
+import { TransactionForm } from '@/components/investments/transaction-form';
+import { EditHoldingDialog } from '@/components/investments/edit-holding-dialog';
 import { isDateStale, ONE_HOUR_MS } from '@/lib/utils/date';
 
 // Check if prices are stale (older than 1 hour)
@@ -85,6 +89,8 @@ export default function InvestmentsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedHolding, setSelectedHolding] = useState<Holding | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isTransactionFormOpen, setIsTransactionFormOpen] = useState(false);
   const hasAutoRefreshed = useRef(false);
   const [newHolding, setNewHolding] = useState({
     symbol: '',
@@ -138,6 +144,16 @@ export default function InvestmentsPage() {
   const handleOpenDetail = (holding: Holding) => {
     setSelectedHolding(holding);
     setIsDetailOpen(true);
+  };
+
+  const handleOpenEdit = (holding: Holding) => {
+    setSelectedHolding(holding);
+    setIsEditOpen(true);
+  };
+
+  const handleOpenTransactionForm = (holding: Holding) => {
+    setSelectedHolding(holding);
+    setIsTransactionFormOpen(true);
   };
 
   const handleAddHolding = async () => {
@@ -427,6 +443,14 @@ export default function InvestmentsPage() {
                                 <LineChart className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenTransactionForm(holding)}>
+                                <Receipt className="h-4 w-4 mr-2" />
+                                Record Transaction
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEdit(holding)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit Holding
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive"
                                 onClick={() => handleDeleteHolding(holding)}
@@ -579,6 +603,24 @@ export default function InvestmentsPage() {
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
       />
+
+      {/* Edit Holding Dialog */}
+      {selectedHolding && (
+        <EditHoldingDialog
+          holding={selectedHolding}
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+        />
+      )}
+
+      {/* Transaction Form Dialog */}
+      {selectedHolding && (
+        <TransactionForm
+          holding={selectedHolding}
+          open={isTransactionFormOpen}
+          onOpenChange={setIsTransactionFormOpen}
+        />
+      )}
     </>
   );
 }
