@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { db } from '@/lib/db';
 
 interface UIStore {
   // Sidebar state
@@ -32,6 +33,9 @@ interface UIStore {
   // Investment settings
   autoRefreshPrices: boolean;
   setAutoRefreshPrices: (enabled: boolean) => void;
+
+  // Data management
+  clearAllData: () => Promise<void>;
 }
 
 // Get current financial year
@@ -72,6 +76,17 @@ export const useUIStore = create<UIStore>()(
 
       autoRefreshPrices: true,
       setAutoRefreshPrices: (enabled) => set({ autoRefreshPrices: enabled }),
+
+      clearAllData: async () => {
+        try {
+          await db.delete();
+          localStorage.clear();
+          window.location.reload();
+        } catch (error) {
+          console.error('Failed to clear database:', error);
+          throw error; // Re-throw so caller can handle
+        }
+      },
     }),
     {
       name: 'safeflow-ui',

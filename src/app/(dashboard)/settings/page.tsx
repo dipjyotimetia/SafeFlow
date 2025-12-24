@@ -43,7 +43,6 @@ import { useSyncStore } from '@/stores/sync.store';
 import { useUIStore } from '@/stores/ui.store';
 import { useAIStore } from '@/stores/ai.store';
 import { toast } from 'sonner';
-import { db } from '@/lib/db';
 import { CloudSyncCard } from '@/components/settings/cloud-sync-card';
 
 export default function SettingsPage() {
@@ -60,6 +59,7 @@ export default function SettingsPage() {
   const setTransactionViewMode = useUIStore((state) => state.setTransactionViewMode);
   const autoRefreshPrices = useUIStore((state) => state.autoRefreshPrices);
   const setAutoRefreshPrices = useUIStore((state) => state.setAutoRefreshPrices);
+  const clearAllData = useUIStore((state) => state.clearAllData);
 
   // AI Store
   const aiSettings = useAIStore((state) => state.settings);
@@ -132,9 +132,7 @@ export default function SettingsPage() {
   const handleClearAllData = async () => {
     setIsClearing(true);
     try {
-      await db.delete();
-      localStorage.clear();
-      window.location.reload();
+      await clearAllData();
     } catch {
       toast.error('Failed to clear data');
       setIsClearing(false);

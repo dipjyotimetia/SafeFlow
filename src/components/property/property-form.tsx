@@ -15,8 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { usePropertyStore } from "@/stores/property.store";
+import { handleStoreError } from "@/lib/errors";
 import { toast } from "sonner";
 import type {
   Property,
@@ -27,7 +27,6 @@ import type {
 } from "@/types";
 import {
   Building2,
-  Calendar,
   DollarSign,
   Home,
   Landmark,
@@ -37,12 +36,9 @@ import {
   Loader2,
 } from "lucide-react";
 
-interface PropertyFormProps {
-  property?: Property;
-  mode: "create" | "edit";
-}
+// ============ Constants (outside component to avoid recreation) ============
 
-const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
+const PROPERTY_TYPES: readonly { value: PropertyType; label: string }[] = [
   { value: "house", label: "House" },
   { value: "apartment", label: "Apartment" },
   { value: "townhouse", label: "Townhouse" },
@@ -50,21 +46,21 @@ const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
   { value: "land", label: "Land" },
   { value: "commercial", label: "Commercial" },
   { value: "industrial", label: "Industrial" },
-];
+] as const;
 
-const PROPERTY_PURPOSES: { value: PropertyPurpose; label: string }[] = [
+const PROPERTY_PURPOSES: readonly { value: PropertyPurpose; label: string }[] = [
   { value: "investment", label: "Investment" },
   { value: "owner-occupied", label: "Owner Occupied" },
   { value: "holiday", label: "Holiday Home" },
-];
+] as const;
 
-const PROPERTY_STATUSES: { value: PropertyStatus; label: string }[] = [
+const PROPERTY_STATUSES: readonly { value: PropertyStatus; label: string }[] = [
   { value: "active", label: "Active" },
   { value: "sold", label: "Sold" },
   { value: "archived", label: "Archived" },
-];
+] as const;
 
-const AUSTRALIAN_STATES: { value: AustralianState; label: string }[] = [
+const AUSTRALIAN_STATES: readonly { value: AustralianState; label: string }[] = [
   { value: "NSW", label: "New South Wales" },
   { value: "VIC", label: "Victoria" },
   { value: "QLD", label: "Queensland" },
@@ -73,19 +69,168 @@ const AUSTRALIAN_STATES: { value: AustralianState; label: string }[] = [
   { value: "TAS", label: "Tasmania" },
   { value: "NT", label: "Northern Territory" },
   { value: "ACT", label: "Australian Capital Territory" },
-];
+] as const;
 
-// Helper to convert cents to dollars for display
+// Max property value in dollars (~$100M to avoid overflow when converted to cents)
+const MAX_PROPERTY_VALUE = 100000000;
+
+// ============ Helper Functions ============
+
+/** Convert cents to dollars string for display */
 function centsToDisplay(cents: number | undefined): string {
   if (cents === undefined || cents === 0) return "";
   return (cents / 100).toString();
 }
 
-// Helper to convert dollars string to cents
+/** Convert dollars string to cents (with validation and overflow protection) */
 function displayToCents(value: string): number {
+  if (!value || value.trim() === "") return 0;
   const num = parseFloat(value);
-  return isNaN(num) ? 0 : Math.round(num * 100);
+  if (isNaN(num) || num < 0) return 0;
+  // Prevent overflow - max ~$100M to stay within safe integer range
+  if (num > MAX_PROPERTY_VALUE) return MAX_PROPERTY_VALUE * 100;
+  return Math.round(num * 100);
 }
+
+/** Convert Date to local YYYY-MM-DD string (timezone-safe) */
+function dateToLocalString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** Parse YYYY-MM-DD string to local Date (timezone-safe with validation) */
+function parseLocalDate(dateString: string): Date {
+  // Validate format
+  if (!dateString || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    throw new Error(`Invalid date format: ${dateString}`);
+  }
+
+  const [year, month, day] = dateString.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  // Validate the date is real (e.g., not Feb 30)
+  if (
+    isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    throw new Error(`Invalid date: ${dateString}`);
+  }
+
+  return date;
+}
+
+/** Validate and sanitize monetary input */
+function handleMoneyInput(
+  value: string,
+  setter: (v: string) => void,
+  maxValue: number = MAX_PROPERTY_VALUE
+): void {
+  // Remove any non-numeric characters except decimal point
+  const cleaned = value.replace(/[^0-9.]/g, "");
+
+  // Handle multiple decimal points
+  const parts = cleaned.split(".");
+  if (parts.length > 2) return;
+
+  // Limit to 2 decimal places
+  if (parts[1]?.length > 2) return;
+
+  // Prevent overflow
+  const num = parseFloat(cleaned);
+  if (!isNaN(num) && num > maxValue) return;
+
+  setter(cleaned);
+}
+
+/** Validate and sanitize postcode input (4 digits only) */
+function handlePostcodeInput(
+  value: string,
+  setter: (v: string) => void
+): void {
+  const cleaned = value.replace(/\D/g, "");
+  if (cleaned.length <= 4) {
+    setter(cleaned);
+  }
+}
+
+/** Validate and sanitize phone input */
+function handlePhoneInput(
+  value: string,
+  setter: (v: string) => void
+): void {
+  // Allow digits, spaces, and common phone characters
+  const cleaned = value.replace(/[^0-9\s+()-]/g, "");
+  if (cleaned.length <= 20) {
+    setter(cleaned);
+  }
+}
+
+/** Validate and sanitize percentage input */
+function handlePercentInput(
+  value: string,
+  setter: (v: string) => void,
+  maxPercent: number = 100
+): void {
+  const cleaned = value.replace(/[^0-9.]/g, "");
+  const parts = cleaned.split(".");
+  if (parts.length > 2) return;
+  if (parts[1]?.length > 2) return;
+
+  const num = parseFloat(cleaned);
+  if (!isNaN(num) && num > maxPercent) return;
+
+  setter(cleaned);
+}
+
+/** Validate and sanitize integer input */
+function handleIntegerInput(
+  value: string,
+  setter: (v: string) => void,
+  maxValue: number = 999
+): void {
+  // Allow clearing the field
+  if (value === "") {
+    setter("");
+    return;
+  }
+
+  const cleaned = value.replace(/\D/g, "");
+  if (cleaned === "") {
+    setter("");
+    return;
+  }
+
+  const num = parseInt(cleaned, 10);
+  if (isNaN(num) || num > maxValue) return;
+  setter(cleaned);
+}
+
+/** Safely parse a number, returning undefined if invalid */
+function safeParseFloat(value: string | undefined): number | undefined {
+  if (!value || value.trim() === "") return undefined;
+  const num = parseFloat(value);
+  return isNaN(num) ? undefined : num;
+}
+
+/** Safely parse an integer, returning undefined if invalid */
+function safeParseInt(value: string | undefined): number | undefined {
+  if (!value || value.trim() === "") return undefined;
+  const num = parseInt(value, 10);
+  return isNaN(num) ? undefined : num;
+}
+
+// ============ Types ============
+
+interface PropertyFormProps {
+  property?: Property;
+  mode: "create" | "edit";
+}
+
+// ============ Component ============
 
 export function PropertyForm({ property, mode }: PropertyFormProps) {
   const router = useRouter();
@@ -107,13 +252,13 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
     property?.status ?? "active"
   );
 
-  // Purchase Details
+  // Purchase Details (timezone-safe date handling)
   const [purchasePrice, setPurchasePrice] = useState(
     centsToDisplay(property?.purchasePrice)
   );
   const [purchaseDate, setPurchaseDate] = useState(
     property?.purchaseDate
-      ? new Date(property.purchaseDate).toISOString().split("T")[0]
+      ? dateToLocalString(new Date(property.purchaseDate))
       : ""
   );
   const [valuationAmount, setValuationAmount] = useState(
@@ -121,7 +266,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
   );
   const [valuationDate, setValuationDate] = useState(
     property?.valuationDate
-      ? new Date(property.valuationDate).toISOString().split("T")[0]
+      ? dateToLocalString(new Date(property.valuationDate))
       : ""
   );
 
@@ -163,7 +308,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
   const [insurerName, setInsurerName] = useState(property?.insurerName ?? "");
   const [insuranceRenewalDate, setInsuranceRenewalDate] = useState(
     property?.insuranceRenewalDate
-      ? new Date(property.insuranceRenewalDate).toISOString().split("T")[0]
+      ? dateToLocalString(new Date(property.insuranceRenewalDate))
       : ""
   );
 
@@ -202,8 +347,8 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
       toast.error("Suburb is required");
       return;
     }
-    if (!postcode.trim()) {
-      toast.error("Postcode is required");
+    if (!postcode.trim() || !/^\d{4}$/.test(postcode)) {
+      toast.error("Valid 4-digit postcode is required");
       return;
     }
     if (!purchasePrice || displayToCents(purchasePrice) === 0) {
@@ -227,10 +372,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
         purpose,
         status,
         purchasePrice: displayToCents(purchasePrice),
-        purchaseDate: new Date(purchaseDate),
+        purchaseDate: parseLocalDate(purchaseDate),
         valuationAmount:
           displayToCents(valuationAmount) || displayToCents(purchasePrice),
-        valuationDate: valuationDate ? new Date(valuationDate) : undefined,
+        valuationDate: valuationDate ? parseLocalDate(valuationDate) : undefined,
         stampDuty: displayToCents(stampDuty),
         legalFees: displayToCents(legalFees),
         buildingInspection: displayToCents(buildingInspection) || undefined,
@@ -238,12 +383,12 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
         conveyancingFees: displayToCents(conveyancingFees) || undefined,
         landValue: displayToCents(landValue) || undefined,
         buildingValue: displayToCents(buildingValue) || undefined,
-        buildingAge: buildingAge ? parseInt(buildingAge) : undefined,
+        buildingAge: safeParseInt(buildingAge),
         buildingInsuranceAnnual: displayToCents(buildingInsurance) || undefined,
         landlordInsuranceAnnual: displayToCents(landlordInsurance) || undefined,
         insurerName: insurerName.trim() || undefined,
         insuranceRenewalDate: insuranceRenewalDate
-          ? new Date(insuranceRenewalDate)
+          ? parseLocalDate(insuranceRenewalDate)
           : undefined,
         hasPropertyManager,
         propertyManagerName: hasPropertyManager
@@ -258,8 +403,8 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
         propertyManagerPhone: hasPropertyManager
           ? propertyManagerPhone.trim() || undefined
           : undefined,
-        managementFeePercent: hasPropertyManager && managementFeePercent
-          ? parseFloat(managementFeePercent)
+        managementFeePercent: hasPropertyManager
+          ? safeParseFloat(managementFeePercent)
           : undefined,
         notes: notes.trim() || undefined,
       };
@@ -274,7 +419,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
         router.push(`/property/${property.id}`);
       }
     } catch (error) {
-      console.error("Failed to save property:", error);
+      handleStoreError("PropertyForm.handleSubmit", error);
       toast.error("Failed to save property");
     } finally {
       setIsSubmitting(false);
@@ -282,7 +427,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
       {/* Basic Details */}
       <Card>
         <CardHeader>
@@ -300,8 +445,13 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
                 placeholder="123 Example Street"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                required
+                maxLength={200}
+                aria-required="true"
+                aria-describedby="address-hint"
               />
+              <p id="address-hint" className="text-xs text-muted-foreground sr-only">
+                Enter the full street address
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -311,7 +461,8 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
                 placeholder="Sydney"
                 value={suburb}
                 onChange={(e) => setSuburb(e.target.value)}
-                required
+                maxLength={100}
+                aria-required="true"
               />
             </div>
 
@@ -322,7 +473,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
                   value={state}
                   onValueChange={(v) => setState(v as AustralianState)}
                 >
-                  <SelectTrigger id="state">
+                  <SelectTrigger id="state" aria-required="true">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -341,10 +492,15 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
                   id="postcode"
                   placeholder="2000"
                   value={postcode}
-                  onChange={(e) => setPostcode(e.target.value)}
-                  maxLength={4}
-                  required
+                  onChange={(e) => handlePostcodeInput(e.target.value, setPostcode)}
+                  inputMode="numeric"
+                  pattern="[0-9]{4}"
+                  aria-required="true"
+                  aria-describedby="postcode-hint"
                 />
+                <p id="postcode-hint" className="text-xs text-muted-foreground sr-only">
+                  4-digit Australian postcode
+                </p>
               </div>
             </div>
 
@@ -424,12 +580,16 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               <Label htmlFor="purchasePrice">Purchase Price ($) *</Label>
               <Input
                 id="purchasePrice"
-                type="number"
+                inputMode="decimal"
                 placeholder="800000"
                 value={purchasePrice}
-                onChange={(e) => setPurchasePrice(e.target.value)}
-                required
+                onChange={(e) => handleMoneyInput(e.target.value, setPurchasePrice)}
+                aria-required="true"
+                aria-describedby="purchasePrice-hint"
               />
+              <p id="purchasePrice-hint" className="text-xs text-muted-foreground sr-only">
+                Enter the purchase price in Australian dollars
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -439,7 +599,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
                 type="date"
                 value={purchaseDate}
                 onChange={(e) => setPurchaseDate(e.target.value)}
-                required
+                aria-required="true"
               />
             </div>
 
@@ -447,12 +607,13 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               <Label htmlFor="valuationAmount">Current Valuation ($)</Label>
               <Input
                 id="valuationAmount"
-                type="number"
+                inputMode="decimal"
                 placeholder="900000"
                 value={valuationAmount}
-                onChange={(e) => setValuationAmount(e.target.value)}
+                onChange={(e) => handleMoneyInput(e.target.value, setValuationAmount)}
+                aria-describedby="valuationAmount-hint"
               />
-              <p className="text-xs text-muted-foreground">
+              <p id="valuationAmount-hint" className="text-xs text-muted-foreground">
                 Defaults to purchase price if not set
               </p>
             </div>
@@ -484,10 +645,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               <Label htmlFor="stampDuty">Stamp Duty ($)</Label>
               <Input
                 id="stampDuty"
-                type="number"
+                inputMode="decimal"
                 placeholder="35000"
                 value={stampDuty}
-                onChange={(e) => setStampDuty(e.target.value)}
+                onChange={(e) => handleMoneyInput(e.target.value, setStampDuty)}
               />
             </div>
 
@@ -495,10 +656,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               <Label htmlFor="legalFees">Legal/Conveyancing ($)</Label>
               <Input
                 id="legalFees"
-                type="number"
+                inputMode="decimal"
                 placeholder="2500"
                 value={legalFees}
-                onChange={(e) => setLegalFees(e.target.value)}
+                onChange={(e) => handleMoneyInput(e.target.value, setLegalFees)}
               />
             </div>
 
@@ -506,10 +667,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               <Label htmlFor="buildingInspection">Building Inspection ($)</Label>
               <Input
                 id="buildingInspection"
-                type="number"
+                inputMode="decimal"
                 placeholder="500"
                 value={buildingInspection}
-                onChange={(e) => setBuildingInspection(e.target.value)}
+                onChange={(e) => handleMoneyInput(e.target.value, setBuildingInspection)}
               />
             </div>
 
@@ -517,10 +678,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               <Label htmlFor="pestInspection">Pest Inspection ($)</Label>
               <Input
                 id="pestInspection"
-                type="number"
+                inputMode="decimal"
                 placeholder="350"
                 value={pestInspection}
-                onChange={(e) => setPestInspection(e.target.value)}
+                onChange={(e) => handleMoneyInput(e.target.value, setPestInspection)}
               />
             </div>
 
@@ -528,10 +689,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               <Label htmlFor="conveyancingFees">Other Fees ($)</Label>
               <Input
                 id="conveyancingFees"
-                type="number"
+                inputMode="decimal"
                 placeholder="500"
                 value={conveyancingFees}
-                onChange={(e) => setConveyancingFees(e.target.value)}
+                onChange={(e) => handleMoneyInput(e.target.value, setConveyancingFees)}
               />
             </div>
           </div>
@@ -556,10 +717,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               <Label htmlFor="landValue">Land Value ($)</Label>
               <Input
                 id="landValue"
-                type="number"
+                inputMode="decimal"
                 placeholder="400000"
                 value={landValue}
-                onChange={(e) => setLandValue(e.target.value)}
+                onChange={(e) => handleMoneyInput(e.target.value, setLandValue)}
               />
             </div>
 
@@ -567,10 +728,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               <Label htmlFor="buildingValue">Building Value ($)</Label>
               <Input
                 id="buildingValue"
-                type="number"
+                inputMode="decimal"
                 placeholder="400000"
                 value={buildingValue}
-                onChange={(e) => setBuildingValue(e.target.value)}
+                onChange={(e) => handleMoneyInput(e.target.value, setBuildingValue)}
               />
             </div>
 
@@ -578,10 +739,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               <Label htmlFor="buildingAge">Building Age (years)</Label>
               <Input
                 id="buildingAge"
-                type="number"
+                inputMode="numeric"
                 placeholder="15"
                 value={buildingAge}
-                onChange={(e) => setBuildingAge(e.target.value)}
+                onChange={(e) => handleIntegerInput(e.target.value, setBuildingAge, 200)}
               />
             </div>
           </div>
@@ -604,10 +765,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               </Label>
               <Input
                 id="buildingInsurance"
-                type="number"
+                inputMode="decimal"
                 placeholder="1500"
                 value={buildingInsurance}
-                onChange={(e) => setBuildingInsurance(e.target.value)}
+                onChange={(e) => handleMoneyInput(e.target.value, setBuildingInsurance)}
               />
             </div>
 
@@ -617,10 +778,10 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               </Label>
               <Input
                 id="landlordInsurance"
-                type="number"
+                inputMode="decimal"
                 placeholder="500"
                 value={landlordInsurance}
-                onChange={(e) => setLandlordInsurance(e.target.value)}
+                onChange={(e) => handleMoneyInput(e.target.value, setLandlordInsurance)}
               />
             </div>
 
@@ -631,6 +792,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
                 placeholder="Terri Scheer"
                 value={insurerName}
                 onChange={(e) => setInsurerName(e.target.value)}
+                maxLength={100}
               />
             </div>
 
@@ -658,9 +820,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
-              <Label htmlFor="hasPropertyManager">
-                Has Property Manager
-              </Label>
+              <Label htmlFor="hasPropertyManager">Has Property Manager</Label>
               <p className="text-xs text-muted-foreground">
                 Is this property professionally managed?
               </p>
@@ -669,6 +829,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
               id="hasPropertyManager"
               checked={hasPropertyManager}
               onCheckedChange={setHasPropertyManager}
+              aria-describedby="hasPropertyManager-hint"
             />
           </div>
 
@@ -681,6 +842,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
                   placeholder="Ray White"
                   value={propertyManagerCompany}
                   onChange={(e) => setPropertyManagerCompany(e.target.value)}
+                  maxLength={100}
                 />
               </div>
 
@@ -691,6 +853,7 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
                   placeholder="John Smith"
                   value={propertyManagerName}
                   onChange={(e) => setPropertyManagerName(e.target.value)}
+                  maxLength={100}
                 />
               </div>
 
@@ -702,32 +865,40 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
                   placeholder="john@raywhite.com"
                   value={propertyManagerEmail}
                   onChange={(e) => setPropertyManagerEmail(e.target.value)}
+                  maxLength={254}
+                  aria-describedby="email-hint"
                 />
+                <p id="email-hint" className="text-xs text-muted-foreground sr-only">
+                  Enter a valid email address
+                </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="propertyManagerPhone">Phone</Label>
                 <Input
                   id="propertyManagerPhone"
+                  type="tel"
                   placeholder="0400 000 000"
                   value={propertyManagerPhone}
-                  onChange={(e) => setPropertyManagerPhone(e.target.value)}
+                  onChange={(e) => handlePhoneInput(e.target.value, setPropertyManagerPhone)}
+                  aria-describedby="phone-hint"
                 />
+                <p id="phone-hint" className="text-xs text-muted-foreground sr-only">
+                  Australian phone number
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="managementFeePercent">
-                  Management Fee (%)
-                </Label>
+                <Label htmlFor="managementFeePercent">Management Fee (%)</Label>
                 <Input
                   id="managementFeePercent"
-                  type="number"
-                  step="0.1"
+                  inputMode="decimal"
                   placeholder="7.5"
                   value={managementFeePercent}
-                  onChange={(e) => setManagementFeePercent(e.target.value)}
+                  onChange={(e) => handlePercentInput(e.target.value, setManagementFeePercent, 25)}
+                  aria-describedby="managementFee-hint"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p id="managementFee-hint" className="text-xs text-muted-foreground">
                   Include GST (e.g., 7.5% inc GST)
                 </p>
               </div>
@@ -746,11 +917,17 @@ export function PropertyForm({ property, mode }: PropertyFormProps) {
         </CardHeader>
         <CardContent>
           <Textarea
+            id="notes"
             placeholder="Any additional notes about this property..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
+            maxLength={2000}
+            aria-describedby="notes-hint"
           />
+          <p id="notes-hint" className="text-xs text-muted-foreground mt-1">
+            {notes.length}/2000 characters
+          </p>
         </CardContent>
       </Card>
 
