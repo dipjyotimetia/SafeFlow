@@ -473,7 +473,7 @@ export default function ImportPage() {
                   <div className="space-y-4">
                     {parseResult.success ? (
                       <Alert>
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <CheckCircle2 className="h-4 w-4 text-success" />
                         <AlertTitle>Statement Parsed</AlertTitle>
                         <AlertDescription>
                           Found {parseResult.transactions.length} transactions
@@ -699,7 +699,7 @@ export default function ImportPage() {
                   <div className="space-y-4">
                     {superParseResult.success ? (
                       <Alert>
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <CheckCircle2 className="h-4 w-4 text-success" />
                         <AlertTitle>Statement Parsed</AlertTitle>
                         <AlertDescription>
                           <span className="font-medium">
@@ -1010,8 +1010,8 @@ export default function ImportPage() {
                             <td
                               className={`p-2 text-right font-medium ${
                                 t.amount >= 0
-                                  ? "text-green-600"
-                                  : "text-red-600"
+                                  ? "text-success"
+                                  : "text-destructive"
                               }`}
                             >
                               {t.amount >= 0 ? "+" : ""}$
@@ -1057,7 +1057,7 @@ export default function ImportPage() {
             <Card>
               <CardContent className="py-12">
                 <div className="text-center space-y-4">
-                  <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto" />
+                  <CheckCircle2 className="h-16 w-16 text-success mx-auto" />
                   <h3 className="text-2xl font-semibold">Import Complete!</h3>
                   <p className="text-muted-foreground">
                     {importType === "bank"

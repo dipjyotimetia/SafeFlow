@@ -1,8 +1,8 @@
-// Sync service - orchestrates data sync with Google Drive
+// Sync service - orchestrates data sync with pluggable backends
 
 import { db } from '@/lib/db';
-import { encrypt, decrypt, type EncryptedData, hashPassword, verifyPassword } from './encryption';
-import { uploadData, downloadData, getLastModified, getAuthState } from './google-drive';
+import { encrypt, decrypt, hashPassword, verifyPassword, type EncryptedData } from './encryption';
+import type { SyncBackend, SyncBackendType, BackendConfig } from './backends/types';
 import type {
   Account,
   Transaction,
@@ -17,7 +17,24 @@ import type {
   ChatConversation,
   CategorizationQueueItem,
   MerchantPattern,
+  Budget,
+  FamilyMember,
+  Goal,
+  PriceHistoryEntry,
+  PortfolioSnapshot,
+  Property,
+  PropertyLoan,
+  PropertyExpense,
+  PropertyRental,
+  PropertyDepreciation,
+  PropertyModel,
 } from '@/types';
+
+// Import for backward compatibility (legacy Google Drive sync)
+import { uploadData, downloadData, getLastModified, getAuthState } from './google-drive';
+
+// Re-export for backward compatibility
+export { uploadData, downloadData, getLastModified, getAuthState };
 
 export interface SyncData {
   version: number;
@@ -34,6 +51,19 @@ export interface SyncData {
   chatConversations: ChatConversation[];
   categorizationQueue: CategorizationQueueItem[];
   merchantPatterns: MerchantPattern[];
+  // Added missing tables
+  budgets?: Budget[];
+  familyMembers?: FamilyMember[];
+  goals?: Goal[];
+  priceHistory?: PriceHistoryEntry[];
+  portfolioHistory?: PortfolioSnapshot[];
+  // Property portfolio tables
+  properties?: Property[];
+  propertyLoans?: PropertyLoan[];
+  propertyExpenses?: PropertyExpense[];
+  propertyRentals?: PropertyRental[];
+  propertyDepreciation?: PropertyDepreciation[];
+  propertyModels?: PropertyModel[];
 }
 
 export interface SyncResult {
@@ -63,6 +93,17 @@ export async function exportData(): Promise<SyncData> {
     chatConversations,
     categorizationQueue,
     merchantPatterns,
+    budgets,
+    familyMembers,
+    goals,
+    priceHistory,
+    portfolioHistory,
+    properties,
+    propertyLoans,
+    propertyExpenses,
+    propertyRentals,
+    propertyDepreciation,
+    propertyModels,
   ] = await Promise.all([
     db.accounts.toArray(),
     db.transactions.toArray(),
@@ -76,6 +117,17 @@ export async function exportData(): Promise<SyncData> {
     db.chatConversations.toArray(),
     db.categorizationQueue.toArray(),
     db.merchantPatterns.toArray(),
+    db.budgets.toArray(),
+    db.familyMembers.toArray(),
+    db.goals.toArray(),
+    db.priceHistory.toArray(),
+    db.portfolioHistory.toArray(),
+    db.properties.toArray(),
+    db.propertyLoans.toArray(),
+    db.propertyExpenses.toArray(),
+    db.propertyRentals.toArray(),
+    db.propertyDepreciation.toArray(),
+    db.propertyModels.toArray(),
   ]);
 
   return {
@@ -93,6 +145,17 @@ export async function exportData(): Promise<SyncData> {
     chatConversations,
     categorizationQueue,
     merchantPatterns,
+    budgets,
+    familyMembers,
+    goals,
+    priceHistory,
+    portfolioHistory,
+    properties,
+    propertyLoans,
+    propertyExpenses,
+    propertyRentals,
+    propertyDepreciation,
+    propertyModels,
   };
 }
 
@@ -121,6 +184,17 @@ export async function importData(data: SyncData): Promise<void> {
       db.chatConversations,
       db.categorizationQueue,
       db.merchantPatterns,
+      db.budgets,
+      db.familyMembers,
+      db.goals,
+      db.priceHistory,
+      db.portfolioHistory,
+      db.properties,
+      db.propertyLoans,
+      db.propertyExpenses,
+      db.propertyRentals,
+      db.propertyDepreciation,
+      db.propertyModels,
     ],
     async () => {
       // Clear all tables
@@ -137,21 +211,45 @@ export async function importData(data: SyncData): Promise<void> {
         db.chatConversations.clear(),
         db.categorizationQueue.clear(),
         db.merchantPatterns.clear(),
+        db.budgets.clear(),
+        db.familyMembers.clear(),
+        db.goals.clear(),
+        db.priceHistory.clear(),
+        db.portfolioHistory.clear(),
+        db.properties.clear(),
+        db.propertyLoans.clear(),
+        db.propertyExpenses.clear(),
+        db.propertyRentals.clear(),
+        db.propertyDepreciation.clear(),
+        db.propertyModels.clear(),
       ]);
 
-      // Import new data (handle backward compatibility for older exports)
-      if (data.accounts?.length) await db.accounts.bulkAdd(data.accounts);
-      if (data.transactions?.length) await db.transactions.bulkAdd(data.transactions);
-      if (data.categories?.length) await db.categories.bulkAdd(data.categories);
-      if (data.holdings?.length) await db.holdings.bulkAdd(data.holdings);
-      if (data.investmentTransactions?.length) await db.investmentTransactions.bulkAdd(data.investmentTransactions);
-      if (data.taxItems?.length) await db.taxItems.bulkAdd(data.taxItems);
-      if (data.importBatches?.length) await db.importBatches.bulkAdd(data.importBatches);
-      if (data.superannuationAccounts?.length) await db.superannuationAccounts.bulkAdd(data.superannuationAccounts);
-      if (data.superTransactions?.length) await db.superTransactions.bulkAdd(data.superTransactions);
-      if (data.chatConversations?.length) await db.chatConversations.bulkAdd(data.chatConversations);
-      if (data.categorizationQueue?.length) await db.categorizationQueue.bulkAdd(data.categorizationQueue);
-      if (data.merchantPatterns?.length) await db.merchantPatterns.bulkAdd(data.merchantPatterns);
+      // Import new data using bulkPut to handle conflicts gracefully (upsert behavior)
+      // This prevents sync failures when records already exist
+      if (data.accounts?.length) await db.accounts.bulkPut(data.accounts);
+      if (data.transactions?.length) await db.transactions.bulkPut(data.transactions);
+      if (data.categories?.length) await db.categories.bulkPut(data.categories);
+      if (data.holdings?.length) await db.holdings.bulkPut(data.holdings);
+      if (data.investmentTransactions?.length) await db.investmentTransactions.bulkPut(data.investmentTransactions);
+      if (data.taxItems?.length) await db.taxItems.bulkPut(data.taxItems);
+      if (data.importBatches?.length) await db.importBatches.bulkPut(data.importBatches);
+      if (data.superannuationAccounts?.length) await db.superannuationAccounts.bulkPut(data.superannuationAccounts);
+      if (data.superTransactions?.length) await db.superTransactions.bulkPut(data.superTransactions);
+      if (data.chatConversations?.length) await db.chatConversations.bulkPut(data.chatConversations);
+      if (data.categorizationQueue?.length) await db.categorizationQueue.bulkPut(data.categorizationQueue);
+      if (data.merchantPatterns?.length) await db.merchantPatterns.bulkPut(data.merchantPatterns);
+      if (data.budgets?.length) await db.budgets.bulkPut(data.budgets);
+      if (data.familyMembers?.length) await db.familyMembers.bulkPut(data.familyMembers);
+      if (data.goals?.length) await db.goals.bulkPut(data.goals);
+      if (data.priceHistory?.length) await db.priceHistory.bulkPut(data.priceHistory);
+      if (data.portfolioHistory?.length) await db.portfolioHistory.bulkPut(data.portfolioHistory);
+      // Property tables (backward compatible - optional in older exports)
+      if (data.properties?.length) await db.properties.bulkPut(data.properties);
+      if (data.propertyLoans?.length) await db.propertyLoans.bulkPut(data.propertyLoans);
+      if (data.propertyExpenses?.length) await db.propertyExpenses.bulkPut(data.propertyExpenses);
+      if (data.propertyRentals?.length) await db.propertyRentals.bulkPut(data.propertyRentals);
+      if (data.propertyDepreciation?.length) await db.propertyDepreciation.bulkPut(data.propertyDepreciation);
+      if (data.propertyModels?.length) await db.propertyModels.bulkPut(data.propertyModels);
     }
   );
 }
@@ -448,4 +546,344 @@ export async function exportLocalBackup(): Promise<string> {
 export async function importLocalBackup(json: string): Promise<void> {
   const data: SyncData = JSON.parse(json);
   await importData(data);
+}
+
+// ============ Backend Configuration Persistence ============
+
+const DEVICE_KEY_STORAGE = 'safeflow-device-key';
+
+/**
+ * Convert Uint8Array to base64 (matches encryption.ts pattern)
+ */
+function arrayToBase64(array: Uint8Array): string {
+  return btoa(String.fromCharCode.apply(null, Array.from(array)));
+}
+
+/**
+ * Get or create a device-specific encryption key.
+ * This key is used to encrypt backend credentials in IndexedDB.
+ *
+ * Security note: This provides defense-in-depth against casual IndexedDB snooping,
+ * but is NOT XSS-proof. An XSS attacker can read both localStorage and IndexedDB.
+ * For maximum security, implement Content Security Policy (CSP) headers.
+ */
+function getOrCreateDeviceKey(): string {
+  if (typeof window === 'undefined') {
+    throw new Error('Device key can only be accessed in browser');
+  }
+
+  let deviceKey = localStorage.getItem(DEVICE_KEY_STORAGE);
+  if (!deviceKey) {
+    // Generate a new device key (32 random bytes = 256 bits as base64)
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    deviceKey = arrayToBase64(bytes);
+    localStorage.setItem(DEVICE_KEY_STORAGE, deviceKey);
+  }
+  return deviceKey;
+}
+
+/**
+ * Encrypt backend configuration with device key
+ */
+async function encryptConfig(config: BackendConfig): Promise<string> {
+  const deviceKey = getOrCreateDeviceKey();
+  const encrypted = await encrypt(JSON.stringify(config), deviceKey);
+  return JSON.stringify(encrypted);
+}
+
+/**
+ * Decrypt backend configuration with device key
+ */
+async function decryptConfig(encryptedConfig: string): Promise<BackendConfig> {
+  const deviceKey = getOrCreateDeviceKey();
+  const encrypted = JSON.parse(encryptedConfig) as EncryptedData;
+  const decrypted = await decrypt(encrypted, deviceKey);
+  return JSON.parse(decrypted) as BackendConfig;
+}
+
+/**
+ * Save backend configuration to IndexedDB (encrypted with device key)
+ * Credentials are encrypted before storage for XSS protection.
+ */
+export async function saveBackendConfig(
+  type: SyncBackendType,
+  config: BackendConfig
+): Promise<void> {
+  const encryptedConfig = await encryptConfig(config);
+  await saveSyncMetadata({
+    backendType: type,
+    backendConfig: encryptedConfig,
+  });
+}
+
+/**
+ * Load saved backend configuration from IndexedDB (decrypted with device key)
+ */
+export async function loadBackendConfig(): Promise<{
+  type: SyncBackendType;
+  config: BackendConfig;
+} | null> {
+  const metadata = await getSyncMetadata();
+
+  if (!metadata?.backendType || !metadata?.backendConfig) {
+    return null;
+  }
+
+  try {
+    // Try to decrypt (encrypted format)
+    const config = await decryptConfig(metadata.backendConfig);
+    return {
+      type: metadata.backendType,
+      config,
+    };
+  } catch {
+    // Fallback: try parsing as plain JSON (legacy unencrypted format)
+    try {
+      const config = JSON.parse(metadata.backendConfig) as BackendConfig;
+      // Re-save with encryption for future loads
+      await saveBackendConfig(metadata.backendType, config);
+      return {
+        type: metadata.backendType,
+        config,
+      };
+    } catch {
+      console.error('[SyncService] Failed to parse backend config');
+      // Clear corrupted config
+      await clearBackendConfig();
+      return null;
+    }
+  }
+}
+
+/**
+ * Clear saved backend configuration
+ */
+export async function clearBackendConfig(): Promise<void> {
+  await saveSyncMetadata({
+    backendType: undefined,
+    backendConfig: undefined,
+  });
+}
+
+// ============ Backend-Agnostic Sync Functions ============
+
+/**
+ * Sync data with any backend
+ */
+export async function syncWithBackend(
+  backend: SyncBackend,
+  password: string
+): Promise<SyncResult> {
+  if (!backend.isAuthenticated()) {
+    return {
+      success: false,
+      direction: 'none',
+      message: `Not authenticated with ${backend.displayName}`,
+    };
+  }
+
+  // Verify password
+  if (await isEncryptionSetUp()) {
+    const isValid = await verifyEncryptionPassword(password);
+    if (!isValid) {
+      return {
+        success: false,
+        direction: 'none',
+        message: 'Invalid encryption password',
+      };
+    }
+  } else {
+    // Set up encryption with this password
+    await setupEncryption(password);
+  }
+
+  const metadata = await getSyncMetadata();
+  const localVersion = metadata?.lastSyncVersion || 0;
+
+  // Get remote last modified time
+  const remoteModified = await backend.getLastModified();
+  const localLastSync = metadata?.lastSyncAt ? new Date(metadata.lastSyncAt) : null;
+
+  // Determine sync direction
+  let direction: 'upload' | 'download' | 'none' = 'none';
+
+  if (!remoteModified) {
+    // No remote data, upload local
+    direction = 'upload';
+  } else if (!localLastSync) {
+    // Never synced before, download remote
+    direction = 'download';
+  } else if (remoteModified > localLastSync) {
+    // Remote is newer, download
+    direction = 'download';
+  } else {
+    // Local is newer or same, upload
+    direction = 'upload';
+  }
+
+  try {
+    if (direction === 'upload') {
+      // Export and encrypt local data
+      const data = await exportData();
+      const encrypted = await encrypt(JSON.stringify(data), password);
+      await backend.upload(encrypted);
+
+      await saveSyncMetadata({
+        lastSyncAt: new Date(),
+        lastSyncVersion: localVersion + 1,
+      });
+
+      return {
+        success: true,
+        direction: 'upload',
+        message: `Data uploaded to ${backend.displayName}`,
+        timestamp: new Date(),
+      };
+    } else if (direction === 'download') {
+      // Download and decrypt remote data
+      const encrypted = await backend.download();
+      if (!encrypted) {
+        return {
+          success: false,
+          direction: 'none',
+          message: `No data found on ${backend.displayName}`,
+        };
+      }
+
+      const decrypted = await decrypt(encrypted, password);
+      const data: SyncData = JSON.parse(decrypted);
+
+      await importData(data);
+
+      await saveSyncMetadata({
+        lastSyncAt: new Date(),
+        lastSyncVersion: localVersion + 1,
+      });
+
+      return {
+        success: true,
+        direction: 'download',
+        message: `Data downloaded from ${backend.displayName}`,
+        timestamp: new Date(),
+      };
+    }
+
+    return {
+      success: true,
+      direction: 'none',
+      message: 'Already in sync',
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      direction,
+      message: error instanceof Error ? error.message : 'Sync failed',
+    };
+  }
+}
+
+/**
+ * Force upload local data to any backend
+ */
+export async function forceUploadToBackend(
+  backend: SyncBackend,
+  password: string
+): Promise<SyncResult> {
+  if (!backend.isAuthenticated()) {
+    return {
+      success: false,
+      direction: 'none',
+      message: `Not authenticated with ${backend.displayName}`,
+    };
+  }
+
+  if (!(await isEncryptionSetUp())) {
+    await setupEncryption(password);
+  } else {
+    const isValid = await verifyEncryptionPassword(password);
+    if (!isValid) {
+      return {
+        success: false,
+        direction: 'none',
+        message: 'Invalid encryption password',
+      };
+    }
+  }
+
+  try {
+    const data = await exportData();
+    const encrypted = await encrypt(JSON.stringify(data), password);
+    await backend.upload(encrypted);
+
+    const metadata = await getSyncMetadata();
+    await saveSyncMetadata({
+      lastSyncAt: new Date(),
+      lastSyncVersion: (metadata?.lastSyncVersion || 0) + 1,
+    });
+
+    return {
+      success: true,
+      direction: 'upload',
+      message: `Data uploaded to ${backend.displayName}`,
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      direction: 'upload',
+      message: error instanceof Error ? error.message : 'Upload failed',
+    };
+  }
+}
+
+/**
+ * Force download data from any backend
+ */
+export async function forceDownloadFromBackend(
+  backend: SyncBackend,
+  password: string
+): Promise<SyncResult> {
+  if (!backend.isAuthenticated()) {
+    return {
+      success: false,
+      direction: 'none',
+      message: `Not authenticated with ${backend.displayName}`,
+    };
+  }
+
+  try {
+    const encrypted = await backend.download();
+    if (!encrypted) {
+      return {
+        success: false,
+        direction: 'none',
+        message: `No data found on ${backend.displayName}`,
+      };
+    }
+
+    const decrypted = await decrypt(encrypted, password);
+    const data: SyncData = JSON.parse(decrypted);
+
+    await importData(data);
+
+    const metadata = await getSyncMetadata();
+    await saveSyncMetadata({
+      lastSyncAt: new Date(),
+      lastSyncVersion: (metadata?.lastSyncVersion || 0) + 1,
+    });
+
+    return {
+      success: true,
+      direction: 'download',
+      message: `Data downloaded from ${backend.displayName}`,
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      direction: 'download',
+      message: error instanceof Error ? error.message : 'Download failed',
+    };
+  }
 }

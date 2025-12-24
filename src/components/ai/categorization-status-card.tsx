@@ -84,7 +84,7 @@ export function CategorizationStatusCard({
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               )}
               {aiAvailable ? (
-                <Badge variant="secondary" className="text-green-600 text-xs">
+                <Badge variant="secondary" className="text-success text-xs">
                   Online
                 </Badge>
               ) : (
@@ -126,7 +126,7 @@ export function CategorizationStatusCard({
                 <div className="text-xs text-muted-foreground">Total</div>
               </div>
               <div className="text-center p-3 rounded-lg bg-muted/50">
-                <div className="text-2xl font-semibold text-green-600">
+                <div className="text-2xl font-semibold text-success">
                   {transactionCounts.categorized}
                 </div>
                 <div className="text-xs text-muted-foreground">Categorized</div>

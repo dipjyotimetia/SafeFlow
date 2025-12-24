@@ -80,7 +80,7 @@ export default function AccountsPage() {
               <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-success">
                 {formatAUD(summary.totalAssets)}
               </div>
             </CardContent>
@@ -91,7 +91,7 @@ export default function AccountsPage() {
               <CardTitle className="text-sm font-medium">Total Liabilities</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-2xl font-bold text-destructive">
                 {formatAUD(summary.totalLiabilities)}
               </div>
             </CardContent>
@@ -103,7 +103,7 @@ export default function AccountsPage() {
             </CardHeader>
             <CardContent>
               <div
-                className={`text-2xl font-bold ${summary.netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                className={`text-2xl font-bold ${summary.netWorth >= 0 ? 'text-success' : 'text-destructive'}`}
               >
                 {formatAUD(summary.netWorth)}
               </div>
@@ -156,14 +156,21 @@ export default function AccountsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Account</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete &quot;{deletingAccount?.name}&quot;? This action cannot
-              be undone.
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Are you sure you want to delete &quot;{deletingAccount?.name}&quot;?
+              </span>
+              <span className="block text-destructive font-medium">
+                All transactions associated with this account will be permanently deleted.
+              </span>
+              <span className="block">
+                This action cannot be undone and your transaction history will be lost.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

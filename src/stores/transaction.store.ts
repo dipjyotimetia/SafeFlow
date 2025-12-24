@@ -120,35 +120,38 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     const now = new Date();
 
     try {
-      await db.transactions.add({
-        id,
-        accountId: validData.accountId,
-        categoryId: validData.categoryId,
-        type: validData.type,
-        amount: validData.amount,
-        description: validData.description,
-        merchantName: validData.merchantName,
-        date: validData.date,
-        notes: validData.notes,
-        isDeductible: validData.isDeductible,
-        gstAmount: validData.gstAmount,
-        atoCategory: validData.atoCategory,
-        importSource: "manual",
-        isReconciled: false,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      // Update account balance
-      const account = await db.accounts.get(validData.accountId);
-      if (account) {
-        const balanceChange =
-          validData.type === "income" ? validData.amount : -validData.amount;
-        await db.accounts.update(validData.accountId, {
-          balance: account.balance + balanceChange,
+      // Wrap in transaction for atomicity - if balance update fails, transaction is rolled back
+      await db.transaction("rw", [db.transactions, db.accounts], async () => {
+        await db.transactions.add({
+          id,
+          accountId: validData.accountId,
+          categoryId: validData.categoryId,
+          type: validData.type,
+          amount: validData.amount,
+          description: validData.description,
+          merchantName: validData.merchantName,
+          date: validData.date,
+          notes: validData.notes,
+          isDeductible: validData.isDeductible,
+          gstAmount: validData.gstAmount,
+          atoCategory: validData.atoCategory,
+          importSource: "manual",
+          isReconciled: false,
+          createdAt: now,
           updatedAt: now,
         });
-      }
+
+        // Update account balance atomically
+        const account = await db.accounts.get(validData.accountId);
+        if (account) {
+          const balanceChange =
+            validData.type === "income" ? validData.amount : -validData.amount;
+          await db.accounts.update(validData.accountId, {
+            balance: account.balance + balanceChange,
+            updatedAt: now,
+          });
+        }
+      });
 
       return id;
     } catch (error) {
@@ -209,23 +212,26 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
   },
 
   deleteTransaction: async (id) => {
-    const transaction = await db.transactions.get(id);
-    if (transaction) {
-      // Reverse the balance change
-      const account = await db.accounts.get(transaction.accountId);
-      if (account) {
-        const balanceChange =
-          transaction.type === "income"
-            ? -transaction.amount
-            : transaction.amount;
-        await db.accounts.update(transaction.accountId, {
-          balance: account.balance + balanceChange,
-          updatedAt: new Date(),
-        });
-      }
+    // Wrap in transaction for atomicity - balance update and deletion succeed/fail together
+    await db.transaction("rw", [db.transactions, db.accounts], async () => {
+      const transaction = await db.transactions.get(id);
+      if (transaction) {
+        // Reverse the balance change
+        const account = await db.accounts.get(transaction.accountId);
+        if (account) {
+          const balanceChange =
+            transaction.type === "income"
+              ? -transaction.amount
+              : transaction.amount;
+          await db.accounts.update(transaction.accountId, {
+            balance: account.balance + balanceChange,
+            updatedAt: new Date(),
+          });
+        }
 
-      await db.transactions.delete(id);
-    }
+        await db.transactions.delete(id);
+      }
+    });
   },
 
   deleteTransactions: async (ids) => {

@@ -61,7 +61,7 @@ import {
   useSuperFinancialYears,
 } from '@/hooks';
 import { useSuperannuationStore } from '@/stores/superannuation.store';
-import { formatAUD } from '@/lib/utils/currency';
+import { formatAUD, parseAUD } from '@/lib/utils/currency';
 import { getCurrentFinancialYear, formatFinancialYear } from '@/lib/utils/financial-year';
 import { cn } from '@/lib/utils';
 import type { SuperProvider, SuperannuationAccount, SuperTransactionType } from '@/types';
@@ -134,7 +134,7 @@ export default function SuperannuationPage() {
         accountName: newAccount.accountName || undefined,
         investmentOption: newAccount.investmentOption || undefined,
         employerName: newAccount.employerName || undefined,
-        totalBalance: Math.round(parseFloat(newAccount.totalBalance || '0') * 100),
+        totalBalance: parseAUD(newAccount.totalBalance) ?? 0,
       });
 
       toast.success('Super account added');
@@ -221,7 +221,7 @@ export default function SuperannuationPage() {
                     <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-success">
                       {formatAUD(summary.totalBalance)}
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -251,7 +251,7 @@ export default function SuperannuationPage() {
                   <CardContent>
                     <div className={cn(
                       'text-2xl font-bold',
-                      summary.ytdEarnings >= 0 ? 'text-green-600' : 'text-red-600'
+                      summary.ytdEarnings >= 0 ? 'text-success' : 'text-destructive'
                     )}>
                       {summary.ytdEarnings >= 0 ? '+' : ''}{formatAUD(summary.ytdEarnings)}
                     </div>
@@ -264,7 +264,7 @@ export default function SuperannuationPage() {
                     <CardTitle className="text-sm font-medium">YTD Fees</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-red-600">
+                    <div className="text-2xl font-bold text-destructive">
                       -{formatAUD(summary.ytdFees)}
                     </div>
                     <p className="text-xs text-muted-foreground">Admin & insurance</p>
@@ -328,7 +328,7 @@ export default function SuperannuationPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem
-                                    className="text-red-600"
+                                    className="text-destructive"
                                     onClick={() => handleDeleteAccount(account)}
                                   >
                                     <Trash2 className="h-4 w-4 mr-2" />
@@ -479,7 +479,7 @@ export default function SuperannuationPage() {
                               </TableCell>
                               <TableCell className={cn(
                                 'text-right font-medium',
-                                t.amount >= 0 ? 'text-green-600' : 'text-red-600'
+                                t.amount >= 0 ? 'text-success' : 'text-destructive'
                               )}>
                                 {t.amount >= 0 ? '+' : ''}{formatAUD(t.amount)}
                               </TableCell>

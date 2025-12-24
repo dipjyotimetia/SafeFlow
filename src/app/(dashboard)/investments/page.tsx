@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,8 @@ import {
   Landmark,
   MoreHorizontal,
   Trash2,
+  AlertCircle,
+  LineChart,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -48,12 +50,29 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useHoldings, usePortfolioSummary, useAccounts } from '@/hooks';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useHoldings, usePortfolioSummary, useAccounts, useMultiplePriceHistory } from '@/hooks';
 import { useHoldingStore } from '@/stores/holding.store';
-import { formatAUD } from '@/lib/utils/currency';
+import { formatAUD, parseAUD } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 import type { HoldingType, Holding } from '@/types';
 import { toast } from 'sonner';
+import { PriceSparkline } from '@/components/investments/price-chart';
+import { HoldingDetailDialog } from '@/components/investments/holding-detail-dialog';
+import { PortfolioAllocation } from '@/components/investments/portfolio-allocation';
+import { PortfolioPerformance } from '@/components/investments/portfolio-performance';
+import { TopMovers } from '@/components/investments/top-movers';
+import { isDateStale, ONE_HOUR_MS } from '@/lib/utils/date';
+
+// Check if prices are stale (older than 1 hour)
+function isPriceStale(lastUpdate: Date | undefined): boolean {
+  return isDateStale(lastUpdate, ONE_HOUR_MS);
+}
 
 const HOLDING_TYPES: { value: HoldingType; label: string; icon: React.ReactNode }[] = [
   { value: 'etf', label: 'ETF', icon: <BarChart3 className="h-4 w-4" /> },
@@ -64,6 +83,9 @@ const HOLDING_TYPES: { value: HoldingType; label: string; icon: React.ReactNode 
 
 export default function InvestmentsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedHolding, setSelectedHolding] = useState<Holding | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const hasAutoRefreshed = useRef(false);
   const [newHolding, setNewHolding] = useState({
     symbol: '',
     name: '',
@@ -84,7 +106,39 @@ export default function InvestmentsPage() {
     lastPriceRefresh,
   } = useHoldingStore();
 
+  // Get price history for all holdings (for sparklines)
+  // Memoize holdingIds to prevent unnecessary re-renders
+  const holdingIds = useMemo(() => holdings.map((h) => h.id), [holdings]);
+  const { historyMap } = useMultiplePriceHistory(holdingIds, 30);
+
   const investmentAccounts = accounts.filter((a) => a.type === 'investment');
+
+  // Check if any holding has stale prices
+  const hasStaleData = useMemo(
+    () => holdings.some((h) => isPriceStale(h.lastPriceUpdate)),
+    [holdings]
+  );
+
+  // Memoize refreshPrices to prevent effect from re-running
+  const doRefresh = useCallback(() => {
+    refreshPrices();
+  }, [refreshPrices]);
+
+  // Auto-refresh prices on page load if stale or never refreshed
+  useEffect(() => {
+    if (!hasAutoRefreshed.current && holdings.length > 0 && !isRefreshingPrices) {
+      const shouldRefresh = hasStaleData || !lastPriceRefresh;
+      if (shouldRefresh) {
+        hasAutoRefreshed.current = true;
+        doRefresh();
+      }
+    }
+  }, [holdings.length, hasStaleData, lastPriceRefresh, isRefreshingPrices, doRefresh]);
+
+  const handleOpenDetail = (holding: Holding) => {
+    setSelectedHolding(holding);
+    setIsDetailOpen(true);
+  };
 
   const handleAddHolding = async () => {
     if (!newHolding.symbol || !newHolding.accountId) {
@@ -93,13 +147,15 @@ export default function InvestmentsPage() {
     }
 
     try {
+      // Parse units as float (can be fractional), cost basis using parseAUD for consistency
+      const parsedUnits = parseFloat(newHolding.units);
       await createHolding({
         accountId: newHolding.accountId,
         symbol: newHolding.symbol,
         name: newHolding.name || newHolding.symbol,
         type: newHolding.type,
-        units: parseFloat(newHolding.units) || 0,
-        costBasis: Math.round((parseFloat(newHolding.costBasis) || 0) * 100),
+        units: isNaN(parsedUnits) ? 0 : parsedUnits,
+        costBasis: parseAUD(newHolding.costBasis) ?? 0,
       });
 
       toast.success('Holding added');
@@ -202,14 +258,14 @@ export default function InvestmentsPage() {
               <div
                 className={cn(
                   'text-2xl font-bold',
-                  summary.totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                  summary.totalGainLoss >= 0 ? 'text-success' : 'text-destructive'
                 )}
               >
                 {summary.totalGainLoss >= 0 ? '+' : ''}
                 {formatAUD(summary.totalGainLoss)}
               </div>
               <p className="text-xs text-muted-foreground">
-                <span className={summary.gainLossPercent >= 0 ? 'text-green-600' : 'text-red-600'}>
+                <span className={summary.gainLossPercent >= 0 ? 'text-success' : 'text-destructive'}>
                   {summary.gainLossPercent >= 0 ? '+' : ''}
                   {summary.gainLossPercent.toFixed(2)}%
                 </span>{' '}
@@ -219,18 +275,50 @@ export default function InvestmentsPage() {
           </Card>
         </div>
 
+        {/* Portfolio Charts & Top Movers */}
+        {holdings.length > 0 && (
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <PortfolioPerformance />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              <PortfolioAllocation />
+              <TopMovers />
+            </div>
+          </div>
+        )}
+
         {/* Holdings Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Holdings</CardTitle>
-            <CardDescription>
-              Your investment positions
-              {lastPriceRefresh && (
-                <span className="ml-2 text-xs">
-                  (Last updated: {lastPriceRefresh.toLocaleTimeString()})
-                </span>
-              )}
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Holdings</CardTitle>
+                <CardDescription className="flex items-center gap-2">
+                  Your investment positions
+                  {lastPriceRefresh && (
+                    <span className="text-xs">
+                      (Last updated: {lastPriceRefresh.toLocaleTimeString()})
+                    </span>
+                  )}
+                  {hasStaleData && !isRefreshingPrices && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                            <AlertCircle className="h-3 w-3" />
+                            Stale
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Some prices are over 1 hour old. Refresh to update.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -242,8 +330,10 @@ export default function InvestmentsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Asset</TableHead>
+                    <TableHead className="text-center w-[80px]">Trend</TableHead>
                     <TableHead className="text-right">Units</TableHead>
                     <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">24h</TableHead>
                     <TableHead className="text-right">Value</TableHead>
                     <TableHead className="text-right">Cost Basis</TableHead>
                     <TableHead className="text-right">Gain/Loss</TableHead>
@@ -256,8 +346,14 @@ export default function InvestmentsPage() {
                     const gainLossPercent =
                       holding.costBasis > 0 ? (gainLoss / holding.costBasis) * 100 : 0;
 
+                    const priceHistory = historyMap.get(holding.id) || [];
+
                     return (
-                      <TableRow key={holding.id}>
+                      <TableRow
+                        key={holding.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleOpenDetail(holding)}
+                      >
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {getTypeIcon(holding.type)}
@@ -270,6 +366,9 @@ export default function InvestmentsPage() {
                             </Badge>
                           </div>
                         </TableCell>
+                        <TableCell className="text-center">
+                          <PriceSparkline data={priceHistory} />
+                        </TableCell>
                         <TableCell className="text-right font-mono">
                           {holding.units.toLocaleString(undefined, {
                             minimumFractionDigits: 0,
@@ -278,6 +377,21 @@ export default function InvestmentsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           {holding.currentPrice ? formatAUD(holding.currentPrice) : '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {holding.change24hPercent !== undefined ? (
+                            <span
+                              className={cn(
+                                'text-sm font-medium',
+                                holding.change24hPercent >= 0 ? 'text-success' : 'text-destructive'
+                              )}
+                            >
+                              {holding.change24hPercent >= 0 ? '+' : ''}
+                              {holding.change24hPercent.toFixed(2)}%
+                            </span>
+                          ) : (
+                            '-'
+                          )}
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {holding.currentValue ? formatAUD(holding.currentValue) : '-'}
@@ -289,7 +403,7 @@ export default function InvestmentsPage() {
                           <div
                             className={cn(
                               'flex items-center justify-end gap-1',
-                              gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                              gainLoss >= 0 ? 'text-success' : 'text-destructive'
                             )}
                           >
                             {gainLoss >= 0 ? (
@@ -301,7 +415,7 @@ export default function InvestmentsPage() {
                             <span className="text-xs">({gainLossPercent.toFixed(1)}%)</span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
@@ -309,8 +423,12 @@ export default function InvestmentsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleOpenDetail(holding)}>
+                                <LineChart className="h-4 w-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
                               <DropdownMenuItem
-                                className="text-red-600"
+                                className="text-destructive"
                                 onClick={() => handleDeleteHolding(holding)}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
@@ -454,6 +572,13 @@ export default function InvestmentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Holding Detail Dialog */}
+      <HoldingDetailDialog
+        holding={selectedHolding}
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+      />
     </>
   );
 }

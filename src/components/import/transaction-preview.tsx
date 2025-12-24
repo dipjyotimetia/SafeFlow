@@ -94,13 +94,13 @@ export function TransactionPreview({
         </div>
         <div className="flex-1 min-w-[150px]">
           <p className="text-sm text-muted-foreground">Income</p>
-          <p className="text-lg font-semibold text-green-600">
+          <p className="text-lg font-semibold text-success">
             {formatAUD(summary.selectedCredits)}
           </p>
         </div>
         <div className="flex-1 min-w-[150px]">
           <p className="text-sm text-muted-foreground">Expenses</p>
-          <p className="text-lg font-semibold text-red-600">
+          <p className="text-lg font-semibold text-destructive">
             {formatAUD(summary.selectedDebits)}
           </p>
         </div>
@@ -155,9 +155,9 @@ export function TransactionPreview({
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {isCredit ? (
-                        <ArrowUpCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <ArrowUpCircle className="h-4 w-4 text-success flex-shrink-0" />
                       ) : (
-                        <ArrowDownCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                        <ArrowDownCircle className="h-4 w-4 text-destructive flex-shrink-0" />
                       )}
                       <span className="truncate max-w-[300px]">
                         {transaction.description}
@@ -166,7 +166,7 @@ export function TransactionPreview({
                   </TableCell>
                   <TableCell className="text-right">
                     <span
-                      className={isCredit ? 'text-green-600' : 'text-red-600'}
+                      className={isCredit ? 'text-success' : 'text-destructive'}
                     >
                       {isCredit ? '+' : '-'}
                       {formatAUD(Math.abs(transaction.amount))}

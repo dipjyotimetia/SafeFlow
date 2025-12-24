@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import type { Holding, InvestmentTransaction, HoldingType } from '@/types';
+import type { Holding, HoldingType, PriceHistoryEntry } from '@/types';
 
 /**
  * Get all holdings
@@ -66,7 +66,10 @@ export function usePortfolioSummary() {
       totalGainLoss += value - costBasis;
     }
 
-    const gainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+    // Round to 2 decimal places for consistent display
+    const gainLossPercent = totalCostBasis > 0
+      ? Math.round((totalGainLoss / totalCostBasis) * 10000) / 100
+      : 0;
 
     return {
       totalValue,
@@ -162,5 +165,84 @@ export function useAllInvestmentTransactions(dateRange?: { from: Date; to: Date 
   return {
     transactions: transactions || [],
     isLoading: transactions === undefined,
+  };
+}
+
+/**
+ * Get price history for a holding
+ * @param holdingId - The holding ID to get price history for
+ * @param days - Number of days of history to retrieve (default: 30)
+ */
+export function usePriceHistory(holdingId?: string, days: number = 30) {
+  const history = useLiveQuery(async () => {
+    if (!holdingId) return [];
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+
+    const results = await db.priceHistory
+      .where('holdingId')
+      .equals(holdingId)
+      .filter((entry) => entry.date >= startDate)
+      .toArray();
+
+    // Sort by date ascending for charting
+    return results.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [holdingId, days]);
+
+  return {
+    history: history || [],
+    isLoading: history === undefined,
+  };
+}
+
+/**
+ * Get price history for multiple holdings (for sparklines)
+ * Uses a single batch query instead of N+1 queries
+ */
+export function useMultiplePriceHistory(holdingIds: string[], days: number = 30) {
+  // Stabilize the dependency to avoid unnecessary re-renders
+  const holdingIdsKey = holdingIds.join(',');
+
+  const historyMap = useLiveQuery(async () => {
+    if (holdingIds.length === 0) return new Map<string, PriceHistoryEntry[]>();
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Fetch all entries in a single query using anyOf (avoids N+1)
+    const allEntries = await db.priceHistory
+      .where('holdingId')
+      .anyOf(holdingIds)
+      .filter((entry) => entry.date >= startDate)
+      .toArray();
+
+    // Initialize results map with empty arrays
+    const results = new Map<string, PriceHistoryEntry[]>();
+    for (const holdingId of holdingIds) {
+      results.set(holdingId, []);
+    }
+
+    // Group entries by holdingId
+    for (const entry of allEntries) {
+      const existing = results.get(entry.holdingId);
+      if (existing) {
+        existing.push(entry);
+      }
+    }
+
+    // Sort each array by date ascending for charting
+    for (const entries of results.values()) {
+      entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }
+
+    return results;
+  }, [holdingIdsKey, days]);
+
+  return {
+    historyMap: historyMap || new Map<string, PriceHistoryEntry[]>(),
+    isLoading: historyMap === undefined,
   };
 }

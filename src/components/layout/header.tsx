@@ -1,6 +1,7 @@
 'use client';
 
 import { Cloud, CloudOff, RefreshCw, User, Users } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,7 +31,7 @@ export function Header({ title }: HeaderProps) {
   const currentFY = getCurrentFinancialYear();
 
   // Get sync status from store
-  const { status: syncStatus, isAuthenticated } = useSyncStore();
+  const { status: syncStatus, isConnected } = useSyncStore();
 
   // Family member filtering
   const { members } = useFamilyMembers({ activeOnly: true });
@@ -63,15 +64,19 @@ export function Header({ title }: HeaderProps) {
       case 'offline':
         return 'Offline';
       default:
-        return isAuthenticated ? 'Not synced' : 'Local only';
+        return isConnected ? 'Not synced' : 'Local only';
     }
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/50 bg-background/95 backdrop-blur-md px-6 supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/40 bg-background/80 backdrop-blur-xl px-6 supports-[backdrop-filter]:bg-background/60 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
       {/* Page title - with spacing for mobile menu */}
       <div className="flex-1 md:pl-0 pl-10">
-        {title && <h1 className="text-xl font-semibold tracking-tight">{title}</h1>}
+        {title && (
+          <h1 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text animate-enter-fast">
+            {title}
+          </h1>
+        )}
       </div>
 
       {/* Family Member Filter */}
@@ -80,12 +85,12 @@ export function Header({ title }: HeaderProps) {
           value={selectedMemberId ?? 'all'}
           onValueChange={(value) => setSelectedMemberId(value === 'all' ? null : value)}
         >
-          <SelectTrigger className="w-[140px] sm:w-[160px] h-9">
+          <SelectTrigger className="w-[140px] sm:w-[160px] h-9 bg-background/50 border-border/60 shadow-sm">
             <SelectValue>
               {selectedMember ? (
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-[0_0_4px_rgba(0,0,0,0.2)]"
                     style={{ backgroundColor: selectedMember.color }}
                   />
                   <span className="truncate">{selectedMember.name}</span>
@@ -121,37 +126,53 @@ export function Header({ title }: HeaderProps) {
       )}
 
       {/* Financial Year Badge */}
-      <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10 text-primary text-sm font-medium">
+      <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/15 text-primary text-sm font-semibold shadow-sm">
+        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-subtle" />
         {formatFinancialYear(currentFY)}
       </div>
 
       {/* Sync Status */}
-      <Button variant="ghost" size="sm" className="gap-2 hover:bg-accent/50">
+      <Button
+        variant="ghost"
+        size="sm"
+        className={cn(
+          "gap-2 rounded-full px-3 transition-all duration-300",
+          syncStatus === 'syncing' && "bg-primary/10 text-primary",
+          syncStatus === 'synced' && "bg-success/10 text-success",
+          syncStatus === 'error' && "bg-destructive/10 text-destructive",
+          syncStatus === 'offline' && "bg-warning/10 text-warning",
+          !syncStatus && "hover:bg-accent/50"
+        )}
+      >
         {getSyncIcon()}
-        <span className="hidden sm:inline text-sm">{getSyncText()}</span>
+        <span className="hidden sm:inline text-sm font-medium">{getSyncText()}</span>
       </Button>
 
       {/* User Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full bg-muted/50 hover:bg-muted transition-all duration-200 hover:scale-105"
+          >
             <User className="h-5 w-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuContent align="end" className="w-56 shadow-lg border-border/60">
+          <DropdownMenuLabel className="font-semibold">My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {isAuthenticated ? (
+          {isConnected ? (
             <>
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Sync Settings</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">Profile</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">Sync Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">Sign Out</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive cursor-pointer focus:text-destructive">Disconnect</DropdownMenuItem>
             </>
           ) : (
-            <DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
               <Cloud className="mr-2 h-4 w-4" />
-              Connect Google Drive
+              Connect Cloud Sync
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

@@ -77,7 +77,7 @@ export function AccountFormDialog({ open, onOpenChange, account }: AccountFormDi
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      const balance = values.balance ? parseAUD(values.balance) : 0;
+      const balance = values.balance ? (parseAUD(values.balance) ?? 0) : 0;
 
       if (account) {
         await updateAccount(account.id, {

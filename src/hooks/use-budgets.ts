@@ -104,7 +104,10 @@ export function useBudgetProgress(budgetId: string | null) {
       const transactions = await query.toArray();
       const spent = transactions.reduce((sum, t) => sum + (t.amount ?? 0), 0);
       const remaining = budget.amount - spent;
-      const percentUsed = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
+      // Round to 2 decimal places for consistent display
+      const percentUsed = budget.amount > 0
+        ? Math.round((spent / budget.amount) * 10000) / 100
+        : 0;
 
       return {
         budget,
@@ -127,6 +130,7 @@ export function useBudgetProgress(budgetId: string | null) {
 
 /**
  * Get progress for all active budgets
+ * Optimized: loads all transactions once and filters in-memory to avoid N+1 queries
  */
 export function useAllBudgetProgress(memberId?: string) {
   const allProgress = useLiveQuery(
@@ -138,33 +142,49 @@ export function useAllBudgetProgress(memberId?: string) {
         budgets = budgets.filter((b) => b.memberId === memberId || !b.memberId);
       }
 
-      const progressList: BudgetProgress[] = [];
+      if (budgets.length === 0) {
+        return [];
+      }
 
-      for (const budget of budgets) {
+      // Calculate overall date range needed (considering both monthly and yearly periods)
+      const periodRanges = budgets.map((b) => getPeriodDates(b.period));
+      const minStart = new Date(Math.min(...periodRanges.map((r) => r.start.getTime())));
+      const maxEnd = new Date(Math.max(...periodRanges.map((r) => r.end.getTime())));
+
+      // Load ALL expense transactions in the date range ONCE (fixes N+1 query issue)
+      const allTransactions = await db.transactions
+        .where('date')
+        .between(minStart, maxEnd, true, true)
+        .filter((t) => t.type === 'expense')
+        .toArray();
+
+      // Calculate progress for each budget by filtering in-memory
+      const progressList: BudgetProgress[] = budgets.map((budget) => {
         const { start, end } = getPeriodDates(budget.period);
 
-        // Get transactions for the period
-        let transactions = await db.transactions
-          .where('date')
-          .between(start, end, true, true)
-          .filter((t) => t.type === 'expense')
-          .toArray();
+        // Filter transactions for this budget's period, category, and member
+        const matchingTransactions = allTransactions.filter((t) => {
+          // Check date range
+          const txDate = t.date;
+          if (txDate < start || txDate > end) return false;
 
-        // Filter by category if specified
-        if (budget.categoryId) {
-          transactions = transactions.filter((t) => t.categoryId === budget.categoryId);
-        }
+          // Check category if specified
+          if (budget.categoryId && t.categoryId !== budget.categoryId) return false;
 
-        // Filter by member if specified
-        if (budget.memberId) {
-          transactions = transactions.filter((t) => t.memberId === budget.memberId);
-        }
+          // Check member if specified
+          if (budget.memberId && t.memberId !== budget.memberId) return false;
 
-        const spent = transactions.reduce((sum, t) => sum + (t.amount ?? 0), 0);
+          return true;
+        });
+
+        const spent = matchingTransactions.reduce((sum, t) => sum + (t.amount ?? 0), 0);
         const remaining = budget.amount - spent;
-        const percentUsed = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
+        // Round to 2 decimal places for consistent display
+        const percentUsed = budget.amount > 0
+          ? Math.round((spent / budget.amount) * 10000) / 100
+          : 0;
 
-        progressList.push({
+        return {
           budget,
           spent,
           remaining,
@@ -172,8 +192,8 @@ export function useAllBudgetProgress(memberId?: string) {
           isOverBudget: spent > budget.amount,
           periodStart: start,
           periodEnd: end,
-        });
-      }
+        };
+      });
 
       return progressList;
     },

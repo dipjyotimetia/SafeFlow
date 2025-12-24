@@ -1,6 +1,33 @@
 // SafeFlow AU - TypeScript Types
 
-// Account types
+// ============ Sync Versioning ============
+
+/**
+ * Interface for entities that support incremental sync.
+ * All syncable entities should extend this interface.
+ */
+export interface Versionable {
+  /** Timestamp of last modification */
+  updatedAt: Date;
+  /** Sync version number - incremented on each change */
+  syncVersion?: number;
+  /** Soft delete flag for sync */
+  isDeleted?: boolean;
+}
+
+/**
+ * Sync backend configuration types
+ */
+export type SyncBackendType = "google-drive" | "webdav" | "s3" | "local-file";
+
+export interface SyncBackendConfig {
+  type: SyncBackendType;
+  displayName: string;
+  isConfigured: boolean;
+  lastSyncAt?: Date;
+}
+
+// ============ Account types ============
 export type AccountType =
   | "bank"
   | "credit"
@@ -10,7 +37,7 @@ export type AccountType =
   | "asset"
   | "liability";
 
-export interface Account {
+export interface Account extends Versionable {
   id: string;
   name: string;
   type: AccountType;
@@ -21,14 +48,13 @@ export interface Account {
   memberId?: string; // Optional - for family member ownership
   visibility?: "private" | "shared"; // Account visibility in family
   createdAt: Date;
-  updatedAt: Date;
   metadata?: Record<string, unknown>;
 }
 
 // Category types
 export type CategoryType = "income" | "expense" | "transfer";
 
-export interface Category {
+export interface Category extends Versionable {
   id: string;
   name: string;
   type: CategoryType;
@@ -39,7 +65,6 @@ export interface Category {
   isSystem: boolean;
   isActive: boolean;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Transaction types
@@ -62,7 +87,7 @@ export type ImportSource =
   | "coinspot-pdf"
   | "swyftx-pdf";
 
-export interface Transaction {
+export interface Transaction extends Versionable {
   id: string;
   accountId: string;
   categoryId?: string;
@@ -94,13 +119,12 @@ export interface Transaction {
   tags?: string[];
   isReconciled: boolean;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Investment types (Phase 2)
 export type HoldingType = "etf" | "stock" | "crypto" | "managed-fund";
 
-export interface Holding {
+export interface Holding extends Versionable {
   id: string;
   accountId: string;
   symbol: string;
@@ -110,9 +134,21 @@ export interface Holding {
   costBasis: number; // cents
   currentPrice?: number; // cents per unit
   currentValue?: number; // cents
+  change24hPercent?: number; // 24h price change percentage
   lastPriceUpdate?: Date;
   createdAt: Date;
-  updatedAt: Date;
+}
+
+// Price history for charts and analytics
+export type PriceHistorySource = 'api' | 'manual';
+
+export interface PriceHistoryEntry {
+  id: string;
+  holdingId: string;
+  date: Date; // Date only (no time component)
+  price: number; // cents per unit
+  source: PriceHistorySource;
+  createdAt: Date;
 }
 
 export type InvestmentTransactionType =
@@ -122,7 +158,7 @@ export type InvestmentTransactionType =
   | "distribution"
   | "fee";
 
-export interface InvestmentTransaction {
+export interface InvestmentTransaction extends Versionable {
   id: string;
   holdingId: string;
   type: InvestmentTransactionType;
@@ -137,12 +173,20 @@ export interface InvestmentTransaction {
   capitalGain?: number;
   holdingPeriod?: number; // days
 
+  // Franking credits (for dividends/distributions)
+  frankingPercentage?: number; // 0-100 (100 = fully franked)
+  companyTaxRate?: CompanyTaxRate; // 30 or 25
+  frankingCreditAmount?: number; // cents - calculated franking credit
+  grossedUpAmount?: number; // cents - cash dividend + franking credit
+
   createdAt: Date;
-  updatedAt: Date;
 }
 
+// Company tax rate for franking credit calculations
+export type CompanyTaxRate = 30 | 25;
+
 // Tax types (Phase 3)
-export interface TaxItem {
+export interface TaxItem extends Versionable {
   id: string;
   transactionId?: string;
   investmentTransactionId?: string;
@@ -154,7 +198,6 @@ export interface TaxItem {
   gstClaimed?: number;
   notes?: string;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Sync types
@@ -173,6 +216,24 @@ export interface SyncMetadata {
   driveFileId?: string;
   conflictState?: "none" | "pending" | "resolved";
   encryptionKeyHash?: string;
+  // Multi-backend support
+  backendType?: "google-drive" | "webdav" | "s3" | "local-file";
+  backendConfig?: string; // Serialized JSON config (credentials stored here)
+}
+
+/**
+ * Snapshot of all data for rollback capability during sync
+ */
+export interface SyncSnapshot {
+  id: string;
+  /** Compressed JSON of all synced data */
+  data: string;
+  /** When the snapshot was created */
+  createdAt: Date;
+  /** Size in bytes for UI display */
+  sizeBytes: number;
+  /** Reason for creating snapshot */
+  reason: "pre-sync" | "pre-import" | "manual";
 }
 
 // Import types
@@ -243,7 +304,7 @@ export type SuperTransactionType =
   | "rollover-in" // Transfer from another fund
   | "rollover-out"; // Transfer to another fund
 
-export interface SuperannuationAccount {
+export interface SuperannuationAccount extends Versionable {
   id: string;
   provider: SuperProvider;
   providerName: string; // "UniSuper", "Australian Super"
@@ -264,10 +325,9 @@ export interface SuperannuationAccount {
   hasIncomeProtection: boolean;
 
   createdAt: Date;
-  updatedAt: Date;
 }
 
-export interface SuperTransaction {
+export interface SuperTransaction extends Versionable {
   id: string;
   superAccountId: string;
   type: SuperTransactionType;
@@ -283,7 +343,6 @@ export interface SuperTransaction {
   importSource?: ImportSource;
   importBatchId?: string;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Contribution summary for tax and reporting
@@ -336,12 +395,11 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-export interface ChatConversation {
+export interface ChatConversation extends Versionable {
   id: string;
   title?: string;
   messages: ChatMessage[];
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export type CategorizationStatus =
@@ -401,7 +459,7 @@ export interface MerchantPattern {
 // Budget types - Simple category spending tracking
 export type BudgetPeriod = "monthly" | "yearly";
 
-export interface Budget {
+export interface Budget extends Versionable {
   id: string;
   name: string;
   categoryId?: string; // Optional - track specific category or all spending
@@ -410,7 +468,6 @@ export interface Budget {
   memberId?: string; // Optional - for family member specific budgets
   isActive: boolean;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface BudgetProgress {
@@ -426,16 +483,653 @@ export interface BudgetProgress {
 // Family/Household types
 export type AccountVisibility = "private" | "shared";
 
-export interface FamilyMember {
+export interface FamilyMember extends Versionable {
   id: string;
   name: string;
   color: string; // For UI differentiation
   isActive: boolean;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface FamilySettings {
   householdName?: string;
   defaultVisibility: AccountVisibility;
+}
+
+// Goal types for financial projections
+export type GoalType =
+  | "net-worth" // Target net worth
+  | "retirement" // Retirement savings target
+  | "savings" // General savings goal
+  | "investment" // Investment portfolio target
+  | "debt-free" // Pay off all debt
+  | "emergency-fund" // Emergency fund target
+  | "custom"; // User-defined goal
+
+export type GoalStatus = "active" | "achieved" | "paused" | "cancelled";
+
+export interface Goal extends Versionable {
+  id: string;
+  name: string;
+  type: GoalType;
+  targetAmount: number; // cents
+  currentAmount: number; // cents - calculated/cached
+  targetDate?: Date; // Optional deadline
+
+  // Projection settings
+  monthlyContribution?: number; // cents - expected monthly savings
+  expectedReturnRate?: number; // Annual return rate (e.g., 0.07 for 7%)
+
+  // For retirement goals
+  retirementAge?: number;
+  preservationAge?: number; // Default 60 (Australia)
+  includeSuperannuation?: boolean;
+
+  // Tracking - link to specific accounts/holdings
+  linkedAccountIds?: string[];
+  linkedHoldingIds?: string[];
+
+  // Metadata
+  status: GoalStatus;
+  notes?: string;
+  color?: string;
+  icon?: string;
+  createdAt: Date;
+}
+
+export interface GoalProgress {
+  goal: Goal;
+  currentAmount: number; // cents
+  progressPercent: number; // 0-100+
+  remainingAmount: number; // cents
+  projectedCompletionDate?: Date;
+  monthsToTarget?: number;
+  onTrack: boolean;
+}
+
+// Portfolio history for tracking portfolio value over time
+export interface PortfolioSnapshot {
+  id: string;
+  date: Date; // Date only (one per day)
+  totalValue: number; // cents
+  totalCostBasis: number; // cents
+  totalGainLoss: number; // cents
+  holdingsSnapshot: HoldingSnapshot[]; // Individual holding values
+  createdAt: Date;
+}
+
+// Individual holding value at snapshot time
+export interface HoldingSnapshot {
+  holdingId: string;
+  symbol: string;
+  type: HoldingType;
+  units: number;
+  value: number; // cents
+  costBasis: number; // cents
+}
+
+// ============ Property Portfolio Types ============
+
+// Australian states for stamp duty calculation
+export type AustralianState =
+  | "NSW"
+  | "VIC"
+  | "QLD"
+  | "SA"
+  | "WA"
+  | "TAS"
+  | "NT"
+  | "ACT";
+
+// Property type classification
+export type PropertyType =
+  | "house"
+  | "apartment"
+  | "townhouse"
+  | "unit"
+  | "land"
+  | "commercial"
+  | "industrial";
+
+// Property purpose
+export type PropertyPurpose = "investment" | "owner-occupied" | "holiday";
+
+// Property status
+export type PropertyStatus = "active" | "sold" | "archived";
+
+// Loan type
+export type LoanType =
+  | "interest-only"
+  | "principal-interest"
+  | "fixed"
+  | "variable"
+  | "split";
+
+// Expense frequency for normalization
+export type ExpenseFrequency = "weekly" | "monthly" | "quarterly" | "annually";
+
+// Property expense categories
+export type PropertyExpenseCategory =
+  | "council-rates"
+  | "strata-fees"
+  | "water-rates"
+  | "building-insurance"
+  | "landlord-insurance"
+  | "property-management"
+  | "leasing-fee"
+  | "advertising"
+  | "repairs-maintenance"
+  | "cleaning"
+  | "gardening"
+  | "pest-control"
+  | "pool-maintenance"
+  | "interest-payments"
+  | "bank-charges"
+  | "depreciation"
+  | "capital-works"
+  | "other";
+
+// Property entity
+export interface Property extends Versionable {
+  id: string;
+
+  // Basic Details
+  address: string;
+  suburb: string;
+  state: AustralianState;
+  postcode: string;
+  propertyType: PropertyType;
+  purpose: PropertyPurpose;
+  status: PropertyStatus;
+
+  // Purchase Details (all in cents)
+  purchasePrice: number;
+  purchaseDate: Date;
+  valuationAmount: number;
+  valuationDate?: Date;
+
+  // Purchase Costs (all in cents)
+  stampDuty: number;
+  legalFees: number;
+  buildingInspection?: number;
+  pestInspection?: number;
+  conveyancingFees?: number;
+  mortgageRegistration?: number;
+  titleSearch?: number;
+  adjustments?: number; // Council rates/strata settled at purchase
+  otherPurchaseCosts?: number;
+
+  // Renovation/Improvement
+  renovationCost?: number;
+  renovationDate?: Date;
+  renovationDescription?: string;
+
+  // Land & Building Split (for depreciation)
+  landValue?: number;
+  buildingValue?: number;
+  buildingAge?: number; // Years at purchase for depreciation calc
+  constructionDate?: Date;
+
+  // Insurance
+  buildingInsuranceAnnual?: number;
+  landlordInsuranceAnnual?: number;
+  insurerName?: string;
+  insurancePolicyNumber?: string;
+  insuranceRenewalDate?: Date;
+
+  // Property Manager
+  hasPropertyManager: boolean;
+  propertyManagerName?: string;
+  propertyManagerCompany?: string;
+  propertyManagerEmail?: string;
+  propertyManagerPhone?: string;
+  managementFeePercent?: number; // e.g., 7.5 for 7.5%
+
+  // Key Dates
+  settlementDate?: Date;
+  lastTermiteInspection?: Date;
+  nextTermiteInspection?: Date;
+  lastLeaseInspection?: Date;
+  airconLastServiced?: Date;
+
+  // Notes and metadata
+  notes?: string;
+  memberId?: string; // Family member ownership
+
+  createdAt: Date;
+}
+
+// Property Loan
+export interface PropertyLoan extends Versionable {
+  id: string;
+  propertyId: string;
+
+  // Loan Details
+  lender: string;
+  accountNumber?: string;
+  loanName?: string; // "Home Loan 1", "Investment Loan"
+
+  // Amounts (all in cents)
+  originalLoanAmount: number;
+  currentBalance: number;
+  lmiAmount?: number; // Lenders Mortgage Insurance
+  redrawAvailable?: number;
+
+  // Interest & Terms
+  interestRate: number; // e.g., 5.75 for 5.75%
+  loanType: LoanType;
+  interestOnlyPeriodMonths?: number;
+  principalInterestPeriodMonths?: number;
+  loanTermMonths: number;
+  fixedRateExpiryDate?: Date;
+
+  // Offset Account
+  hasOffsetAccount: boolean;
+  offsetAccountId?: string; // Link to bank account if tracking separately
+  offsetBalance?: number;
+
+  // Repayment
+  repaymentAmount?: number; // Regular repayment in cents
+  repaymentFrequency?: ExpenseFrequency;
+  repaymentDay?: number; // Day of month (1-31)
+
+  // Dates
+  startDate: Date;
+  maturityDate?: Date;
+
+  createdAt: Date;
+}
+
+// Property Expense (recurring or one-off)
+export interface PropertyExpense extends Versionable {
+  id: string;
+  propertyId: string;
+
+  category: PropertyExpenseCategory;
+  description: string;
+  amount: number; // cents
+  frequency: ExpenseFrequency;
+
+  // For tracking actuals vs estimates
+  isEstimate: boolean;
+
+  // For one-off expenses
+  isRecurring: boolean;
+  expenseDate?: Date;
+
+  // Tax deductibility
+  isDeductible: boolean;
+  gstAmount?: number; // cents
+  atoCategory?: string; // D1-D10 for tax
+
+  financialYear?: string; // "2024-25"
+
+  createdAt: Date;
+}
+
+// Property Rental (tenant/lease)
+export interface PropertyRental extends Versionable {
+  id: string;
+  propertyId: string;
+
+  // Tenant Details
+  tenantName?: string;
+  tenantEmail?: string;
+  tenantPhone?: string;
+  numberOfTenants?: number;
+
+  // Lease Details
+  leaseStartDate: Date;
+  leaseEndDate: Date;
+  leaseType?: "fixed" | "periodic";
+
+  // Rental Income (cents)
+  weeklyRent: number;
+  bondAmount?: number;
+  bondLodgedWith?: string; // e.g., "NSW Fair Trading"
+  bondReceiptNumber?: string;
+
+  // Rent Reviews
+  lastRentReviewDate?: Date;
+  nextRentReviewDate?: Date;
+  rentIncreasePercent?: number;
+
+  // Vacancy allowance (percentage, e.g., 2 for 2%)
+  vacancyAllowancePercent?: number;
+
+  // Payment tracking
+  rentPaidToDate?: Date;
+  isCurrentlyOccupied: boolean;
+
+  notes?: string;
+
+  createdAt: Date;
+}
+
+// Property Depreciation (manual entry from QS report)
+export interface PropertyDepreciation extends Versionable {
+  id: string;
+  propertyId: string;
+  financialYear: string; // "2024-25"
+
+  // Division 40 (Plant & Equipment)
+  division40Amount: number; // cents
+  division40Items?: DepreciationItem[];
+
+  // Division 43 (Building/Capital Works)
+  division43Amount: number; // cents
+  division43Rate?: number; // 2.5% or 4%
+
+  totalDepreciation: number;
+
+  // Source
+  hasQuantitySurveyorReport: boolean;
+  surveyorReportDate?: Date;
+  surveyorCompany?: string;
+  surveyorReportCost?: number; // cents
+
+  notes?: string;
+
+  createdAt: Date;
+}
+
+// Individual depreciation item from QS report
+export interface DepreciationItem {
+  name: string;
+  originalValue: number; // cents
+  effectiveLife: number; // years
+  writeOffThisYear: number; // cents
+  remainingValue: number; // cents
+}
+
+// Property Model (for scenario analysis)
+export interface PropertyModel extends Versionable {
+  id: string;
+  propertyId?: string; // Optional - can be standalone model for pre-purchase
+  name: string;
+
+  // Input Assumptions
+  assumptions: PropertyAssumptions;
+
+  // Calculated Results (cached)
+  calculatedResults?: PropertyCalculatedResults;
+  lastCalculatedAt?: Date;
+
+  isActive: boolean;
+  createdAt: Date;
+}
+
+// Property Model Assumptions (inputs)
+export interface PropertyAssumptions {
+  // Property Details
+  address?: string;
+  state: AustralianState;
+  propertyType: PropertyType;
+
+  // Purchase Inputs (cents)
+  purchasePrice: number;
+  valuationAmount?: number;
+
+  // Deposit & Finance
+  depositPercent: number; // e.g., 20 for 20%
+  isFirstHomeBuyer: boolean;
+
+  // Loan Inputs
+  interestRate: number; // e.g., 5.75
+  loanType: LoanType;
+  interestOnlyPeriodYears: number;
+  principalInterestPeriodYears: number;
+  loanTermYears: number;
+
+  // Purchase Costs (optional overrides, cents)
+  stampDutyOverride?: number;
+  legalFees?: number;
+  buildingInspection?: number;
+  pestInspection?: number;
+  otherPurchaseCosts?: number;
+
+  // Income Inputs (cents)
+  weeklyRentLow: number;
+  weeklyRentHigh: number;
+  vacancyPercent: number; // e.g., 2
+
+  // Expense Inputs (annual amounts in cents, or percentages)
+  propertyManagementPercent: number; // e.g., 9 (inc GST)
+  councilRatesAnnual: number;
+  waterRatesAnnual: number;
+  strataFeesAnnual?: number;
+  buildingInsuranceAnnual: number;
+  landlordInsuranceAnnual: number;
+  maintenanceAnnual?: number;
+  poolMaintenanceAnnual?: number;
+  bankFeesAnnual?: number;
+
+  // Tax Inputs
+  marginalTaxRate: number; // e.g., 37
+
+  // Depreciation (annual estimate, cents)
+  estimatedDepreciationYear1?: number;
+
+  // Growth Assumptions (optional projections)
+  capitalGrowthPercent?: number; // e.g., 5 for 5% annual
+  rentGrowthPercent?: number; // e.g., 3 for 3% annual
+}
+
+// Property Model Calculated Results (outputs)
+export interface PropertyCalculatedResults {
+  // Capital Required (cents)
+  depositAmount: number;
+  stampDuty: number;
+  legalFees: number;
+  lmiAmount: number;
+  otherCosts: number;
+  totalCapitalRequired: number;
+
+  // Loan Details (cents)
+  loanAmountPreLMI: number;
+  loanAmountPostLMI: number;
+  lvr: number; // Loan-to-Value Ratio percentage
+
+  // Interest Payments (cents)
+  monthlyInterestPayment: number;
+  annualInterestPayment: number;
+
+  // Annual Expenses Breakdown (cents)
+  totalAnnualExpenses: number;
+  expensesBreakdown: Record<string, number>;
+
+  // Yield Analysis (percentages)
+  grossYieldLow: number;
+  grossYieldHigh: number;
+  netYieldLow: number;
+  netYieldHigh: number;
+  cashOnCashReturnLow: number;
+  cashOnCashReturnHigh: number;
+
+  // Annual Income (cents)
+  annualRentalIncomeLow: number;
+  annualRentalIncomeHigh: number;
+  annualRentalIncomeAfterVacancyLow: number;
+  annualRentalIncomeAfterVacancyHigh: number;
+
+  // Cashflow Before Tax (cents)
+  cashflowBeforeTaxWeeklyLow: number;
+  cashflowBeforeTaxWeeklyHigh: number;
+  cashflowBeforeTaxMonthlyLow: number;
+  cashflowBeforeTaxMonthlyHigh: number;
+  cashflowBeforeTaxAnnuallyLow: number;
+  cashflowBeforeTaxAnnuallyHigh: number;
+
+  // Tax Impact (cents)
+  estimatedDepreciation: number;
+  taxableIncomeLow: number;
+  taxableIncomeHigh: number;
+  estimatedTaxBenefitLow: number; // Negative gearing benefit
+  estimatedTaxBenefitHigh: number;
+
+  // Cashflow After Tax (cents)
+  cashflowAfterTaxWeeklyLow: number;
+  cashflowAfterTaxWeeklyHigh: number;
+  cashflowAfterTaxMonthlyLow: number;
+  cashflowAfterTaxMonthlyHigh: number;
+  cashflowAfterTaxAnnuallyLow: number;
+  cashflowAfterTaxAnnuallyHigh: number;
+}
+
+// Stamp Duty Calculation Result
+export interface StampDutyResult {
+  stampDuty: number; // cents
+  transferFee: number; // cents
+  mortgageRegistration: number; // cents
+  totalGovernmentCharges: number; // cents
+  isFirstHomeBuyerExempt: boolean;
+  concessionApplied: number; // cents saved
+  foreignBuyerSurcharge?: number; // cents
+}
+
+// LMI Calculation Result
+export interface LMIResult {
+  lmiAmount: number; // cents
+  lvr: number; // percentage
+  requiresLMI: boolean;
+  lmiRate: number; // percentage rate applied
+}
+
+// ============ Yield Calculator Types ============
+
+export interface YieldCalculatorInputs {
+  purchasePrice: number; // cents
+  weeklyRent: number; // cents
+  annualExpenses?: number; // cents (optional for net yield)
+}
+
+export interface YieldCalculatorResults {
+  grossYield: number; // percentage (e.g., 5.2)
+  netYield: number; // percentage
+  annualRent: number; // cents
+  annualExpenses: number; // cents
+  netOperatingIncome: number; // cents
+  assessment: {
+    category: "excellent" | "good" | "fair" | "poor";
+    description: string;
+  };
+}
+
+export interface RentScenario {
+  weeklyRent: number; // cents
+  annualRent: number; // cents
+  grossYield: number; // percentage
+  netYield: number; // percentage
+  assessment: "excellent" | "good" | "fair" | "poor";
+}
+
+// ============ Affordability Calculator Types ============
+
+export type LivingExpensesType = "declared" | "hem";
+
+export type DebtType =
+  | "credit-card"
+  | "personal-loan"
+  | "car-loan"
+  | "hecs-help"
+  | "other-mortgage"
+  | "other";
+
+export type AffordabilityStatus = "green" | "amber" | "red";
+
+export interface BorrowerProfile {
+  grossAnnualIncome: number; // cents
+  partnerGrossIncome?: number; // cents (optional)
+  numberOfDependents: number;
+  livingExpensesType: LivingExpensesType;
+  declaredLivingExpenses?: number; // cents - annual, if declared
+}
+
+export interface ExistingDebt {
+  id: string;
+  type: DebtType;
+  description?: string;
+  creditLimit?: number; // cents - for credit cards
+  currentBalance: number; // cents
+  monthlyRepayment?: number; // cents - for loans (not credit cards)
+  interestRate?: number; // percentage (optional)
+}
+
+export interface AffordabilityInputs {
+  borrower: BorrowerProfile;
+  existingDebts: ExistingDebt[];
+
+  // Property-specific (optional for "how much can I borrow" mode)
+  purchasePrice?: number; // cents
+  depositAmount?: number; // cents
+  depositPercent?: number; // percentage
+
+  // Loan assumptions
+  interestRate: number; // percentage (e.g., 6.5)
+  apraBuffer: number; // percentage - typically 3%
+  loanTermYears: number; // typically 30
+  isInterestOnly: boolean;
+
+  // Optional rental income for investment properties
+  expectedWeeklyRent?: number; // cents
+}
+
+export interface AffordabilityResults {
+  // Borrowing capacity
+  maxBorrowingAmount: number; // cents
+  assessmentRate: number; // percentage (interest rate + APRA buffer)
+
+  // Serviceability ratios
+  debtServiceRatio: number; // percentage - all debts / gross income
+  loanServiceRatio: number; // percentage - housing debt / gross income
+  dsrStatus: AffordabilityStatus;
+  lsrStatus: AffordabilityStatus;
+
+  // Debt-to-Income ratio (APRA limit: 20% cap on DTI > 6x from Feb 2026)
+  debtToIncomeRatio: number; // multiple (e.g., 5.2 means 5.2x income)
+  dtiStatus: AffordabilityStatus; // green < 5x, amber 5-6x, red > 6x
+  dtiWarning?: string; // Warning message if approaching APRA limit
+
+  // Monthly breakdown (cents)
+  monthlyGrossIncome: number;
+  monthlyNetIncome: number; // estimated after tax
+  monthlyLivingExpenses: number;
+  monthlyExistingDebtPayments: number;
+  availableForHousing: number;
+  proposedRepayment: number;
+  surplus: number; // can be negative
+
+  // Total debt for DTI calculation (cents)
+  totalProposedDebt: number; // proposed loan + existing debt balances
+
+  // Coverage ratio (for investment)
+  rentalCoverageRatio?: number; // rental income / interest payments
+
+  // Overall assessment
+  overallStatus: AffordabilityStatus;
+  statusDescription: string;
+}
+
+export interface StressTestScenario {
+  rateIncrease: number; // percentage (e.g., 1, 2, 3)
+  newRate: number; // percentage
+  newRepayment: number; // cents
+  monthlyCashflow: number; // cents (can be negative)
+  status: AffordabilityStatus;
+}
+
+export interface RiskMetrics {
+  maxVacancyBeforeNegative: number; // percentage
+  sensitivityPerPercent: number; // cents change per 1% rate increase
+  bufferMonths: number; // months of expenses covered by surplus
+  breakEvenRate: number; // interest rate where cashflow = 0
+}
+
+// HEM (Household Expenditure Measure) bracket
+export interface HEMBracket {
+  incomeMin: number; // dollars annual
+  incomeMax: number; // dollars annual
+  single: number; // monthly HEM in dollars
+  couple: number; // monthly HEM in dollars
+  perDependent: number; // additional per dependent in dollars
 }

@@ -15,7 +15,8 @@ export function calculateGSTFromInclusive(amountIncGST: number): {
 } {
   // GST = Amount × (GST Rate / (1 + GST Rate))
   // For 10%: GST = Amount × (0.1 / 1.1) = Amount × (1/11)
-  const gst = Math.round(amountIncGST - amountIncGST / (1 + GST_RATE));
+  // Using integer-friendly division: amount / 11 (since 10% GST means 1/11th is GST)
+  const gst = Math.round(amountIncGST / 11);
   const amountExGST = amountIncGST - gst;
 
   return {
@@ -60,7 +61,9 @@ export function addGST(amountExGST: number): number {
  * @returns Amount excluding GST (in cents)
  */
 export function removeGST(amountIncGST: number): number {
-  return Math.round(amountIncGST / (1 + GST_RATE));
+  // For 10% GST: exGST = incGST × (10/11) = incGST - (incGST/11)
+  const gst = Math.round(amountIncGST / 11);
+  return amountIncGST - gst;
 }
 
 /**
@@ -69,7 +72,8 @@ export function removeGST(amountIncGST: number): number {
  * @returns GST amount (in cents)
  */
 export function getGSTAmount(amountIncGST: number): number {
-  return Math.round(amountIncGST - amountIncGST / (1 + GST_RATE));
+  // For 10% GST: GST = incGST / 11
+  return Math.round(amountIncGST / 11);
 }
 
 /**
@@ -105,9 +109,9 @@ export function formatGSTBreakdown(amountIncGST: number): {
  */
 export function isLikelyGSTInclusive(amount: number): boolean {
   // Most Australian retail prices are GST-inclusive and end in .00 or .99
-  const dollars = amount / 100;
-  const cents = Math.round((dollars % 1) * 100);
-  return cents === 0 || cents === 99 || cents === 95;
+  // Use integer modulo to avoid float precision issues
+  const centsRemainder = Math.abs(amount) % 100;
+  return centsRemainder === 0 || centsRemainder === 99 || centsRemainder === 95;
 }
 
 /**

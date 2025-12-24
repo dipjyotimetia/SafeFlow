@@ -11,13 +11,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Download, Calculator, TrendingUp, TrendingDown, Receipt, Loader2, Landmark } from 'lucide-react';
+import {
+  Download,
+  Calculator,
+  TrendingUp,
+  TrendingDown,
+  Receipt,
+  Loader2,
+  Landmark,
+  Banknote,
+} from 'lucide-react';
 import { getCurrentFinancialYear, formatFinancialYear } from '@/lib/utils/financial-year';
 import { atoCategoryDescriptions } from '@/lib/db/seeds/categories.seed';
 import {
   useDeductionsSummary,
   useCapitalGains,
   useIncomeSummary,
+  useFrankingSummary,
   useAvailableFinancialYears,
   useContributionSummary,
 } from '@/hooks';
@@ -32,9 +42,11 @@ export default function TaxPage() {
   const { summary: deductionsSummary, isLoading: deductionsLoading } = useDeductionsSummary(selectedFY);
   const { data: capitalGainsData, isLoading: cgtLoading } = useCapitalGains(selectedFY);
   const { summary: incomeSummary, isLoading: incomeLoading } = useIncomeSummary(selectedFY);
+  const { summary: frankingSummary, isLoading: frankingLoading } = useFrankingSummary(selectedFY);
   const { summary: contributionSummary, isLoading: superLoading } = useContributionSummary(selectedFY);
 
-  const isLoading = yearsLoading || deductionsLoading || cgtLoading || incomeLoading || superLoading;
+  const isLoading =
+    yearsLoading || deductionsLoading || cgtLoading || incomeLoading || frankingLoading || superLoading;
 
   // Create a map of ATO category amounts
   const categoryAmounts = new Map<string, number>();
@@ -49,7 +61,14 @@ export default function TaxPage() {
       income: {
         total: incomeSummary.totalIncome,
         dividends: incomeSummary.totalDividends,
+        grossedUpDividends: incomeSummary.totalGrossedUpDividends,
         combined: incomeSummary.combinedIncome,
+      },
+      frankingCredits: {
+        totalDividends: frankingSummary.totalDividends,
+        totalFrankingCredits: frankingSummary.totalFrankingCredits,
+        totalGrossedUpDividends: frankingSummary.totalGrossedUpDividends,
+        byHolding: frankingSummary.byHolding,
       },
       deductions: {
         total: deductionsSummary.totalDeductions,
@@ -130,7 +149,7 @@ export default function TaxPage() {
                   <CardTitle className="text-sm font-medium">Total Income</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-success">
                     {formatAUD(incomeSummary.combinedIncome)}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -173,7 +192,7 @@ export default function TaxPage() {
                   <div
                     className={cn(
                       'text-2xl font-bold',
-                      capitalGainsData.netCapitalGain >= 0 ? 'text-amber-600' : 'text-green-600'
+                      capitalGainsData.netCapitalGain >= 0 ? 'text-warning' : 'text-success'
                     )}
                   >
                     {formatAUD(Math.abs(capitalGainsData.netCapitalGain))}
@@ -203,19 +222,19 @@ export default function TaxPage() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Short-term gains (&lt;12 months)</span>
-                        <span className="font-medium text-amber-600">
+                        <span className="font-medium text-warning">
                           {formatAUD(capitalGainsData.shortTermGains)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Long-term gains (12+ months)</span>
-                        <span className="font-medium text-amber-600">
+                        <span className="font-medium text-warning">
                           {formatAUD(capitalGainsData.longTermGains)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center border-t pt-2">
                         <span className="text-sm text-muted-foreground">50% CGT discount applied</span>
-                        <span className="font-medium text-green-600">
+                        <span className="font-medium text-success">
                           -{formatAUD(capitalGainsData.longTermGains - capitalGainsData.discountedLongTermGains)}
                         </span>
                       </div>
@@ -223,13 +242,13 @@ export default function TaxPage() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Total gains</span>
-                        <span className="font-medium text-amber-600">
+                        <span className="font-medium text-warning">
                           {formatAUD(capitalGainsData.totalGains)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Total losses</span>
-                        <span className="font-medium text-green-600">
+                        <span className="font-medium text-success">
                           -{formatAUD(capitalGainsData.totalLosses)}
                         </span>
                       </div>
@@ -238,13 +257,101 @@ export default function TaxPage() {
                         <span
                           className={cn(
                             'font-bold',
-                            capitalGainsData.netCapitalGain >= 0 ? 'text-amber-600' : 'text-green-600'
+                            capitalGainsData.netCapitalGain >= 0 ? 'text-warning' : 'text-success'
                           )}
                         >
                           {formatAUD(capitalGainsData.netCapitalGain)}
                         </span>
                       </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Franking Credits Section */}
+            {frankingSummary.totalFrankingCredits > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Banknote className="h-5 w-5" />
+                    Franking Credits (Dividend Imputation)
+                  </CardTitle>
+                  <CardDescription>
+                    Tax offset from franked dividends - reduces your tax payable
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Summary */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Cash dividends received</span>
+                        <span className="font-medium">{formatAUD(frankingSummary.totalDividends)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Franking credits</span>
+                        <span className="font-medium text-success">
+                          +{formatAUD(frankingSummary.totalFrankingCredits)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center border-t pt-2">
+                        <span className="text-sm font-medium">Grossed-up dividend income</span>
+                        <span className="font-bold">{formatAUD(frankingSummary.totalGrossedUpDividends)}</span>
+                      </div>
+                    </div>
+
+                    {/* Tax Offset */}
+                    <div className="space-y-4">
+                      <div className="p-4 bg-success/10 rounded-lg border border-success/20">
+                        <p className="text-sm font-medium text-success">
+                          Tax Offset Available
+                        </p>
+                        <p className="text-2xl font-bold text-success">
+                          {formatAUD(frankingSummary.totalFrankingCredits)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Reduces your tax payable dollar-for-dollar
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Holdings Breakdown */}
+                  {frankingSummary.byHolding.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-sm font-medium mb-3">By Holding</h4>
+                      <div className="space-y-2">
+                        {frankingSummary.byHolding.map((h) => (
+                          <div
+                            key={h.holdingId}
+                            className="flex items-center justify-between text-sm p-2 rounded-lg bg-muted/30"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium">{h.symbol}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {h.transactionCount} {h.transactionCount === 1 ? 'dividend' : 'dividends'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className="text-muted-foreground">{formatAUD(h.dividends)}</span>
+                              <span className="text-success font-medium">
+                                +{formatAUD(h.frankingCredits)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tax Tip */}
+                  <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                    <p className="text-sm">
+                      <span className="font-medium">ATO Note:</span> Report the grossed-up dividend amount
+                      ({formatAUD(frankingSummary.totalGrossedUpDividends)}) as assessable income. The franking
+                      credit ({formatAUD(frankingSummary.totalFrankingCredits)}) is claimed as a tax offset.
+                    </p>
                   </div>
                 </CardContent>
               </Card>

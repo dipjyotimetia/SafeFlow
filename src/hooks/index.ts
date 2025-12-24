@@ -24,7 +24,9 @@ export {
   useHoldings,
   useHoldingsByType,
   useInvestmentTransactions,
+  useMultiplePriceHistory,
   usePortfolioSummary,
+  usePriceHistory,
 } from "./use-holdings";
 
 export {
@@ -32,6 +34,7 @@ export {
   useCapitalGains,
   useDeductibleTransactions,
   useDeductionsSummary,
+  useFrankingSummary,
   useIncomeSummary,
 } from "./use-tax";
 
@@ -56,3 +59,49 @@ export {
   useFamilyMembers,
   useFamilySpending,
 } from "./use-family";
+
+export {
+  useAllGoalProgress,
+  useGoal,
+  useGoalProgress,
+  useGoals,
+} from "./use-goals";
+
+export {
+  useCompoundInterest,
+  useFinancialSummary,
+  useNetWorthProjection,
+  useRetirementProjection,
+} from "./use-projections";
+
+export {
+  usePortfolioHistory,
+  usePortfolioPerformance,
+  useLatestSnapshot,
+  useHasPortfolioHistory,
+  usePortfolioSnapshots,
+  getTimeRangeDays,
+} from "./use-portfolio";
+export type { TimeRange } from "./use-portfolio";
+
+export {
+  useProperties,
+  useProperty,
+  usePropertyWithRelated,
+  usePropertyPortfolioSummary,
+  usePropertyLoans,
+  useLoanSummary,
+  usePropertyExpenses,
+  usePropertyExpensesByFY,
+  usePropertyExpenseSummary,
+  usePropertyRentals,
+  useCurrentRental,
+  useRentalIncomeSummary,
+  usePropertyDepreciation,
+  useDepreciationByFY,
+  useDepreciationSummary,
+  usePropertyModels,
+  usePropertyModel,
+  useStandaloneModels,
+  usePropertyTaxSummary,
+} from "./use-property";

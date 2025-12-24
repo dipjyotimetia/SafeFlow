@@ -113,7 +113,7 @@ export function BudgetOverview() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${totalRemaining < 0 ? 'text-red-600' : ''}`}>
+            <div className={`text-2xl font-bold ${totalRemaining < 0 ? 'text-destructive' : ''}`}>
               {formatCurrency(totalRemaining)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -128,7 +128,7 @@ export function BudgetOverview() {
             <TrendingDown className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${overBudgetCount > 0 ? 'text-red-600' : ''}`}>
+            <div className={`text-2xl font-bold ${overBudgetCount > 0 ? 'text-destructive' : ''}`}>
               {overBudgetCount}
             </div>
             <p className="text-xs text-muted-foreground">
