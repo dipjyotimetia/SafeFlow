@@ -1,4 +1,4 @@
-import type { InvestmentTransaction, Transaction } from "@/types";
+import type { InvestmentTransaction, Transaction } from "../../../types";
 import { describe, expect, it } from "vitest";
 import { FinancialYear } from "../../value-objects/financial-year";
 import {
@@ -170,6 +170,7 @@ describe("Tax Service", () => {
         description: "Work laptop",
         date: new Date("2024-09-15"),
         isDeductible: true,
+        isReconciled: false,
         atoCategory: "D5",
         gstAmount: 4545,
         createdAt: new Date(),
@@ -183,6 +184,7 @@ describe("Tax Service", () => {
         description: "Tax agent fee",
         date: new Date("2024-10-20"),
         isDeductible: true,
+        isReconciled: false,
         atoCategory: "D10",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -195,6 +197,7 @@ describe("Tax Service", () => {
         description: "Personal expense",
         date: new Date("2024-11-01"),
         isDeductible: false,
+        isReconciled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -206,6 +209,7 @@ describe("Tax Service", () => {
         description: "Salary",
         date: new Date("2024-11-01"),
         isDeductible: true, // Even if marked deductible, income is ignored
+        isReconciled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -368,6 +372,7 @@ describe("Tax Service", () => {
         amount: 100000,
         description: "July income",
         date: new Date("2024-07-15"), // In FY
+        isReconciled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -378,6 +383,7 @@ describe("Tax Service", () => {
         amount: 50000,
         description: "March expense",
         date: new Date("2025-03-20"), // In FY
+        isReconciled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -388,6 +394,7 @@ describe("Tax Service", () => {
         amount: 30000,
         description: "Before FY",
         date: new Date("2024-06-30"), // Before FY
+        isReconciled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -398,6 +405,7 @@ describe("Tax Service", () => {
         amount: 80000,
         description: "After FY",
         date: new Date("2025-07-01"), // After FY
+        isReconciled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -465,6 +473,7 @@ describe("Tax Service", () => {
         description: "Salary",
         date: new Date("2024-08-15"),
         atoCategory: "salary",
+        isReconciled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -475,6 +484,7 @@ describe("Tax Service", () => {
         amount: 500000, // $5,000 other
         description: "Side gig",
         date: new Date("2024-09-15"),
+        isReconciled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
