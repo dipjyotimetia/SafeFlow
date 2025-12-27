@@ -1,4 +1,8 @@
+<div align="center">
+
 # SafeFlow
+
+### Your Financial Data. Your Device. Your Control.
 
 [![GitHub Pages](https://github.com/dipjyotimetia/SafeFlow/actions/workflows/nextjs.yml/badge.svg)](https://github.com/dipjyotimetia/SafeFlow/actions/workflows/nextjs.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -7,209 +11,273 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-**Privacy-first personal finance management for Australians**
+**Privacy-first personal finance management built for Australians**
 
-[Live Demo](https://dipjyotimetia.github.io/SafeFlow) | [Documentation](#architecture) | [Contributing](CONTRIBUTING.md) | [Report Bug](https://github.com/dipjyotimetia/SafeFlow/issues/new?template=bug_report.md) | [Request Feature](https://github.com/dipjyotimetia/SafeFlow/issues/new?template=feature_request.md)
+[**Live Demo**](https://dipjyotimetia.github.io/SafeFlow) · [**Get Started**](#-quick-start) · [**Documentation**](#-architecture) · [**Contributing**](CONTRIBUTING.md)
 
-SafeFlow is an open-source personal finance application built with Next.js, designed specifically for Australian users. All your financial data stays on your device with optional encrypted cloud sync.
+<br />
 
-<p align="center">
-  <img src="public/screenshot-dashboard.png" alt="SafeFlow Dashboard" width="800">
-</p>
+<img src="public/screenshot-dashboard.png" alt="SafeFlow Dashboard" width="800">
 
-## Table of Contents
+</div>
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Architecture](#architecture)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [Security](#security)
-- [License](#license)
-- [Community](#community)
-- [Roadmap](#roadmap)
+<br />
+
+## Why SafeFlow?
+
+> Most finance apps store your data on their servers. SafeFlow doesn't.
+
+| Traditional Apps | SafeFlow |
+|-----------------|----------|
+| Data stored on company servers | Data stays on YOUR device |
+| Requires account creation | Works offline, no login needed |
+| Sells/uses your financial data | Zero telemetry, zero tracking |
+| Subscription fees | Free and open source |
+| Generic categories | Built for Australian tax system |
+
+<br />
+
+## Highlights
+
+<table>
+<tr>
+<td width="50%">
+
+### Offline-First Architecture
+All data stored locally in IndexedDB. No internet? No problem. Your finance app works anywhere.
+
+</td>
+<td width="50%">
+
+### End-to-End Encryption
+Optional cloud backup with AES-GCM encryption. Your password never leaves your device.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### Australian Tax Ready
+Built-in ATO tax brackets, Medicare levy, CGT calculations, franking credits, and FY handling.
+
+</td>
+<td width="50%">
+
+### Smart PDF Parsing
+Drop your bank statement, we extract the transactions. Supports ANZ, CBA, NAB, Westpac, and more.
+
+</td>
+</tr>
+</table>
+
+<br />
 
 ## Features
 
-### Core Finance Management
-- **Multi-account tracking** - Bank accounts, credit cards, investments, crypto, and assets
-- **Transaction management** - Import, categorize, and analyze your spending
-- **Budget tracking** - Set and monitor budgets by category with alerts
-- **Family finances** - Multi-member household financial tracking
+<details open>
+<summary><strong>Core Finance Management</strong></summary>
 
-### Investment Portfolio
-- **Holdings tracker** - Stocks, ETFs, crypto, and managed funds
-- **Portfolio analytics** - Performance charts, allocation breakdown, and dividend tracking
-- **CGT calculations** - Capital gains tax with FIFO/LIFO/Specific ID cost basis methods
-- **Franking credits** - Australian dividend imputation credit tracking
+- **Multi-account tracking** — Bank accounts, credit cards, investments, crypto, and assets
+- **Transaction management** — Import, categorize, and analyze your spending
+- **Budget tracking** — Set and monitor budgets by category with alerts
+- **Family finances** — Multi-member household financial tracking
 
-### Australian Tax
-- **Tax brackets** - Current ATO tax rates and Medicare levy
-- **Financial year** - Proper July-June FY handling (e.g., "2024-25")
-- **ATO categories** - Pre-configured deduction categories aligned with ATO requirements
-- **Tax estimation** - Real-time tax liability calculations
+</details>
 
-### Property Investment
-- **Property portfolio** - Track multiple investment properties
-- **Loan management** - Multiple loans, offset accounts, and interest tracking
-- **Rental income** - Lease tracking and rental yield calculations
-- **Depreciation** - Div 40 and Div 43 depreciation schedules
-- **Property modeling** - Cash flow projections and scenario analysis
-- **Affordability calculator** - Purchase capacity analysis
+<details>
+<summary><strong>Investment Portfolio</strong></summary>
 
-### Superannuation
-- **Super tracking** - Monitor multiple super accounts
-- **Contribution tracking** - Concessional and non-concessional contributions
-- **Performance history** - Track super growth over time
+- **Holdings tracker** — Stocks, ETFs, crypto, and managed funds
+- **Portfolio analytics** — Performance charts, allocation breakdown, and dividend tracking
+- **CGT calculations** — Capital gains tax with FIFO/LIFO/Specific ID cost basis methods
+- **Franking credits** — Australian dividend imputation credit tracking
 
-### Import & Sync
-- **PDF statement parsing** - Automatic extraction from bank statements
-- **Supported banks** - ANZ, CBA, NAB, Westpac, ING, Bendigo, Macquarie, Up, and more
-- **Crypto imports** - CoinSpot, Swyftx, Raiz
-- **Encrypted cloud sync** - Optional Google Drive backup with AES-GCM encryption
+</details>
 
-### AI Features (Experimental)
-- **Smart categorization** - Learn from your categorization patterns
-- **AI assistant** - Query your finances using local Ollama LLM
+<details>
+<summary><strong>Australian Tax</strong></summary>
 
-## Tech Stack
+- **Tax brackets** — Current ATO tax rates and Medicare levy
+- **Financial year** — Proper July-June FY handling (e.g., "2024-25")
+- **ATO categories** — Pre-configured deduction categories aligned with ATO requirements
+- **Tax estimation** — Real-time tax liability calculations
 
-- **Framework**: [Next.js 16](https://nextjs.org) with App Router
-- **UI**: [React 19](https://react.dev), [Tailwind CSS 4](https://tailwindcss.com), [Radix UI](https://www.radix-ui.com)
-- **Database**: [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) via [Dexie](https://dexie.org)
-- **State**: [Zustand](https://zustand-demo.pmnd.rs)
-- **Forms**: [React Hook Form](https://react-hook-form.com) + [Zod](https://zod.dev)
-- **Charts**: [Recharts](https://recharts.org)
-- **Testing**: [Vitest](https://vitest.dev) + [React Testing Library](https://testing-library.com/react)
-- **PDF Parsing**: [PDF.js](https://mozilla.github.io/pdf.js)
+</details>
 
-## Getting Started
+<details>
+<summary><strong>Property Investment</strong></summary>
 
-### Prerequisites
+- **Property portfolio** — Track multiple investment properties
+- **Loan management** — Multiple loans, offset accounts, and interest tracking
+- **Rental income** — Lease tracking and rental yield calculations
+- **Depreciation** — Div 40 and Div 43 depreciation schedules
+- **Property modeling** — Cash flow projections and scenario analysis
+- **Affordability calculator** — Purchase capacity analysis
 
-- Node.js 22 or later
-- npm, yarn, or pnpm
+</details>
 
-### Installation
+<details>
+<summary><strong>Superannuation</strong></summary>
+
+- **Super tracking** — Monitor multiple super accounts
+- **Contribution tracking** — Concessional and non-concessional contributions
+- **Performance history** — Track super growth over time
+
+</details>
+
+<details>
+<summary><strong>Import & Sync</strong></summary>
+
+- **PDF statement parsing** — Automatic extraction from bank statements
+- **Supported banks** — ANZ, CBA, NAB, Westpac, ING, Bendigo, Macquarie, Up, and more
+- **Crypto imports** — CoinSpot, Swyftx, Raiz
+- **Encrypted cloud sync** — Optional Google Drive backup with AES-GCM encryption
+
+</details>
+
+<details>
+<summary><strong>AI Features (Experimental)</strong></summary>
+
+- **Smart categorization** — Learn from your categorization patterns
+- **AI assistant** — Query your finances using local Ollama LLM
+
+</details>
+
+<br />
+
+## Quick Start
 
 ```bash
-# Clone the repository
+# Clone and install
 git clone https://github.com/dipjyotimetia/SafeFlow.git
-cd SafeFlow
+cd SafeFlow && npm install
 
-# Install dependencies
-npm install
-
-# Start development server
+# Start the app
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [localhost:3000](http://localhost:3000) and you're ready to go.
 
-### Environment Variables
+<details>
+<summary><strong>Environment Variables (Optional)</strong></summary>
 
-Copy `.env.example` to `.env.local` and configure:
+Copy `.env.example` to `.env.local`:
 
 ```bash
-# Google Drive Sync (optional)
+# Google Drive Sync
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-client-id
 
-# Ollama LLM (optional, defaults to localhost:11434)
+# Ollama LLM (defaults to localhost:11434)
 NEXT_PUBLIC_OLLAMA_URL=http://localhost:11434
 ```
 
-## Available Scripts
+</details>
 
-```bash
-npm run dev          # Start development server
-npm run build        # Production build (static export)
-npm run lint         # Run ESLint
-npm run test         # Run tests in watch mode
-npm run test:run     # Run tests once
-npm run test:coverage # Run tests with coverage
-```
+<br />
+
+## Tech Stack
+
+<table>
+<tr>
+<td align="center" width="96">
+<a href="https://nextjs.org">
+<img src="https://skillicons.dev/icons?i=nextjs" width="48" height="48" alt="Next.js" />
+</a>
+<br>Next.js 16
+</td>
+<td align="center" width="96">
+<a href="https://react.dev">
+<img src="https://skillicons.dev/icons?i=react" width="48" height="48" alt="React" />
+</a>
+<br>React 19
+</td>
+<td align="center" width="96">
+<a href="https://www.typescriptlang.org">
+<img src="https://skillicons.dev/icons?i=ts" width="48" height="48" alt="TypeScript" />
+</a>
+<br>TypeScript
+</td>
+<td align="center" width="96">
+<a href="https://tailwindcss.com">
+<img src="https://skillicons.dev/icons?i=tailwind" width="48" height="48" alt="Tailwind" />
+</a>
+<br>Tailwind 4
+</td>
+<td align="center" width="96">
+<a href="https://vitest.dev">
+<img src="https://skillicons.dev/icons?i=vitest" width="48" height="48" alt="Vitest" />
+</a>
+<br>Vitest
+</td>
+</tr>
+</table>
+
+**Also using:** [Dexie](https://dexie.org) (IndexedDB) · [Zustand](https://zustand-demo.pmnd.rs) (State) · [Radix UI](https://www.radix-ui.com) · [Recharts](https://recharts.org) · [PDF.js](https://mozilla.github.io/pdf.js)
+
+<br />
 
 ## Architecture
 
-SafeFlow follows a domain-driven design with clear separation of concerns:
-
 ```
 src/
-├── app/                    # Next.js App Router pages
+├── app/                    # Next.js App Router
 │   ├── (dashboard)/        # Main application routes
 │   └── api/                # API routes (Ollama proxy)
 ├── components/             # React components
 │   ├── ui/                 # shadcn/ui base components
 │   └── [feature]/          # Feature-specific components
-├── domain/                 # Business logic (framework-agnostic)
-│   ├── services/           # Domain services (tax, investment, etc.)
-│   └── value-objects/      # Money, FinancialYear, etc.
+├── domain/                 # Business logic (DDD)
+│   ├── services/           # Tax, investment, account services
+│   └── value-objects/      # Money, FinancialYear
 ├── hooks/                  # React hooks (data fetching)
 ├── lib/                    # Infrastructure
-│   ├── db/                 # Dexie schema and repositories
+│   ├── db/                 # Dexie schema & repositories
 │   ├── parsers/            # PDF statement parsers
 │   └── sync/               # Google Drive sync
 ├── stores/                 # Zustand state stores
-├── types/                  # TypeScript types
 └── workers/                # Web workers (PDF processing)
 ```
 
-### Key Design Decisions
+<details>
+<summary><strong>Design Principles</strong></summary>
 
-- **Offline-first**: All data stored locally in IndexedDB. Works without internet.
-- **Privacy by default**: No telemetry, no analytics, no data collection.
-- **Cents not dollars**: All monetary values stored as integers (cents) to avoid floating-point errors.
-- **Incremental sync**: Only changed records are synced, with version tracking.
-- **Australian focus**: Financial year, tax brackets, and ATO categories are Australia-specific.
+| Principle | Implementation |
+|-----------|---------------|
+| **Offline-first** | All data in IndexedDB. Works without internet. |
+| **Privacy by default** | Zero telemetry. Zero analytics. Zero tracking. |
+| **Cents not dollars** | Monetary values as integers to avoid floating-point errors. |
+| **Incremental sync** | Only changed records sync, with version tracking. |
+| **Australian focus** | FY, tax brackets, ATO categories built-in. |
+
+</details>
+
+<br />
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build (static export) |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run tests in watch mode |
+| `npm run test:run` | Run tests once |
+| `npm run test:coverage` | Run tests with coverage |
+
+<br />
 
 ## Deployment
 
-SafeFlow is configured for static export and deploys to GitHub Pages automatically on push to `main`.
+SafeFlow exports as static files and deploys to GitHub Pages on every push to `main`.
 
-For self-hosting, build and serve the static files:
+**Self-hosting:**
 
 ```bash
 npm run build
 # Serve the 'out' directory with any static file server
 ```
 
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Quick Start for Contributors
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests (`npm run test:run`)
-5. Run linting (`npm run lint`)
-6. Commit your changes
-7. Push to your fork
-8. Open a Pull Request
-
-## Security
-
-Security is critical for a personal finance application. Please see [SECURITY.md](SECURITY.md) for:
-
-- Security model and design
-- How to report vulnerabilities
-- Data protection measures
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Community
-
-We welcome contributions from everyone! Here's how you can get involved:
-
-- **Report Bugs**: [Open an issue](https://github.com/dipjyotimetia/SafeFlow/issues/new?template=bug_report.md)
-- **Request Features**: [Submit a feature request](https://github.com/dipjyotimetia/SafeFlow/issues/new?template=feature_request.md)
-- **Contribute Code**: Read our [Contributing Guide](CONTRIBUTING.md)
-- **Discussions**: [Join the conversation](https://github.com/dipjyotimetia/SafeFlow/discussions)
-- **Code of Conduct**: Please read our [Code of Conduct](CODE_OF_CONDUCT.md)
+<br />
 
 ## Roadmap
 
@@ -217,31 +285,53 @@ We welcome contributions from everyone! Here's how you can get involved:
 - [ ] CSV import for generic transactions
 - [ ] Recurring transaction detection
 - [ ] Budget forecasting
-- [ ] Self-hosted sync backend option
-- [ ] Mobile-responsive design improvements
-- [ ] Data export to multiple formats (CSV, JSON, Excel)
+- [ ] Self-hosted sync backend
+- [ ] Mobile-responsive improvements
+- [ ] Multi-format export (CSV, JSON, Excel)
 - [ ] Multi-currency support
 
-See the [open issues](https://github.com/dipjyotimetia/SafeFlow/issues) for a full list of proposed features and known issues.
+See [open issues](https://github.com/dipjyotimetia/SafeFlow/issues) for the full list.
+
+<br />
+
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+```bash
+# Quick start
+git checkout -b feature/amazing-feature
+# Make changes, then:
+npm run test:run && npm run lint
+git commit -m "Add amazing feature"
+git push origin feature/amazing-feature
+# Open a Pull Request
+```
+
+<br />
+
+## Community
+
+- [Report a Bug](https://github.com/dipjyotimetia/SafeFlow/issues/new?template=bug_report.md)
+- [Request a Feature](https://github.com/dipjyotimetia/SafeFlow/issues/new?template=feature_request.md)
+- [Join Discussions](https://github.com/dipjyotimetia/SafeFlow/discussions)
+- [Security Policy](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+
+<br />
 
 ## Acknowledgments
 
-- [shadcn/ui](https://ui.shadcn.com) for the beautiful component library
-- [Dexie.js](https://dexie.org) for the excellent IndexedDB wrapper
-- [PDF.js](https://mozilla.github.io/pdf.js) for reliable PDF parsing
-- All [contributors](https://github.com/dipjyotimetia/SafeFlow/graphs/contributors) who help improve SafeFlow
+Built with [shadcn/ui](https://ui.shadcn.com), [Dexie.js](https://dexie.org), [PDF.js](https://mozilla.github.io/pdf.js), and the support of all [contributors](https://github.com/dipjyotimetia/SafeFlow/graphs/contributors).
 
-## Support
-
-If you find SafeFlow useful, please consider:
-
-- Giving it a star on GitHub
-- Sharing it with others who might benefit
-- Contributing to the project
+<br />
 
 ---
 
-**Disclaimer**: SafeFlow is not financial advice software. Always consult a qualified financial advisor for financial decisions. Tax calculations are estimates and should be verified with the ATO or a registered tax agent.
+<div align="center">
 
----
+**[Live Demo](https://dipjyotimetia.github.io/SafeFlow)** · **[Get Started](#-quick-start)** · **[Star on GitHub](https://github.com/dipjyotimetia/SafeFlow)**
 
+<sub>SafeFlow is not financial advice software. Tax calculations are estimates — verify with the ATO or a registered tax agent.</sub>
+
+</div>
