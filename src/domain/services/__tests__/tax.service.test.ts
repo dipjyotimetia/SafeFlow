@@ -1,17 +1,17 @@
-import { describe, it, expect } from "vitest";
-import {
-  calculateIncomeTax,
-  getMarginalTaxRate,
-  calculateDeductions,
-  estimateTax,
-  filterTransactionsForFY,
-  filterInvestmentTransactionsForFY,
-  calculateIncomeSummary,
-  TAX_BRACKETS_2024_25,
-  MLS_THRESHOLDS,
-} from "../tax.service";
+import type { InvestmentTransaction, Transaction } from "@/types";
+import { describe, expect, it } from "vitest";
 import { FinancialYear } from "../../value-objects/financial-year";
-import type { Transaction, InvestmentTransaction } from "@/types";
+import {
+  calculateDeductions,
+  calculateIncomeSummary,
+  calculateIncomeTax,
+  estimateTax,
+  filterInvestmentTransactionsForFY,
+  filterTransactionsForFY,
+  getMarginalTaxRate,
+  MLS_THRESHOLDS,
+  TAX_BRACKETS_2024_25,
+} from "../tax.service";
 
 describe("Tax Service", () => {
   describe("TAX_BRACKETS_2024_25", () => {
@@ -130,7 +130,8 @@ describe("Tax Service", () => {
 
       it("includes medicare levy in total tax", () => {
         const result = calculateIncomeTax(10000000); // $100,000
-        const expectedTotal = result.incomeTax.cents + result.medicareLevy.cents;
+        const expectedTotal =
+          result.incomeTax.cents + result.medicareLevy.cents;
         expect(result.totalTax.cents).toBe(expectedTotal);
       });
     });
@@ -507,38 +508,59 @@ describe("Tax Service", () => {
     ];
 
     it("calculates salary income", () => {
-      const result = calculateIncomeSummary(transactions, investmentTransactions);
+      const result = calculateIncomeSummary(
+        transactions,
+        investmentTransactions
+      );
       expect(result.salaryIncome.cents).toBe(8000000);
     });
 
     it("calculates other income", () => {
-      const result = calculateIncomeSummary(transactions, investmentTransactions);
+      const result = calculateIncomeSummary(
+        transactions,
+        investmentTransactions
+      );
       expect(result.otherIncome.cents).toBe(500000);
     });
 
     it("calculates dividends", () => {
-      const result = calculateIncomeSummary(transactions, investmentTransactions);
+      const result = calculateIncomeSummary(
+        transactions,
+        investmentTransactions
+      );
       expect(result.dividends.cents).toBe(200000);
     });
 
     it("calculates franking credits", () => {
-      const result = calculateIncomeSummary(transactions, investmentTransactions);
+      const result = calculateIncomeSummary(
+        transactions,
+        investmentTransactions
+      );
       expect(result.frankingCredits.cents).toBe(85714);
     });
 
     it("calculates grossed up dividends", () => {
-      const result = calculateIncomeSummary(transactions, investmentTransactions);
+      const result = calculateIncomeSummary(
+        transactions,
+        investmentTransactions
+      );
       // Grossed up = $2,000 + $857.14 = $2,857.14
       expect(result.grossedUpDividends.cents).toBe(285714);
     });
 
     it("calculates capital gains", () => {
-      const result = calculateIncomeSummary(transactions, investmentTransactions);
+      const result = calculateIncomeSummary(
+        transactions,
+        investmentTransactions
+      );
       expect(result.capitalGains.cents).toBe(100000);
     });
 
     it("calculates total assessable income", () => {
-      const result = calculateIncomeSummary(transactions, investmentTransactions);
+      const result = calculateIncomeSummary(
+        transactions,
+        investmentTransactions
+      );
       // Total = $80,000 + $5,000 + $2,857.14 + $1,000 = $88,857.14
       expect(result.totalAssessableIncome.cents).toBe(8885714);
     });
