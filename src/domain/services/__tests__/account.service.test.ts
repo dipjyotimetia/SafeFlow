@@ -134,7 +134,7 @@ describe("AccountService", () => {
     });
 
     it("rejects invalid account type", () => {
-      const result = validateAccountData({ type: "invalid" as any });
+      const result = validateAccountData({ type: "invalid" as unknown as "bank" });
 
       expect(result.isValid).toBe(false);
       expect(result.errors[0]).toContain("Invalid account type");
@@ -150,7 +150,7 @@ describe("AccountService", () => {
     it("collects multiple errors", () => {
       const result = validateAccountData({
         name: "",
-        type: "invalid" as any,
+        type: "invalid" as unknown as "bank",
         balance: 100.5,
       });
 

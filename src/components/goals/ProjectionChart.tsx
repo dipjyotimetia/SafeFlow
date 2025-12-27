@@ -5,17 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { useNetWorthProjection, useFinancialSummary } from '@/hooks';
+import { useNetWorthProjection } from '@/hooks';
 import { formatAUD, parseAUD } from '@/lib/utils/currency';
-import { format } from 'date-fns';
 import { TrendingUp } from 'lucide-react';
 
 export function ProjectionChart() {
   const [monthlyContribution, setMonthlyContribution] = useState('1000');
   const [returnRate, setReturnRate] = useState(7);
   const [years, setYears] = useState(10);
-
-  const { summary } = useFinancialSummary();
   // Use parseAUD for consistent NaN handling and currency parsing
   const contributionCents = parseAUD(monthlyContribution) ?? 0;
 

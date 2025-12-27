@@ -266,7 +266,7 @@ export function generatePropertyProjections(
     loanBalance,
     interestRate,
     loanTermYearsRemaining,
-    isInterestOnly,
+    isInterestOnly: _isInterestOnly,
     interestOnlyYearsRemaining = 0,
     weeklyRent,
     vacancyPercent = 2,
@@ -313,7 +313,6 @@ export function generatePropertyProjections(
     projectionDate.setFullYear(projectionDate.getFullYear() + year);
 
     // Apply capital growth
-    const previousValue = currentPropertyValue;
     currentPropertyValue = applyGrowth(currentPropertyValue, capitalGrowthRate);
     const valueGrowthPercent = capitalGrowthRate;
     const cumulativeGrowthPercent =

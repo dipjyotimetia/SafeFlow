@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Bot, X, Minus, Trash2, MessageSquare, Sparkles } from 'lucide-react';
+import { Bot, X, Minus, Trash2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAIStore } from '@/stores/ai.store';

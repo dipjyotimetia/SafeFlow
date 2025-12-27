@@ -6,7 +6,6 @@ import {
   calculateFutureValue,
   calculateRetirementProjection,
   generateProjectionPoints,
-  type RetirementProjection,
   type ProjectionPoint,
 } from '@/lib/utils/projections';
 

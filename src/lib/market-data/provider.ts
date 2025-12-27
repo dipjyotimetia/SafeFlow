@@ -144,7 +144,7 @@ export function hasMarketDataProvider(): boolean {
 export function compareToMedian(
   propertyValue: number,
   suburbMedian: number | undefined,
-  propertyType: 'house' | 'unit'
+  _propertyType: 'house' | 'unit'
 ): {
   difference: number;        // cents (positive = above median)
   differencePercent: number; // percentage

@@ -9,18 +9,12 @@
  * - Progress tracking
  */
 
-import { db } from "@/lib/db";
 import type { SyncBackend } from "./backends/types";
 import type { SyncData } from "./sync-service";
 import type { ConflictStrategy, SyncConflict } from "./conflict-resolver";
 import { encrypt, decrypt, type EncryptedData } from "./encryption";
 import { syncProgressTracker } from "./progress-tracker";
 import { createSnapshot, restoreSnapshot, getLatestSnapshot } from "./rollback-manager";
-import {
-  detectConflicts,
-  resolveConflict,
-  getRecordsToSync,
-} from "./conflict-resolver";
 import { exportData, importData, getSyncMetadata, saveSyncMetadata } from "./sync-service";
 import { syncDataSchema } from "@/lib/schemas/sync.schema";
 
@@ -90,7 +84,6 @@ export class SyncEngine {
    * Perform a full sync operation
    */
   async sync(): Promise<SyncEngineResult> {
-    const startTime = Date.now();
     let snapshotId: string | undefined;
 
     try {
@@ -270,9 +263,7 @@ export class SyncEngine {
 
     // Upload with timeout
     syncProgressTracker.setPhase("upload");
-    const { controller, timeoutId } = createTimeoutController(
-      this.options.timeoutMs
-    );
+    const { timeoutId } = createTimeoutController(this.options.timeoutMs);
 
     try {
       await this.backend.upload(encrypted);
@@ -304,9 +295,7 @@ export class SyncEngine {
   ): Promise<SyncEngineResult> {
     // Download with timeout
     syncProgressTracker.setPhase("download");
-    const { controller, timeoutId } = createTimeoutController(
-      this.options.timeoutMs
-    );
+    const { timeoutId } = createTimeoutController(this.options.timeoutMs);
 
     let encrypted: EncryptedData | null;
     try {

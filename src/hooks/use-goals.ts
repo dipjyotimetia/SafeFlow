@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import type { Goal, GoalProgress, GoalType, GoalStatus } from '@/types';
+import type { GoalProgress, GoalType, GoalStatus } from '@/types';
 import { calculateMonthsToTarget } from '@/lib/utils/projections';
 import { differenceInMonths, addMonths } from 'date-fns';
 

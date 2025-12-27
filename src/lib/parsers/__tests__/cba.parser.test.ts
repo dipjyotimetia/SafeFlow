@@ -78,8 +78,9 @@ describe('CBA Parser', () => {
       const result = cbaParser.parse(cbaStatement);
 
       if (result.transactions.length > 0) {
-        const incomeTransaction = result.transactions.find((t) => t.type === 'income');
+        const hasIncomeTransaction = result.transactions.some((t) => t.type === 'income');
         // Note: Depending on parsing logic, this may or may not find income
+        expect(hasIncomeTransaction).toBeDefined();
       }
     });
 

@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import type { SuperannuationAccount, SuperTransaction, ContributionSummary } from '@/types';
+import type { SuperannuationAccount } from '@/types';
 import { getCurrentFinancialYear, getFinancialYearDates } from '@/lib/utils/financial-year';
 
 // Contribution caps for 2024-25 FY (in cents)

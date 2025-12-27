@@ -55,9 +55,9 @@ export function EditHoldingDialog({ holding, open, onOpenChange, onSuccess }: Ed
   const [currentPrice, setCurrentPrice] = useState('');
   const [adjustmentReason, setAdjustmentReason] = useState('');
 
-  // Track if units or cost basis changed
-  const [hasUnitsChanged, setHasUnitsChanged] = useState(false);
-  const [hasCostBasisChanged, setHasCostBasisChanged] = useState(false);
+  // Track if units or cost basis changed (reserved for future validation/warning logic)
+  const [, setHasUnitsChanged] = useState(false);
+  const [, setHasCostBasisChanged] = useState(false);
 
   // Initialize form when dialog opens
   useEffect(() => {

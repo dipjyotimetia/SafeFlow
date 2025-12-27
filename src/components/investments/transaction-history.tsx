@@ -74,7 +74,7 @@ const TRANSACTION_TYPE_CONFIG: Record<
   fee: { label: 'Fee', icon: <Percent className="h-3 w-3" />, variant: 'outline' },
 };
 
-export function TransactionHistory({ holdingId, holdingSymbol }: TransactionHistoryProps) {
+export function TransactionHistory({ holdingId, holdingSymbol: _holdingSymbol }: TransactionHistoryProps) {
   const { transactions, isLoading } = useInvestmentTransactions(holdingId);
   const { deleteTransaction } = useHoldingStore();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -279,7 +279,7 @@ export function TransactionHistory({ holdingId, holdingSymbol }: TransactionHist
       </div>
 
       {/* Summary Stats */}
-      <TransactionSummary transactions={filteredTransactions} symbol={holdingSymbol} />
+      <TransactionSummary transactions={filteredTransactions} />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
@@ -308,7 +308,7 @@ export function TransactionHistory({ holdingId, holdingSymbol }: TransactionHist
 }
 
 // Summary component showing aggregated stats
-function TransactionSummary({ transactions, symbol }: { transactions: InvestmentTransaction[]; symbol: string }) {
+function TransactionSummary({ transactions }: { transactions: InvestmentTransaction[] }) {
   const stats = transactions.reduce(
     (acc, t) => {
       switch (t.type) {

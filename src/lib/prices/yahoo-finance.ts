@@ -72,7 +72,6 @@ export async function fetchStockPrice(symbol: string): Promise<YahooQuote | null
     }
 
     const meta = result.meta;
-    const quote = result.indicators?.quote?.[0];
     const previousClose = meta.chartPreviousClose || meta.previousClose;
     const currentPrice = meta.regularMarketPrice;
 

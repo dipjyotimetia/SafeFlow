@@ -38,6 +38,42 @@ interface ChartDataItem {
   [key: string]: string | number;
 }
 
+// Tooltip component defined outside to avoid recreating during render
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartDataItem }> }) {
+  if (active && payload && payload.length) {
+    const item = payload[0].payload;
+    return (
+      <div className="bg-popover/95 backdrop-blur-xl border border-border/40 rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] min-w-[160px] animate-scale-in">
+        <div className="flex items-center gap-2 mb-3">
+          <span
+            className="h-3 w-3 rounded-full shadow-sm"
+            style={{ backgroundColor: item.fill }}
+          />
+          <p className="font-semibold text-sm">{item.categoryName}</p>
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-xl font-bold tabular-nums font-display">{formatAUD(item.amount * 100)}</p>
+          <div className="flex items-center gap-1.5">
+            <div
+              className="h-1.5 rounded-full flex-1 bg-muted overflow-hidden"
+            >
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${item.percentage}%`,
+                  backgroundColor: item.fill,
+                }}
+              />
+            </div>
+            <span className="text-sm text-muted-foreground font-medium">{item.percentage.toFixed(1)}%</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function CategoryPieChart({ data }: CategoryPieChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
@@ -64,41 +100,6 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
       percentage: total > 0 ? (otherTotal / total) * 100 : 0,
     });
   }
-
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartDataItem }> }) => {
-    if (active && payload && payload.length) {
-      const item = payload[0].payload;
-      return (
-        <div className="bg-popover/95 backdrop-blur-xl border border-border/40 rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] min-w-[160px] animate-scale-in">
-          <div className="flex items-center gap-2 mb-3">
-            <span
-              className="h-3 w-3 rounded-full shadow-sm"
-              style={{ backgroundColor: item.fill }}
-            />
-            <p className="font-semibold text-sm">{item.categoryName}</p>
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-xl font-bold tabular-nums font-display">{formatAUD(item.amount * 100)}</p>
-            <div className="flex items-center gap-1.5">
-              <div
-                className="h-1.5 rounded-full flex-1 bg-muted overflow-hidden"
-              >
-                <div
-                  className="h-full rounded-full transition-all duration-300"
-                  style={{
-                    width: `${item.percentage}%`,
-                    backgroundColor: item.fill,
-                  }}
-                />
-              </div>
-              <span className="text-sm text-muted-foreground font-medium">{item.percentage.toFixed(1)}%</span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (chartData.length === 0) {
     return (

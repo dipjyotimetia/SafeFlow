@@ -20,7 +20,6 @@ import {
   Wallet,
   PiggyBank,
   Calculator,
-  Home,
 } from "lucide-react";
 import { FormulaTooltip, PropertyFormulas } from "./formula-tooltip";
 import { EditableValue } from "@/components/ui/editable-value";

@@ -1,6 +1,6 @@
 // ING Australia Statement Parser
 
-import type { BankParser, ParseResult, ParsedTransaction, ParsedTransactionType } from '../types';
+import type { BankParser, ParseResult, ParsedTransaction } from '../types';
 import {
   extractDateFromLine,
   extractAmounts,

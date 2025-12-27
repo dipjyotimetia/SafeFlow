@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import type { Budget, BudgetProgress, BudgetPeriod } from '@/types';
+import type { BudgetProgress, BudgetPeriod } from '@/types';
 
 interface UseBudgetsOptions {
   activeOnly?: boolean;

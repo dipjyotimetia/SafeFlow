@@ -25,6 +25,43 @@ interface CashflowChartProps {
   data: CashflowData[];
 }
 
+// Tooltip component defined outside to avoid recreating during render
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; color: string }>; label?: string }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-popover/95 backdrop-blur-xl border border-border/40 rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] animate-scale-in">
+        <p className="font-semibold text-sm mb-3 text-foreground">{label}</p>
+        <div className="space-y-2">
+          {payload.map((entry) => (
+            <div key={entry.dataKey} className="flex items-center justify-between gap-6">
+              <div className="flex items-center gap-2">
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {entry.dataKey === 'income' ? 'Income' : entry.dataKey === 'expenses' ? 'Expenses' : 'Net'}
+                </span>
+              </div>
+              <span className="text-sm font-semibold tabular-nums font-display" style={{ color: entry.color }}>
+                {formatAUD(entry.value * 100)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+function formatLegendValue(value: string) {
+  if (value === 'income') return 'Income';
+  if (value === 'expenses') return 'Expenses';
+  if (value === 'net') return 'Net';
+  return value;
+}
+
 export function CashflowChart({ data }: CashflowChartProps) {
   // Convert cents to dollars for display and format label with year
   const chartData = data.map((d) => ({
@@ -34,42 +71,6 @@ export function CashflowChart({ data }: CashflowChartProps) {
     net: d.net / 100,
     label: `${d.month} '${String(d.year).slice(-2)}`,
   }));
-
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; color: string }>; label?: string }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-popover/95 backdrop-blur-xl border border-border/40 rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] animate-scale-in">
-          <p className="font-semibold text-sm mb-3 text-foreground">{label}</p>
-          <div className="space-y-2">
-            {payload.map((entry) => (
-              <div key={entry.dataKey} className="flex items-center justify-between gap-6">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: entry.color }}
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    {entry.dataKey === 'income' ? 'Income' : entry.dataKey === 'expenses' ? 'Expenses' : 'Net'}
-                  </span>
-                </div>
-                <span className="text-sm font-semibold tabular-nums font-display" style={{ color: entry.color }}>
-                  {formatAUD(entry.value * 100)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const formatLegendValue = (value: string) => {
-    if (value === 'income') return 'Income';
-    if (value === 'expenses') return 'Expenses';
-    if (value === 'net') return 'Net';
-    return value;
-  };
 
   return (
     <ResponsiveContainer width="100%" height="100%" minHeight={200}>

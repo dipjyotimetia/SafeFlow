@@ -13,7 +13,7 @@ interface PortfolioStore {
   cleanupOldSnapshots: (daysToKeep?: number) => Promise<number>;
 }
 
-export const usePortfolioStore = create<PortfolioStore>((set, get) => ({
+export const usePortfolioStore = create<PortfolioStore>((set) => ({
   lastSnapshotDate: null,
   isTakingSnapshot: false,
 

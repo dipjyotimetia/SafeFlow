@@ -1,7 +1,7 @@
 // Abstract base parser for Australian bank statements
 // Provides common functionality that can be shared across bank-specific parsers
 
-import type { BankParser, ParseResult, ParsedTransaction, ParsedTransactionType } from '../types';
+import type { BankParser, ParseResult, ParsedTransaction } from '../types';
 import {
   extractDateFromLine,
   extractAmounts,

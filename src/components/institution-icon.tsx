@@ -1,5 +1,6 @@
 'use client';
 
+import { createElement, memo } from 'react';
 import { getInstitutionIcon } from '@/lib/icons/institution-icons';
 import { cn } from '@/lib/utils';
 
@@ -22,12 +23,13 @@ const sizeClasses: Record<IconSize, string> = {
   xl: 'h-10 w-10',
 };
 
-export function InstitutionIcon({
+// Use memo to prevent unnecessary re-renders
+export const InstitutionIcon = memo(function InstitutionIcon({
   institution,
   size = 'md',
   className,
 }: InstitutionIconProps) {
-  const Icon = getInstitutionIcon(institution);
-
-  return <Icon className={cn(sizeClasses[size], 'rounded shrink-0', className)} />;
-}
+  const combinedClassName = cn(sizeClasses[size], 'rounded shrink-0', className);
+  // Use createElement to render the icon - avoids React Compiler static-components error
+  return createElement(getInstitutionIcon(institution), { className: combinedClassName });
+});

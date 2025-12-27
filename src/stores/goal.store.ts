@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { db } from '@/lib/db';
-import type { Goal, GoalType, GoalStatus } from '@/types';
+import type { Goal, GoalType } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface GoalStore {

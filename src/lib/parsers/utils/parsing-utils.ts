@@ -332,8 +332,6 @@ export function analyzeTransaction(
   explicitlyDebit: boolean = false,
   explicitlyCredit: boolean = false
 ): { type: ParsedTransactionType; signedAmount: Decimal } {
-  const lowerText = text.toLowerCase();
-
   // First check for explicit DR/CR indicators
   if (explicitlyDebit) {
     return { type: 'expense', signedAmount: amount.negated().abs().negated() };

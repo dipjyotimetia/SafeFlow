@@ -83,11 +83,6 @@ export function FrequencyInput({
     onChange(newAnnual);
   };
 
-  // Format cents to dollars for display
-  const formatForDisplay = (cents: number): string => {
-    return (cents / 100).toFixed(2);
-  };
-
   // Get formula with actual values
   const getDetailedFormula = (frequency: Frequency): string => {
     const annual = formatAUD(annualValue);

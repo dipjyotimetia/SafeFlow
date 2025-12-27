@@ -8,7 +8,6 @@ import {
   filterInvestmentTransactionsForFY,
   calculateIncomeSummary,
   TAX_BRACKETS_2024_25,
-  MEDICARE_LEVY_RATE,
   MLS_THRESHOLDS,
 } from "../tax.service";
 import { FinancialYear } from "../../value-objects/financial-year";

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { db, clearDatabase, exportAllData, seedDemoData } from '../index';
-import type { Account, Transaction, Category } from '@/types';
+import { db, clearDatabase, exportAllData } from '../index';
+import type { Account, Transaction } from '@/types';
 
 describe('Database Operations', () => {
   beforeEach(async () => {

@@ -55,7 +55,7 @@ interface HoldingStore {
   deleteTransaction: (id: string) => Promise<void>;
 }
 
-export const useHoldingStore = create<HoldingStore>((set, get) => ({
+export const useHoldingStore = create<HoldingStore>((set) => ({
   lastPriceRefresh: null,
   isRefreshingPrices: false,
   priceRefreshError: null,

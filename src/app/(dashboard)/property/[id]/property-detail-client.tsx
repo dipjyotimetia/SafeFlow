@@ -1,7 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +19,6 @@ import { formatAUD, formatPercent } from "@/lib/utils/currency";
 import { normalizeToAnnual } from "@/lib/utils/expense-normalizer";
 import {
   ArrowLeft,
-  Building2,
   Calendar,
   DollarSign,
   Home,
@@ -29,7 +27,6 @@ import {
   Pencil,
   TrendingUp,
   User,
-  Wrench,
 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +34,6 @@ import { format } from "date-fns";
 
 export default function PropertyDetailClient() {
   const params = useParams();
-  const router = useRouter();
   const propertyId = params.id as string;
 
   const data = usePropertyWithRelated(propertyId);
@@ -61,7 +57,7 @@ export default function PropertyDetailClient() {
     );
   }
 
-  const { property, loans, expenses, rentals, depreciation } = data;
+  const { property, loans, expenses, depreciation } = data;
 
   // Calculate metrics
   const totalDebt = loans.reduce(
@@ -73,7 +69,6 @@ export default function PropertyDetailClient() {
     property.valuationAmount > 0
       ? (totalDebt / property.valuationAmount) * 100
       : 0;
-  const growth = property.valuationAmount - property.purchasePrice;
   const growthPercent =
     property.purchasePrice > 0
       ? ((property.valuationAmount - property.purchasePrice) /

@@ -15,7 +15,6 @@ import {
   Download,
   Calculator,
   TrendingUp,
-  TrendingDown,
   Receipt,
   Loader2,
   Landmark,

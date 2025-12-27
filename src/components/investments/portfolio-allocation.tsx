@@ -42,6 +42,42 @@ interface ChartDataItem {
   [key: string]: string | number;
 }
 
+// Tooltip component defined outside to avoid recreating during render
+function CustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: ChartDataItem }>;
+}) {
+  if (active && payload && payload.length) {
+    const item = payload[0].payload;
+    return (
+      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-xl min-w-[160px]">
+        <div className="flex items-center gap-2 mb-2">
+          <span
+            className="h-3 w-3 rounded-full"
+            style={{ backgroundColor: item.fill }}
+          />
+          <p className="font-semibold text-sm">{item.label}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-lg font-bold tabular-nums">
+            {formatAUD(item.valueCents)}
+          </p>
+          <p className="text-sm text-primary font-medium">
+            {item.percentage.toFixed(1)}% of portfolio
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {item.holdingCount} holding{item.holdingCount !== 1 ? 's' : ''}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function PortfolioAllocation() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const { grouped, isLoading: isGroupedLoading } = useHoldingsByType();
@@ -75,41 +111,6 @@ export function PortfolioAllocation() {
 
     return data;
   }, [grouped, summary.totalValue]);
-
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: Array<{ payload: ChartDataItem }>;
-  }) => {
-    if (active && payload && payload.length) {
-      const item = payload[0].payload;
-      return (
-        <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-xl min-w-[160px]">
-          <div className="flex items-center gap-2 mb-2">
-            <span
-              className="h-3 w-3 rounded-full"
-              style={{ backgroundColor: item.fill }}
-            />
-            <p className="font-semibold text-sm">{item.label}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-lg font-bold tabular-nums">
-              {formatAUD(item.valueCents)}
-            </p>
-            <p className="text-sm text-primary font-medium">
-              {item.percentage.toFixed(1)}% of portfolio
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {item.holdingCount} holding{item.holdingCount !== 1 ? 's' : ''}
-            </p>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (isLoading) {
     return (

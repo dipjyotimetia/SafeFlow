@@ -77,7 +77,7 @@ interface TransactionStore {
   ) => Promise<{ imported: number; skipped: number }>;
 }
 
-export const useTransactionStore = create<TransactionStore>((set, get) => ({
+export const useTransactionStore = create<TransactionStore>((set) => ({
   filters: {},
 
   setFilters: (filters) =>

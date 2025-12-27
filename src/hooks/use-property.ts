@@ -14,8 +14,6 @@ import type {
   PropertyLoan,
   PropertyExpense,
   PropertyRental,
-  PropertyDepreciation,
-  PropertyModel,
   PropertyStatus,
   AustralianState,
 } from "@/types";

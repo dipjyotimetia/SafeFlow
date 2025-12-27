@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Header } from '@/components/layout/header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -41,7 +41,7 @@ export default function AccountsPage() {
       try {
         await deleteAccount(deletingAccount.id);
         toast.success('Account deleted');
-      } catch (error) {
+      } catch {
         toast.error('Failed to delete account');
       }
       setDeletingAccount(null);

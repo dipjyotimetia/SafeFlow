@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import type { Account, AccountType } from '@/types';
+import type { AccountType } from '@/types';
 
 interface UseAccountsOptions {
   type?: AccountType;

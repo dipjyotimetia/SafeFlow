@@ -12,8 +12,7 @@ import {
   isValidTransactionType,
   getTopMerchants,
 } from "../transaction.service";
-import { FinancialYear } from "../../value-objects/financial-year";
-import type { Transaction, Category } from "@/types";
+import type { Transaction, Category, TransactionType } from "@/types";
 
 // Helper to create mock transactions
 function createTransaction(
@@ -295,7 +294,9 @@ describe("TransactionService", () => {
       });
 
       it("rejects invalid transaction type", () => {
-        const result = validateTransactionData({ type: "invalid" as any });
+        const result = validateTransactionData({
+          type: "invalid" as unknown as TransactionType,
+        });
         expect(result.isValid).toBe(false);
       });
 

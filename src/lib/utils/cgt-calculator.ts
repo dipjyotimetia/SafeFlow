@@ -201,7 +201,7 @@ export function calculateCGT(inputs: CGTInputs): CGTResult {
     division40Depreciation,
     division43Depreciation,
     marginalTaxRate,
-    otherCapitalGainsThisYear = 0,
+    otherCapitalGainsThisYear: _otherCapitalGainsThisYear = 0,
     capitalLossesCarriedForward = 0,
     isMainResidence,
     mainResidenceExemptionPercent = 100,

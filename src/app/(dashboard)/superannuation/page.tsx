@@ -39,7 +39,6 @@ import {
 import {
   Plus,
   Landmark,
-  TrendingUp,
   Loader2,
   MoreHorizontal,
   Trash2,
@@ -105,7 +104,7 @@ export default function SuperannuationPage() {
   const { accounts, isLoading: accountsLoading } = useSuperAccounts();
   const { summary, isLoading: summaryLoading } = useSuperSummary();
   const { years } = useSuperFinancialYears();
-  const { summary: contributionSummary, isLoading: contributionLoading } = useContributionSummary(selectedFY);
+  const { summary: contributionSummary } = useContributionSummary(selectedFY);
   const { transactions } = useSuperTransactions(undefined, selectedFY);
   const { createAccount, deleteAccount } = useSuperannuationStore();
 

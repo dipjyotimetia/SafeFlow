@@ -5,7 +5,6 @@ import {
   extractDateFromLine,
   extractAmounts,
   extractStatementPeriod,
-  analyzeTransaction,
   cleanDescription,
   shouldSkipLine,
   createTransactionKey,

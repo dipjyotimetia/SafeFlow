@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useCompoundInterest } from '@/hooks';
 import { formatAUD, parseAUD } from '@/lib/utils/currency';
-import { cn } from '@/lib/utils';
 
 export function CompoundInterestCalculator() {
   const [principal, setPrincipal] = useState('10000');

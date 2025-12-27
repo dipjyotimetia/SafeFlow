@@ -75,7 +75,7 @@ export default function TransactionsPage() {
       try {
         await deleteTransaction(deletingTransaction.id);
         toast.success("Transaction deleted");
-      } catch (error) {
+      } catch {
         toast.error("Failed to delete transaction");
       }
       setDeletingTransaction(null);

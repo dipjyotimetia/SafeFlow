@@ -80,15 +80,10 @@ export default function SettingsPage() {
   const checkConnection = useAIStore((state) => state.checkConnection);
   const availableModels = useAIStore((state) => state.availableModels);
 
-  // Local state for AI settings form
-  const [ollamaHost, setOllamaHost] = useState(aiSettings.ollamaHost);
-  const [selectedModel, setSelectedModel] = useState(aiSettings.model);
-
-  // Update local state when settings change
-  useEffect(() => {
-    setOllamaHost(aiSettings.ollamaHost);
-    setSelectedModel(aiSettings.model);
-  }, [aiSettings.ollamaHost, aiSettings.model]);
+  // Local state for AI settings form - use key-based reset pattern
+  // State is initialized with the current value and only updates on user interaction
+  const [ollamaHost, setOllamaHost] = useState(() => aiSettings.ollamaHost);
+  const [selectedModel, setSelectedModel] = useState(() => aiSettings.model);
 
   // Apply theme to document
   useEffect(() => {

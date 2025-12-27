@@ -180,17 +180,22 @@ function CashflowChart({
   height,
   showGrid,
 }: Omit<ProjectionChartProps, "variant">) {
-  // Calculate cumulative cashflow
-  let cumulative = 0;
-  const data = projections.map((p) => {
-    cumulative += p.annualCashflowAfterTax;
-    return {
+  // Calculate cumulative cashflow using reduce to avoid mutable variable
+  const data = projections.reduce<Array<{
+    year: number;
+    beforeTax: number;
+    afterTax: number;
+    cumulative: number;
+  }>>((acc, p) => {
+    const prevCumulative = acc.length > 0 ? acc[acc.length - 1].cumulative : 0;
+    acc.push({
       year: p.year,
       beforeTax: p.annualCashflowBeforeTax,
       afterTax: p.annualCashflowAfterTax,
-      cumulative,
-    };
-  });
+      cumulative: prevCumulative + p.annualCashflowAfterTax,
+    });
+    return acc;
+  }, []);
 
   return (
     <ResponsiveContainer width="100%" height={height}>

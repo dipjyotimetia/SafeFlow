@@ -40,7 +40,7 @@ import { useTransactionStore } from '@/stores/transaction.store';
 import { useAccounts, useCategories } from '@/hooks';
 import { parseAUD } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
-import type { Transaction, TransactionType } from '@/types';
+import type { Transaction } from '@/types';
 import { toast } from 'sonner';
 
 const formSchema = z.object({

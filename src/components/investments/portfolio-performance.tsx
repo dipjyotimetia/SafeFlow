@@ -34,6 +34,28 @@ interface ChartDataPoint {
   valueCents: number;
 }
 
+// Tooltip component defined outside to avoid recreating during render
+function PerformanceTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: ChartDataPoint }>;
+}) {
+  if (active && payload && payload.length) {
+    const item = payload[0].payload;
+    return (
+      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-lg p-3 shadow-xl">
+        <p className="text-xs text-muted-foreground mb-1">{item.dateLabel}</p>
+        <p className="text-lg font-bold tabular-nums">
+          {formatAUD(item.valueCents)}
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function PortfolioPerformance() {
   const [selectedRange, setSelectedRange] = useState<TimeRange>('1M');
   const gradientId = useId();
@@ -74,27 +96,6 @@ export function PortfolioPerformance() {
       : trendDirection === 'negative'
         ? 'oklch(0.65 0.2 25)'
         : 'oklch(0.6 0.02 160)';
-
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: Array<{ payload: ChartDataPoint }>;
-  }) => {
-    if (active && payload && payload.length) {
-      const item = payload[0].payload;
-      return (
-        <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-lg p-3 shadow-xl">
-          <p className="text-xs text-muted-foreground mb-1">{item.dateLabel}</p>
-          <p className="text-lg font-bold tabular-nums">
-            {formatAUD(item.valueCents)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   // Calculate Y-axis domain with padding
   const yDomain = useMemo(() => {
@@ -218,7 +219,7 @@ export function PortfolioPerformance() {
                 }
                 width={50}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<PerformanceTooltip />} />
               <Area
                 type="monotone"
                 dataKey="value"

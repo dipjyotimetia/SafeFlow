@@ -19,6 +19,35 @@ interface PriceChartProps {
   showTooltip?: boolean;
 }
 
+// Tooltip component defined outside to avoid recreating during render
+function PriceTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: number;
+}) {
+  if (active && payload && payload.length && label) {
+    const date = new Date(label);
+    return (
+      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-lg p-3 shadow-xl">
+        <p className="text-xs text-muted-foreground mb-1">
+          {date.toLocaleDateString('en-AU', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}
+        </p>
+        <p className="font-semibold text-sm">{formatAUD(payload[0].value * 100)}</p>
+      </div>
+    );
+  }
+  return null;
+}
+
 /**
  * Sparkline component for showing price trends in a compact format
  * @param data - Array of price history entries (minimum 2 points required)
@@ -90,34 +119,6 @@ export function PriceChart({ data, height = 200, showAxis = true, showTooltip = 
   const isPositive = chartData[0].price <= chartData[chartData.length - 1].price;
   const strokeColor = isPositive ? 'oklch(0.65 0.18 145)' : 'oklch(0.65 0.2 25)';
 
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: {
-    active?: boolean;
-    payload?: Array<{ value: number }>;
-    label?: number;
-  }) => {
-    if (active && payload && payload.length && label) {
-      const date = new Date(label);
-      return (
-        <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-lg p-3 shadow-xl">
-          <p className="text-xs text-muted-foreground mb-1">
-            {date.toLocaleDateString('en-AU', {
-              weekday: 'short',
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </p>
-          <p className="font-semibold text-sm">{formatAUD(payload[0].value * 100)}</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   // Calculate min/max for Y axis
   const prices = chartData.map((d) => d.price);
   const minPrice = Math.min(...prices) * 0.98;
@@ -153,7 +154,7 @@ export function PriceChart({ data, height = 200, showAxis = true, showTooltip = 
             />
           </>
         )}
-        {showTooltip && <Tooltip content={<CustomTooltip />} />}
+        {showTooltip && <Tooltip content={<PriceTooltip />} />}
         <Area
           type="monotone"
           dataKey="price"

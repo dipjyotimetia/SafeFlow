@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import type { Category, CategoryType } from '@/types';
+import type { CategoryType } from '@/types';
 
 interface UseCategoriesOptions {
   type?: CategoryType;

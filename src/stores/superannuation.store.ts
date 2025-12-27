@@ -24,10 +24,12 @@ const CONCESSIONAL_TYPES: SuperTransactionType[] = [
 ];
 
 // Types that count as non-concessional contributions
-const NON_CONCESSIONAL_TYPES: SuperTransactionType[] = [
+// Note: Reserved for future non-concessional contribution cap calculations
+const _NON_CONCESSIONAL_TYPES: SuperTransactionType[] = [
   'personal-non-concessional',
   'spouse-contribution',
 ];
+void _NON_CONCESSIONAL_TYPES;
 
 // Types that reduce balance
 const DEBIT_TYPES: SuperTransactionType[] = [

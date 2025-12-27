@@ -24,7 +24,6 @@ import { Label } from '@/components/ui/label';
 import { useFamilyMembers } from '@/hooks/use-family';
 import { useFamilyStore } from '@/stores/family.store';
 import { parseAccountNameForMember } from '@/lib/utils/account-name-parser';
-import type { FamilyMember } from '@/types';
 
 interface MemberSelectorProps {
   accountName?: string;

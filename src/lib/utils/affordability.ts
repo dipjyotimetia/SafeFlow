@@ -322,14 +322,17 @@ export const MEDICARE_LEVY_RATE = 0.02; // 2%
 /**
  * 2025-26 Australian Tax Brackets (Stage 3 cuts)
  * Cumulative tax at each threshold boundary for precise calculation
+ *
+ * @internal Used by estimateNetIncome for reference, with inline calculations for clarity
  */
-const TAX_BRACKETS = [
+const _TAX_BRACKETS = [
   { threshold: 18200, rate: 0, cumulative: 0 },
   { threshold: 45000, rate: 0.16, cumulative: 0 }, // (45000-18200)*0.16 = 4288
   { threshold: 135000, rate: 0.30, cumulative: 4288 }, // 4288 + (135000-45000)*0.30 = 31288
   { threshold: 190000, rate: 0.37, cumulative: 31288 }, // 31288 + (190000-135000)*0.37 = 51638
   { threshold: Infinity, rate: 0.45, cumulative: 51638 },
 ];
+void _TAX_BRACKETS; // Silence unused warning - kept for documentation
 
 /**
  * Estimate net income after tax (2025-26 tax rates)
@@ -748,8 +751,8 @@ export function calculateRiskMetrics(
   weeklyRent: number,
   monthlyExpenses: number,
   availableForHousing: number,
-  isInterestOnly: boolean,
-  loanTermYears: number
+  _isInterestOnly: boolean,
+  _loanTermYears: number
 ): RiskMetrics {
   const loan = new Decimal(loanAmount);
   const rate = new Decimal(interestRate);

@@ -205,7 +205,7 @@ export class MicroburbsProvider implements MarketDataProvider {
   }
 
   async getStateMedians(
-    state: AustralianState
+    _state: AustralianState
   ): Promise<MarketDataResult<SuburbStats>> {
     // Microburbs may not have state-level data in free tier
     // Return a stub that indicates this needs paid tier
