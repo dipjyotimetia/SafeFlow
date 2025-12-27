@@ -8,7 +8,7 @@ import { useProperty } from "@/hooks";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function EditPropertyPage() {
+export default function EditPropertyClient() {
   const params = useParams();
   const propertyId = params.id as string;
   const property = useProperty(propertyId);

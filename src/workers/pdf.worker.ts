@@ -3,10 +3,12 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFContent, PDFPageContent, PDFWorkerMessage, PDFWorkerResponse } from '@/lib/parsers/types';
+import { configurePDFWorker } from '@/lib/utils/pdf-config';
 
 // Set up the worker source for pdfjs-dist
 // Use a local file served from the public folder for reliability
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+// Support basePath for GitHub Pages subdirectory deployment
+configurePDFWorker(pdfjsLib);
 
 // Send a message back to the main thread
 function postMessage(message: PDFWorkerResponse): void {

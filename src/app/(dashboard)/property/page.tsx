@@ -186,7 +186,7 @@ export default function PropertyPage() {
               key={property.id}
               property={property}
               onClick={() => router.push(`/property/${property.id}`)}
-              onEdit={() => router.push(`/property/${property.id}/edit`)}
+              onEdit={() => router.push(`/property/edit/${property.id}`)}
               onDelete={() => setDeleteId(property.id)}
             />
           ))}

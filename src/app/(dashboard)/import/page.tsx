@@ -207,7 +207,8 @@ export default function ImportPage() {
         // Read PDF file as text using pdf.js
         const arrayBuffer = await file.arrayBuffer();
         const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        const { configurePDFWorker } = await import("@/lib/utils/pdf-config");
+        configurePDFWorker(pdfjsLib);
 
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let fullText = "";

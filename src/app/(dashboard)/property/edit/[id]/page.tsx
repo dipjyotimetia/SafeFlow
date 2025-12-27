@@ -1,4 +1,4 @@
-import PropertyDetailClient from "./property-detail-client";
+import EditPropertyClient from "./edit-property-client";
 
 // Required for static export with empty params since property IDs are dynamic UUIDs
 // stored in client-side IndexedDB. Client-side routing handles the actual ID resolution.
@@ -7,6 +7,6 @@ export async function generateStaticParams() {
   return [{ id: '_' }];
 }
 
-export default function PropertyDetailPage() {
-  return <PropertyDetailClient />;
+export default function EditPropertyPage() {
+  return <EditPropertyClient />;
 }

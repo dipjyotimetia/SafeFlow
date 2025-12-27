@@ -1,50 +1,54 @@
-// Australian Financial Year utilities (July 1 - June 30)
+/**
+ * Australian Financial Year utilities (July 1 - June 30)
+ *
+ * @deprecated These functions are deprecated. Use the FinancialYear class from
+ * `@/domain/value-objects/financial-year` instead for a more robust, object-oriented API.
+ *
+ * Migration guide:
+ * - getCurrentFinancialYear() -> FinancialYear.current().value
+ * - getFinancialYearForDate(date) -> FinancialYear.fromDate(date).value
+ * - getFinancialYearDates(fy) -> { start: fy.startDate, end: fy.endDate }
+ * - isDateInFinancialYear(date, fy) -> FinancialYear.parse(fy).contains(date)
+ * - getFinancialYearOptions(count) -> FinancialYear.getRecentYears(count).map(fy => fy.value)
+ * - getFinancialQuarters(fy) -> FinancialYear.parse(fy).getQuarters()
+ * - getCurrentQuarter() -> FinancialYear.current().getCurrentQuarter()
+ * - getFinancialYearMonths(fy) -> FinancialYear.parse(fy).getMonths()
+ * - formatFinancialYear(fy) -> FinancialYear.parse(fy).format()
+ * - parseFinancialYear(fy) -> FinancialYear.tryParse(fy)?.value ?? null
+ */
 
-import { startOfMonth, endOfMonth, addMonths, format, isWithinInterval } from 'date-fns';
+import { FinancialYear } from "@/domain/value-objects/financial-year";
 
 /**
  * Get the current Australian financial year
  * @returns Financial year string like "2024-25"
+ * @deprecated Use FinancialYear.current().value instead
  */
 export function getCurrentFinancialYear(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth(); // 0-indexed
-
-  // FY starts July 1 (month 6)
-  if (month >= 6) {
-    return `${year}-${(year + 1).toString().slice(-2)}`;
-  }
-  return `${year - 1}-${year.toString().slice(-2)}`;
+  return FinancialYear.current().value;
 }
 
 /**
  * Get the financial year for a given date
  * @param date The date to check
  * @returns Financial year string like "2024-25"
+ * @deprecated Use FinancialYear.fromDate(date).value instead
  */
 export function getFinancialYearForDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-
-  if (month >= 6) {
-    return `${year}-${(year + 1).toString().slice(-2)}`;
-  }
-  return `${year - 1}-${year.toString().slice(-2)}`;
+  return FinancialYear.fromDate(date).value;
 }
 
 /**
  * Get the start and end dates for a financial year
  * @param fy Financial year string like "2024-25"
  * @returns Object with start and end dates
+ * @deprecated Use FinancialYear.parse(fy).startDate and .endDate instead
  */
 export function getFinancialYearDates(fy: string): { start: Date; end: Date } {
-  const [startYearStr] = fy.split('-');
-  const startYear = parseInt(startYearStr, 10);
-
+  const financialYear = FinancialYear.parse(fy);
   return {
-    start: new Date(startYear, 6, 1), // July 1
-    end: new Date(startYear + 1, 5, 30, 23, 59, 59, 999), // June 30
+    start: financialYear.startDate,
+    end: financialYear.endDate,
   };
 }
 
@@ -53,32 +57,27 @@ export function getFinancialYearDates(fy: string): { start: Date; end: Date } {
  * @param date The date to check
  * @param fy Financial year string like "2024-25"
  * @returns True if date is within the FY
+ * @deprecated Use FinancialYear.parse(fy).contains(date) instead
  */
 export function isDateInFinancialYear(date: Date, fy: string): boolean {
-  const { start, end } = getFinancialYearDates(fy);
-  return isWithinInterval(date, { start, end });
+  return FinancialYear.parse(fy).contains(date);
 }
 
 /**
  * Get a list of recent financial years for selection
  * @param count Number of years to return (default 5)
  * @returns Array of FY strings, most recent first
+ * @deprecated Use FinancialYear.getRecentYears(count).map(fy => fy.value) instead
  */
 export function getFinancialYearOptions(count: number = 5): string[] {
-  const current = getCurrentFinancialYear();
-  const [startYearStr] = current.split('-');
-  const startYear = parseInt(startYearStr, 10);
-
-  return Array.from({ length: count }, (_, i) => {
-    const year = startYear - i;
-    return `${year}-${(year + 1).toString().slice(-2)}`;
-  });
+  return FinancialYear.getRecentYears(count).map((fy) => fy.value);
 }
 
 /**
  * Get the Australian financial quarters for a financial year
  * @param fy Financial year string like "2024-25"
  * @returns Array of quarter objects with dates and labels
+ * @deprecated Use FinancialYear.parse(fy).getQuarters() instead
  */
 export function getFinancialQuarters(fy: string): Array<{
   quarter: number;
@@ -86,54 +85,23 @@ export function getFinancialQuarters(fy: string): Array<{
   start: Date;
   end: Date;
 }> {
-  const [startYearStr] = fy.split('-');
-  const startYear = parseInt(startYearStr, 10);
-
-  // Use endOfMonth to safely get the last day of each quarter's final month
-  return [
-    {
-      quarter: 1,
-      label: 'Q1 (Jul-Sep)',
-      start: startOfMonth(new Date(startYear, 6, 1)),
-      end: endOfMonth(new Date(startYear, 8, 1)), // September
-    },
-    {
-      quarter: 2,
-      label: 'Q2 (Oct-Dec)',
-      start: startOfMonth(new Date(startYear, 9, 1)),
-      end: endOfMonth(new Date(startYear, 11, 1)), // December
-    },
-    {
-      quarter: 3,
-      label: 'Q3 (Jan-Mar)',
-      start: startOfMonth(new Date(startYear + 1, 0, 1)),
-      end: endOfMonth(new Date(startYear + 1, 2, 1)), // March
-    },
-    {
-      quarter: 4,
-      label: 'Q4 (Apr-Jun)',
-      start: startOfMonth(new Date(startYear + 1, 3, 1)),
-      end: endOfMonth(new Date(startYear + 1, 5, 1)), // June
-    },
-  ];
+  return FinancialYear.parse(fy).getQuarters();
 }
 
 /**
  * Get the current quarter within the financial year
  * @returns Quarter number (1-4)
+ * @deprecated Use FinancialYear.current().getCurrentQuarter() instead
  */
 export function getCurrentQuarter(): number {
-  const month = new Date().getMonth();
-  if (month >= 6 && month <= 8) return 1; // Jul-Sep
-  if (month >= 9 && month <= 11) return 2; // Oct-Dec
-  if (month >= 0 && month <= 2) return 3; // Jan-Mar
-  return 4; // Apr-Jun
+  return FinancialYear.current().getCurrentQuarter() ?? 1;
 }
 
 /**
  * Get months for a financial year in order
  * @param fy Financial year string
  * @returns Array of month objects
+ * @deprecated Use FinancialYear.parse(fy).getMonths() instead
  */
 export function getFinancialYearMonths(fy: string): Array<{
   month: number;
@@ -142,48 +110,25 @@ export function getFinancialYearMonths(fy: string): Array<{
   start: Date;
   end: Date;
 }> {
-  const { start } = getFinancialYearDates(fy);
-  const months = [];
-
-  for (let i = 0; i < 12; i++) {
-    const monthDate = addMonths(start, i);
-    months.push({
-      month: monthDate.getMonth(),
-      year: monthDate.getFullYear(),
-      label: format(monthDate, 'MMM yyyy'),
-      start: startOfMonth(monthDate),
-      end: endOfMonth(monthDate),
-    });
-  }
-
-  return months;
+  return FinancialYear.parse(fy).getMonths();
 }
 
 /**
  * Format a financial year for display
  * @param fy Financial year string like "2024-25"
  * @returns Formatted string like "FY 2024-25"
+ * @deprecated Use FinancialYear.parse(fy).format() instead
  */
 export function formatFinancialYear(fy: string): string {
-  return `FY ${fy}`;
+  return FinancialYear.parse(fy).format();
 }
 
 /**
  * Parse a financial year string and validate
  * @param fy Financial year string
  * @returns Validated FY string or null if invalid
+ * @deprecated Use FinancialYear.tryParse(fy)?.value ?? null instead
  */
 export function parseFinancialYear(fy: string): string | null {
-  const pattern = /^(\d{4})-(\d{2})$/;
-  const match = fy.match(pattern);
-
-  if (!match) return null;
-
-  const startYear = parseInt(match[1], 10);
-  const endYearShort = parseInt(match[2], 10);
-  const expectedEndYearShort = (startYear + 1) % 100;
-
-  if (endYearShort !== expectedEndYearShort) return null;
-
-  return fy;
+  return FinancialYear.tryParse(fy)?.value ?? null;
 }
