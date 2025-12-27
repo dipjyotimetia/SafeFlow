@@ -216,22 +216,36 @@ export function ModelInputs({ assumptions, onChange }: ModelInputsProps) {
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="ioYears">IO Period (years)</Label>
-              <Input
-                id="ioYears"
-                type="number"
-                value={assumptions.interestOnlyPeriodYears}
-                onChange={(e) =>
-                  updateField(
-                    "interestOnlyPeriodYears",
-                    parseInt(e.target.value) || 0
-                  )
-                }
-              />
-            </div>
+          {assumptions.loanType === "interest-only" ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ioYears">IO Period (years)</Label>
+                <Input
+                  id="ioYears"
+                  type="number"
+                  value={assumptions.interestOnlyPeriodYears}
+                  onChange={(e) =>
+                    updateField(
+                      "interestOnlyPeriodYears",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                />
+              </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="loanTerm">Loan Term (years)</Label>
+                <Input
+                  id="loanTerm"
+                  type="number"
+                  value={assumptions.loanTermYears}
+                  onChange={(e) =>
+                    updateField("loanTermYears", parseInt(e.target.value) || 30)
+                  }
+                />
+              </div>
+            </div>
+          ) : (
             <div className="space-y-2">
               <Label htmlFor="loanTerm">Loan Term (years)</Label>
               <Input
@@ -243,7 +257,7 @@ export function ModelInputs({ assumptions, onChange }: ModelInputsProps) {
                 }
               />
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

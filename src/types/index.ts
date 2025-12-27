@@ -558,6 +558,22 @@ export interface PortfolioSnapshot {
   createdAt: Date;
 }
 
+// Tax Lot for FIFO/LIFO/Specific ID cost basis tracking
+export type CostBasisMethod = 'average' | 'fifo' | 'lifo' | 'specific-id';
+
+export interface TaxLot extends Versionable {
+  id: string;
+  holdingId: string;
+  purchaseDate: Date;
+  units: number; // original units purchased
+  remainingUnits: number; // units not yet sold
+  costPerUnit: number; // cents - cost per unit at purchase
+  totalCost: number; // cents - total cost of this lot
+  transactionId?: string; // optional - link to buy transaction
+  notes?: string;
+  createdAt: Date;
+}
+
 // Individual holding value at snapshot time
 export interface HoldingSnapshot {
   holdingId: string;

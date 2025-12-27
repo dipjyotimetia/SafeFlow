@@ -84,17 +84,58 @@ export class SafeFlowError extends Error {
 }
 
 /**
+ * Patterns to detect and redact sensitive data in error messages
+ */
+const SENSITIVE_PATTERNS = [
+  // API keys and tokens
+  { pattern: /(?:api[_-]?key|token|bearer|auth)[=:\s]+["']?[\w\-./]+["']?/gi, replacement: '[REDACTED_TOKEN]' },
+  // Passwords
+  { pattern: /(?:password|passwd|pwd)[=:\s]+["']?[^"'\s]+["']?/gi, replacement: '[REDACTED_PASSWORD]' },
+  // File paths that might contain usernames
+  { pattern: /\/Users\/[^/\s]+/g, replacement: '/Users/[REDACTED]' },
+  { pattern: /C:\\Users\\[^\\]+/g, replacement: 'C:\\Users\\[REDACTED]' },
+  // Email addresses
+  { pattern: /[\w.+-]+@[\w.-]+\.\w+/g, replacement: '[REDACTED_EMAIL]' },
+  // URLs with credentials
+  { pattern: /:\/\/[^:]+:[^@]+@/g, replacement: '://[REDACTED]:[REDACTED]@' },
+];
+
+/**
+ * Sanitize a string by removing sensitive data patterns
+ */
+function sanitizeString(str: string): string {
+  let result = str;
+  for (const { pattern, replacement } of SENSITIVE_PATTERNS) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
+/**
+ * Sanitize an error message and stack trace
+ */
+function sanitizeError(error: Error): { message: string; stack?: string } {
+  return {
+    message: sanitizeString(error.message),
+    stack: error.stack ? sanitizeString(error.stack) : undefined,
+  };
+}
+
+/**
  * Log an error with consistent formatting
+ * Sanitizes sensitive data before logging
  */
 export function logError(context: string, error: unknown): void {
   const errorObj = normalizeError(error);
+  const sanitized = sanitizeError(errorObj);
   const timestamp = new Date().toISOString();
 
   console.error(`[SafeFlow:${context}] ${timestamp}`, {
-    message: errorObj.message,
+    message: sanitized.message,
     code: errorObj instanceof SafeFlowError ? errorObj.code : ErrorCode.UNKNOWN_ERROR,
     context: errorObj instanceof SafeFlowError ? errorObj.context : undefined,
-    stack: errorObj.stack,
+    // Only include sanitized stack in development
+    ...(process.env.NODE_ENV === 'development' && { stack: sanitized.stack }),
   });
 }
 
