@@ -55,7 +55,7 @@ export class LocalMarketDataProvider implements MarketDataProvider {
 
   async getSuburbStats(
     suburb: string,
-    state: AustralianState
+    state: AustralianState,
   ): Promise<MarketDataResult<SuburbStats>> {
     try {
       // Search for matching suburb in local storage
@@ -96,7 +96,7 @@ export class LocalMarketDataProvider implements MarketDataProvider {
 
       // Filter out the target suburb
       const nearby = allLocal.filter(
-        (s) => s.suburb.toLowerCase() !== suburb.toLowerCase()
+        (s) => s.suburb.toLowerCase() !== suburb.toLowerCase(),
       );
 
       return {
@@ -115,7 +115,7 @@ export class LocalMarketDataProvider implements MarketDataProvider {
   }
 
   async getStateMedians(
-    state: AustralianState
+    state: AustralianState,
   ): Promise<MarketDataResult<SuburbStats>> {
     try {
       const allLocal = await this.getAllLocalSuburbs(state);
@@ -163,17 +163,22 @@ export class LocalMarketDataProvider implements MarketDataProvider {
 
   async searchSuburbs(
     query: string,
-    state?: AustralianState
-  ): Promise<MarketDataResult<Array<{ suburb: string; state: AustralianState; postcode: string }>>> {
+    state?: AustralianState,
+  ): Promise<
+    MarketDataResult<
+      Array<{ suburb: string; state: AustralianState; postcode: string }>
+    >
+  > {
     try {
       const allLocal = state
         ? await this.getAllLocalSuburbs(state)
         : await this.getAllLocalSuburbsAllStates();
 
       const matches = allLocal
-        .filter((s) =>
-          s.suburb.toLowerCase().includes(query.toLowerCase()) ||
-          s.postcode.includes(query)
+        .filter(
+          (s) =>
+            s.suburb.toLowerCase().includes(query.toLowerCase()) ||
+            s.postcode.includes(query),
         )
         .map((s) => ({
           suburb: s.suburb,
@@ -197,38 +202,39 @@ export class LocalMarketDataProvider implements MarketDataProvider {
 
   private async findLocalSuburb(
     suburb: string,
-    state: AustralianState
+    state: AustralianState,
   ): Promise<LocalSuburbData | undefined> {
-    // Check if the table exists in our schema
-    if (!db.tables.find((t) => t.name === "marketData")) {
+    try {
+      const all = await db.marketData.toArray();
+      return all.find(
+        (s: LocalSuburbData) =>
+          s.suburb.toLowerCase() === suburb.toLowerCase() && s.state === state,
+      );
+    } catch (error) {
+      console.error("Failed to find local suburb:", error);
       return undefined;
     }
-
-    const all = await (db as unknown as { marketData: { toArray: () => Promise<LocalSuburbData[]> } }).marketData.toArray();
-    return all.find(
-      (s: LocalSuburbData) =>
-        s.suburb.toLowerCase() === suburb.toLowerCase() &&
-        s.state === state
-    );
   }
 
   private async getAllLocalSuburbs(
-    state: AustralianState
+    state: AustralianState,
   ): Promise<LocalSuburbData[]> {
-    if (!db.tables.find((t) => t.name === "marketData")) {
+    try {
+      const all = await db.marketData.toArray();
+      return all.filter((s: LocalSuburbData) => s.state === state);
+    } catch (error) {
+      console.error("Failed to fetch local suburbs:", error);
       return [];
     }
-
-    const all = await (db as unknown as { marketData: { toArray: () => Promise<LocalSuburbData[]> } }).marketData.toArray();
-    return all.filter((s: LocalSuburbData) => s.state === state);
   }
 
   private async getAllLocalSuburbsAllStates(): Promise<LocalSuburbData[]> {
-    if (!db.tables.find((t) => t.name === "marketData")) {
+    try {
+      return await db.marketData.toArray();
+    } catch (error) {
+      console.error("Failed to fetch all local suburbs:", error);
       return [];
     }
-
-    return (db as unknown as { marketData: { toArray: () => Promise<LocalSuburbData[]> } }).marketData.toArray();
   }
 
   private localToSuburbStats(local: LocalSuburbData): SuburbStats {
@@ -237,7 +243,8 @@ export class LocalMarketDataProvider implements MarketDataProvider {
     let unitYield: number | undefined;
 
     if (local.medianHousePrice && local.weeklyRentHouse) {
-      houseYield = ((local.weeklyRentHouse * 52) / local.medianHousePrice) * 100;
+      houseYield =
+        ((local.weeklyRentHouse * 52) / local.medianHousePrice) * 100;
     }
     if (local.medianUnitPrice && local.weeklyRentUnit) {
       unitYield = ((local.weeklyRentUnit * 52) / local.medianUnitPrice) * 100;

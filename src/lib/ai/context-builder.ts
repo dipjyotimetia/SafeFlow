@@ -1,12 +1,15 @@
-import { db } from '@/lib/db';
-import { getCurrentFinancialYear } from '@/lib/utils/financial-year';
-import type { FinancialContext } from '@/types';
+import { db } from "@/lib/db";
+import {
+  getCurrentFinancialYear,
+  getFinancialYearDates,
+} from "@/lib/utils/financial-year";
+import type { FinancialContext } from "@/types";
 
 /**
  * Format cents to dollars for display
  */
 function formatDollars(cents: number): string {
-  return `$${(cents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`;
+  return `$${(cents / 100).toLocaleString("en-AU", { minimumFractionDigits: 2 })}`;
 }
 
 /**
@@ -78,7 +81,7 @@ export async function buildContextString(): Promise<string> {
     parts.push(`TAX CONTEXT:\n${context.taxSummary}`);
   }
 
-  return parts.join('\n\n');
+  return parts.join("\n\n");
 }
 
 /**
@@ -88,7 +91,7 @@ async function buildAccountsSummary(): Promise<string> {
   const accounts = await db.accounts.filter((a) => a.isActive).toArray();
 
   if (accounts.length === 0) {
-    return 'No accounts set up yet.';
+    return "No accounts set up yet.";
   }
 
   let totalAssets = 0;
@@ -103,7 +106,7 @@ async function buildAccountsSummary(): Promise<string> {
     byType[account.type].count++;
     byType[account.type].balance += account.balance;
 
-    if (account.type === 'credit' || account.type === 'liability') {
+    if (account.type === "credit" || account.type === "liability") {
       totalLiabilities += Math.abs(account.balance);
     } else {
       totalAssets += account.balance;
@@ -116,12 +119,14 @@ async function buildAccountsSummary(): Promise<string> {
   lines.push(`Total liabilities: ${formatDollars(totalLiabilities)}`);
   lines.push(`Net worth: ${formatDollars(totalAssets - totalLiabilities)}`);
 
-  lines.push('\nBy type:');
+  lines.push("\nBy type:");
   for (const [type, data] of Object.entries(byType)) {
-    lines.push(`- ${type}: ${data.count} account(s), ${formatDollars(data.balance)}`);
+    lines.push(
+      `- ${type}: ${data.count} account(s), ${formatDollars(data.balance)}`,
+    );
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -132,12 +137,12 @@ async function buildRecentSpending(): Promise<string> {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const transactions = await db.transactions
-    .where('date')
+    .where("date")
     .above(thirtyDaysAgo)
     .toArray();
 
   if (transactions.length === 0) {
-    return 'No transactions in the last 30 days.';
+    return "No transactions in the last 30 days.";
   }
 
   let totalIncome = 0;
@@ -146,23 +151,29 @@ async function buildRecentSpending(): Promise<string> {
   let expenseCount = 0;
 
   for (const t of transactions) {
-    if (t.type === 'income') {
+    if (t.type === "income") {
       totalIncome += t.amount;
       incomeCount++;
-    } else if (t.type === 'expense') {
+    } else if (t.type === "expense") {
       totalExpenses += t.amount;
       expenseCount++;
     }
   }
 
   const lines: string[] = [];
-  lines.push('Last 30 days:');
-  lines.push(`- Income: ${formatDollars(totalIncome)} (${incomeCount} transactions)`);
-  lines.push(`- Expenses: ${formatDollars(totalExpenses)} (${expenseCount} transactions)`);
+  lines.push("Last 30 days:");
+  lines.push(
+    `- Income: ${formatDollars(totalIncome)} (${incomeCount} transactions)`,
+  );
+  lines.push(
+    `- Expenses: ${formatDollars(totalExpenses)} (${expenseCount} transactions)`,
+  );
   lines.push(`- Net: ${formatDollars(totalIncome - totalExpenses)}`);
-  lines.push(`- Daily average spending: ${formatDollars(Math.round(totalExpenses / 30))}`);
+  lines.push(
+    `- Daily average spending: ${formatDollars(Math.round(totalExpenses / 30))}`,
+  );
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -170,7 +181,7 @@ async function buildRecentSpending(): Promise<string> {
  */
 async function buildRecentTransactionsList(): Promise<string | undefined> {
   const transactions = await db.transactions
-    .orderBy('date')
+    .orderBy("date")
     .reverse()
     .limit(20)
     .toArray();
@@ -187,27 +198,27 @@ async function buildRecentTransactionsList(): Promise<string | undefined> {
   const accounts = await db.accounts.toArray();
   const accountMap = new Map(accounts.map((a) => [a.id, a.name]));
 
-  const lines: string[] = ['Last 20 transactions:'];
+  const lines: string[] = ["Last 20 transactions:"];
 
   for (let i = 0; i < transactions.length; i++) {
     const t = transactions[i];
-    const dateStr = t.date.toLocaleDateString('en-AU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+    const dateStr = t.date.toLocaleDateString("en-AU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
     const merchant = t.merchantName || t.description;
     const category = t.categoryId ? categoryMap.get(t.categoryId) : null;
-    const account = accountMap.get(t.accountId) || 'Unknown';
-    const typeIndicator = t.type === 'income' ? '+' : '-';
+    const account = accountMap.get(t.accountId) || "Unknown";
+    const typeIndicator = t.type === "income" ? "+" : "-";
 
-    const categoryStr = category ? ` (${category})` : '';
+    const categoryStr = category ? ` (${category})` : "";
     lines.push(
-      `${i + 1}. ${dateStr} - ${merchant} - ${typeIndicator}${formatDollars(t.amount)}${categoryStr} [${account}]`
+      `${i + 1}. ${dateStr} - ${merchant} - ${typeIndicator}${formatDollars(t.amount)}${categoryStr} [${account}]`,
     );
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -216,10 +227,10 @@ async function buildRecentTransactionsList(): Promise<string | undefined> {
 function normalizeMerchantName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, " ")
+    .replace(/[^a-z0-9\s]/g, "")
     .trim()
-    .split(' ')[0]; // Take first word for grouping (e.g., "woolworths" from "woolworths metro sydney")
+    .split(" ")[0]; // Take first word for grouping (e.g., "woolworths" from "woolworths metro sydney")
 }
 
 /**
@@ -230,9 +241,9 @@ async function buildMerchantPatterns(): Promise<string | undefined> {
   sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
   const transactions = await db.transactions
-    .where('date')
+    .where("date")
     .above(sixtyDaysAgo)
-    .filter((t) => t.type === 'expense')
+    .filter((t) => t.type === "expense")
     .toArray();
 
   if (transactions.length === 0) {
@@ -269,16 +280,16 @@ async function buildMerchantPatterns(): Promise<string | undefined> {
     return undefined;
   }
 
-  const lines: string[] = ['Top 10 merchants (last 60 days):'];
+  const lines: string[] = ["Top 10 merchants (last 60 days):"];
   for (let i = 0; i < sorted.length; i++) {
     const m = sorted[i];
     const avgPerTxn = Math.round(m.total / m.count);
     lines.push(
-      `${i + 1}. ${m.displayName}: ${formatDollars(m.total)} (${m.count} txn, avg ${formatDollars(avgPerTxn)})`
+      `${i + 1}. ${m.displayName}: ${formatDollars(m.total)} (${m.count} txn, avg ${formatDollars(avgPerTxn)})`,
     );
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -289,13 +300,13 @@ async function buildTopCategories(): Promise<string> {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const transactions = await db.transactions
-    .where('date')
+    .where("date")
     .above(thirtyDaysAgo)
-    .filter((t) => t.type === 'expense' && t.categoryId != null)
+    .filter((t) => t.type === "expense" && t.categoryId != null)
     .toArray();
 
   if (transactions.length === 0) {
-    return 'No categorized expenses in the last 30 days.';
+    return "No categorized expenses in the last 30 days.";
   }
 
   const categories = await db.categories.toArray();
@@ -311,16 +322,18 @@ async function buildTopCategories(): Promise<string> {
 
   // Sort by amount and take top 5
   const sorted = Object.entries(byCategoryId)
-    .map(([id, amount]) => ({ name: categoryMap.get(id) || 'Unknown', amount }))
+    .map(([id, amount]) => ({ name: categoryMap.get(id) || "Unknown", amount }))
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 5);
 
-  const lines: string[] = ['Top 5 spending categories (last 30 days):'];
+  const lines: string[] = ["Top 5 spending categories (last 30 days):"];
   for (let i = 0; i < sorted.length; i++) {
-    lines.push(`${i + 1}. ${sorted[i].name}: ${formatDollars(sorted[i].amount)}`);
+    lines.push(
+      `${i + 1}. ${sorted[i].name}: ${formatDollars(sorted[i].amount)}`,
+    );
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -346,21 +359,27 @@ async function buildPortfolioSummary(): Promise<string | undefined> {
   }
 
   const unrealizedGain = totalValue - totalCostBasis;
-  const gainPercent = totalCostBasis > 0 ? ((unrealizedGain / totalCostBasis) * 100).toFixed(1) : '0';
+  const gainPercent =
+    totalCostBasis > 0
+      ? ((unrealizedGain / totalCostBasis) * 100).toFixed(1)
+      : "0";
 
   const lines: string[] = [];
   lines.push(`Total holdings: ${holdings.length}`);
   lines.push(`Portfolio value: ${formatDollars(totalValue)}`);
   lines.push(`Cost basis: ${formatDollars(totalCostBasis)}`);
-  lines.push(`Unrealized gain/loss: ${formatDollars(unrealizedGain)} (${gainPercent}%)`);
+  lines.push(
+    `Unrealized gain/loss: ${formatDollars(unrealizedGain)} (${gainPercent}%)`,
+  );
 
-  lines.push('\nAllocation by type:');
+  lines.push("\nAllocation by type:");
   for (const [type, value] of Object.entries(byType)) {
-    const percent = totalValue > 0 ? ((value / totalValue) * 100).toFixed(1) : '0';
+    const percent =
+      totalValue > 0 ? ((value / totalValue) * 100).toFixed(1) : "0";
     lines.push(`- ${type}: ${formatDollars(value)} (${percent}%)`);
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -368,9 +387,12 @@ async function buildPortfolioSummary(): Promise<string | undefined> {
  */
 async function buildTaxSummary(): Promise<string | undefined> {
   const fy = getCurrentFinancialYear();
+  const { start, end } = getFinancialYearDates(fy);
 
-  // Get deductible transactions
+  // Get deductible transactions using indexed date query for better performance
   const transactions = await db.transactions
+    .where("date")
+    .between(start, end, true, true)
     .filter((t) => t.isDeductible === true)
     .toArray();
 
@@ -379,11 +401,14 @@ async function buildTaxSummary(): Promise<string | undefined> {
   }
 
   // Group by ATO category
-  const byAtoCategory: Record<string, { total: number; transactions: typeof transactions }> = {};
+  const byAtoCategory: Record<
+    string,
+    { total: number; transactions: typeof transactions }
+  > = {};
   let totalDeductions = 0;
 
   for (const t of transactions) {
-    const category = t.atoCategory || 'Uncategorized';
+    const category = t.atoCategory || "Uncategorized";
     if (!byAtoCategory[category]) {
       byAtoCategory[category] = { total: 0, transactions: [] };
     }
@@ -396,9 +421,11 @@ async function buildTaxSummary(): Promise<string | undefined> {
   lines.push(`Financial Year: ${fy}`);
   lines.push(`Total potential deductions: ${formatDollars(totalDeductions)}`);
 
-  lines.push('\nBy ATO category:');
+  lines.push("\nBy ATO category:");
   for (const [category, data] of Object.entries(byAtoCategory)) {
-    lines.push(`- ${category}: ${formatDollars(data.total)} (${data.transactions.length} items)`);
+    lines.push(
+      `- ${category}: ${formatDollars(data.total)} (${data.transactions.length} items)`,
+    );
   }
 
   // Add recent deductible transaction examples (last 10)
@@ -407,19 +434,21 @@ async function buildTaxSummary(): Promise<string | undefined> {
     .slice(0, 10);
 
   if (recentDeductible.length > 0) {
-    lines.push('\nRecent deductible transactions:');
+    lines.push("\nRecent deductible transactions:");
     for (const t of recentDeductible) {
-      const dateStr = t.date.toLocaleDateString('en-AU', {
-        day: '2-digit',
-        month: '2-digit',
+      const dateStr = t.date.toLocaleDateString("en-AU", {
+        day: "2-digit",
+        month: "2-digit",
       });
-      const atoCategory = t.atoCategory ? `[${t.atoCategory}]` : '';
+      const atoCategory = t.atoCategory ? `[${t.atoCategory}]` : "";
       const description = t.merchantName || t.description;
-      lines.push(`- ${dateStr}: ${description} - ${formatDollars(t.amount)} ${atoCategory}`);
+      lines.push(
+        `- ${dateStr}: ${description} - ${formatDollars(t.amount)} ${atoCategory}`,
+      );
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -427,15 +456,15 @@ async function buildTaxSummary(): Promise<string | undefined> {
  */
 export async function buildSpendingContext(
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<string> {
   const transactions = await db.transactions
-    .where('date')
+    .where("date")
     .between(startDate, endDate)
     .toArray();
 
   if (transactions.length === 0) {
-    return 'No transactions found for this period.';
+    return "No transactions found for this period.";
   }
 
   const categories = await db.categories.toArray();
@@ -444,18 +473,21 @@ export async function buildSpendingContext(
   // Calculate totals
   let totalIncome = 0;
   let totalExpenses = 0;
-  const byCategory: Record<string, { name: string; amount: number; count: number }> = {};
+  const byCategory: Record<
+    string,
+    { name: string; amount: number; count: number }
+  > = {};
 
   for (const t of transactions) {
-    if (t.type === 'income') {
+    if (t.type === "income") {
       totalIncome += t.amount;
-    } else if (t.type === 'expense') {
+    } else if (t.type === "expense") {
       totalExpenses += t.amount;
 
       if (t.categoryId) {
         if (!byCategory[t.categoryId]) {
           byCategory[t.categoryId] = {
-            name: categoryMap.get(t.categoryId) || 'Unknown',
+            name: categoryMap.get(t.categoryId) || "Unknown",
             amount: 0,
             count: 0,
           };
@@ -467,7 +499,9 @@ export async function buildSpendingContext(
   }
 
   const lines: string[] = [];
-  lines.push(`Period: ${startDate.toLocaleDateString('en-AU')} to ${endDate.toLocaleDateString('en-AU')}`);
+  lines.push(
+    `Period: ${startDate.toLocaleDateString("en-AU")} to ${endDate.toLocaleDateString("en-AU")}`,
+  );
   lines.push(`Total transactions: ${transactions.length}`);
   lines.push(`Total income: ${formatDollars(totalIncome)}`);
   lines.push(`Total expenses: ${formatDollars(totalExpenses)}`);
@@ -478,11 +512,13 @@ export async function buildSpendingContext(
     .slice(0, 10);
 
   if (sortedCategories.length > 0) {
-    lines.push('\nSpending by category:');
+    lines.push("\nSpending by category:");
     for (const cat of sortedCategories) {
-      lines.push(`- ${cat.name}: ${formatDollars(cat.amount)} (${cat.count} transactions)`);
+      lines.push(
+        `- ${cat.name}: ${formatDollars(cat.amount)} (${cat.count} transactions)`,
+      );
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
