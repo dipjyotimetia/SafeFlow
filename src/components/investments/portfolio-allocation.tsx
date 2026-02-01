@@ -1,34 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useHoldingsByType, usePortfolioSummary } from '@/hooks';
-import { formatAUD } from '@/lib/utils/currency';
-import type { HoldingType } from '@/types';
-import { BarChart3, Building2, Bitcoin, Landmark } from 'lucide-react';
-
-// Color palette for holding types
-const TYPE_COLORS: Record<HoldingType, string> = {
-  etf: 'oklch(0.55 0.15 160)', // emerald
-  stock: 'oklch(0.6 0.12 220)', // blue
-  crypto: 'oklch(0.65 0.18 45)', // orange
-  'managed-fund': 'oklch(0.55 0.12 280)', // purple
-};
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useHoldingsByType, usePortfolioSummary } from "@/hooks";
+import { CHART_COLORS } from "@/lib/charts/config";
+import { useChartAccessibility, useChartAnimations } from "@/lib/charts/hooks";
+import { formatAUD } from "@/lib/utils/currency";
+import type { HoldingType } from "@/types";
+import { BarChart3, Bitcoin, Building2, Landmark } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 const TYPE_LABELS: Record<HoldingType, string> = {
-  etf: 'ETFs',
-  stock: 'Stocks',
-  crypto: 'Crypto',
-  'managed-fund': 'Managed Funds',
+  etf: "ETFs",
+  stock: "Stocks",
+  crypto: "Crypto",
+  "managed-fund": "Managed Funds",
 };
 
 const TYPE_ICONS: Record<HoldingType, React.ReactNode> = {
   etf: <BarChart3 className="h-3 w-3" />,
   stock: <Building2 className="h-3 w-3" />,
   crypto: <Bitcoin className="h-3 w-3" />,
-  'managed-fund': <Landmark className="h-3 w-3" />,
+  "managed-fund": <Landmark className="h-3 w-3" />,
 };
 
 interface ChartDataItem {
@@ -53,7 +47,7 @@ function CustomTooltip({
   if (active && payload && payload.length) {
     const item = payload[0].payload;
     return (
-      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-xl min-w-[160px]">
+      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-xl min-w-40">
         <div className="flex items-center gap-2 mb-2">
           <span
             className="h-3 w-3 rounded-full"
@@ -69,7 +63,7 @@ function CustomTooltip({
             {item.percentage.toFixed(1)}% of portfolio
           </p>
           <p className="text-xs text-muted-foreground">
-            {item.holdingCount} holding{item.holdingCount !== 1 ? 's' : ''}
+            {item.holdingCount} holding{item.holdingCount !== 1 ? "s" : ""}
           </p>
         </div>
       </div>
@@ -82,6 +76,10 @@ export function PortfolioAllocation() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const { grouped, isLoading: isGroupedLoading } = useHoldingsByType();
   const { summary, isLoading: isSummaryLoading } = usePortfolioSummary();
+  const accessibilityProps = useChartAccessibility(
+    "Portfolio allocation by investment type",
+    "Distribution of investments across different asset classes",
+  );
 
   const isLoading = isGroupedLoading || isSummaryLoading;
 
@@ -89,7 +87,7 @@ export function PortfolioAllocation() {
     const data: ChartDataItem[] = [];
     const total = summary.totalValue;
 
-    const types: HoldingType[] = ['etf', 'stock', 'crypto', 'managed-fund'];
+    const types: HoldingType[] = ["etf", "stock", "crypto", "managed-fund"];
 
     for (const type of types) {
       const group = grouped[type];
@@ -99,7 +97,7 @@ export function PortfolioAllocation() {
           label: TYPE_LABELS[type],
           value: group.totalValue / 100,
           valueCents: group.totalValue,
-          fill: TYPE_COLORS[type],
+          fill: CHART_COLORS.investment[type],
           percentage: total > 0 ? (group.totalValue / total) * 100 : 0,
           holdingCount: group.holdings.length,
         });
@@ -111,6 +109,8 @@ export function PortfolioAllocation() {
 
     return data;
   }, [grouped, summary.totalValue]);
+
+  const animationConfig = useChartAnimations(chartData.length);
 
   if (isLoading) {
     return (
@@ -150,7 +150,11 @@ export function PortfolioAllocation() {
       <CardContent>
         <div className="flex flex-col h-full">
           <div className="flex-1 min-h-0 relative">
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer
+              width="100%"
+              height={200}
+              {...accessibilityProps}
+            >
               <PieChart>
                 <Pie
                   data={chartData}
@@ -163,28 +167,28 @@ export function PortfolioAllocation() {
                   nameKey="label"
                   onMouseEnter={(_, index) => setActiveIndex(index)}
                   onMouseLeave={() => setActiveIndex(null)}
-                  isAnimationActive={true}
-                  animationDuration={500}
-                  animationEasing="ease-out"
+                  isAnimationActive={animationConfig.isAnimationActive}
+                  animationDuration={animationConfig.animationDuration}
+                  animationEasing={animationConfig.animationEasing}
                 >
                   {chartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={entry.fill}
                       style={{
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease-out',
+                        cursor: "pointer",
+                        transition: "all 0.2s ease-out",
                         opacity:
                           activeIndex === null || activeIndex === index
                             ? 1
                             : 0.5,
                         transform:
-                          activeIndex === index ? 'scale(1.05)' : 'scale(1)',
-                        transformOrigin: 'center',
+                          activeIndex === index ? "scale(1.05)" : "scale(1)",
+                        transformOrigin: "center",
                         filter:
                           activeIndex === index
-                            ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))'
-                            : 'none',
+                            ? "drop-shadow(0 4px 6px rgba(0,0,0,0.15))"
+                            : "none",
                       }}
                     />
                   ))}
@@ -212,12 +216,12 @@ export function PortfolioAllocation() {
                 key={entry.type}
                 className={`flex items-center justify-between gap-2 transition-opacity duration-200 ${
                   activeIndex === null || activeIndex === index
-                    ? 'opacity-100'
-                    : 'opacity-50'
+                    ? "opacity-100"
+                    : "opacity-50"
                 }`}
                 onMouseEnter={() => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(null)}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: "pointer" }}
               >
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span

@@ -1,25 +1,38 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Header } from '@/components/layout/header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Target, TrendingUp, Calculator, Landmark, Loader2 } from 'lucide-react';
-import { useAllGoalProgress } from '@/hooks';
+import { useState } from "react";
+import { Header } from "@/components/layout/header";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Plus,
+  Target,
+  TrendingUp,
+  Calculator,
+  Landmark,
+  Loader2,
+} from "lucide-react";
+import { useAllGoalProgress } from "@/hooks";
 import {
   GoalCard,
   GoalFormDialog,
   ProjectionChart,
   RetirementCalculator,
   CompoundInterestCalculator,
-} from '@/components/goals';
-import type { Goal } from '@/types';
+} from "@/components/goals";
+import type { Goal } from "@/types";
 
 export default function GoalsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
-  const [activeTab, setActiveTab] = useState('goals');
+  const [activeTab, setActiveTab] = useState("goals");
 
   const { progress, isLoading } = useAllGoalProgress();
 
@@ -35,9 +48,13 @@ export default function GoalsPage() {
     }
   };
 
-  const activeGoals = progress.filter((p) => p.goal.status === 'active');
-  const achievedGoals = progress.filter((p) => p.goal.status === 'achieved');
-  const pausedGoals = progress.filter((p) => p.goal.status === 'paused');
+  const activeGoals = progress.filter((p) => p.goal.isActive);
+  const achievedGoals = progress.filter(
+    (p) => !p.goal.isActive && p.progressPercent >= 100,
+  );
+  const pausedGoals = progress.filter(
+    (p) => !p.goal.isActive && p.progressPercent < 100,
+  );
 
   return (
     <>
@@ -64,7 +81,7 @@ export default function GoalsPage() {
               </TabsTrigger>
             </TabsList>
 
-            {activeTab === 'goals' && (
+            {activeTab === "goals" && (
               <Button onClick={() => setIsFormOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Goal
@@ -100,7 +117,11 @@ export default function GoalsPage() {
                     <h3 className="text-lg font-medium mb-4">Active Goals</h3>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {activeGoals.map((progress) => (
-                        <GoalCard key={progress.goal.id} progress={progress} onEdit={handleEdit} />
+                        <GoalCard
+                          key={progress.goal.id}
+                          progress={progress}
+                          onEdit={handleEdit}
+                        />
                       ))}
                     </div>
                   </div>
@@ -109,10 +130,16 @@ export default function GoalsPage() {
                 {/* Paused Goals */}
                 {pausedGoals.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-medium mb-4 text-muted-foreground">Paused Goals</h3>
+                    <h3 className="text-lg font-medium mb-4 text-muted-foreground">
+                      Paused Goals
+                    </h3>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {pausedGoals.map((progress) => (
-                        <GoalCard key={progress.goal.id} progress={progress} onEdit={handleEdit} />
+                        <GoalCard
+                          key={progress.goal.id}
+                          progress={progress}
+                          onEdit={handleEdit}
+                        />
                       ))}
                     </div>
                   </div>
@@ -121,10 +148,16 @@ export default function GoalsPage() {
                 {/* Achieved Goals */}
                 {achievedGoals.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-medium mb-4 text-success">Achieved Goals</h3>
+                    <h3 className="text-lg font-medium mb-4 text-success">
+                      Achieved Goals
+                    </h3>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {achievedGoals.map((progress) => (
-                        <GoalCard key={progress.goal.id} progress={progress} onEdit={handleEdit} />
+                        <GoalCard
+                          key={progress.goal.id}
+                          progress={progress}
+                          onEdit={handleEdit}
+                        />
                       ))}
                     </div>
                   </div>
@@ -145,8 +178,9 @@ export default function GoalsPage() {
                 <CardHeader>
                   <CardTitle>Australian Retirement Planning</CardTitle>
                   <CardDescription>
-                    Calculate your retirement readiness based on superannuation and investment
-                    holdings. Factors in 15% super earnings tax and preservation age rules.
+                    Calculate your retirement readiness based on superannuation
+                    and investment holdings. Factors in 15% super earnings tax
+                    and preservation age rules.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -161,8 +195,9 @@ export default function GoalsPage() {
                 <CardHeader>
                   <CardTitle>Compound Interest Calculator</CardTitle>
                   <CardDescription>
-                    See how your money can grow over time with regular contributions and compound
-                    returns. Great for planning savings goals and understanding long-term growth.
+                    See how your money can grow over time with regular
+                    contributions and compound returns. Great for planning
+                    savings goals and understanding long-term growth.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -172,7 +207,11 @@ export default function GoalsPage() {
         </Tabs>
       </div>
 
-      <GoalFormDialog open={isFormOpen} onOpenChange={handleCloseForm} goal={editingGoal} />
+      <GoalFormDialog
+        open={isFormOpen}
+        onOpenChange={handleCloseForm}
+        goal={editingGoal}
+      />
     </>
   );
 }

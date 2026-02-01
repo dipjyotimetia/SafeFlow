@@ -1,11 +1,16 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 interface SkeletonProps extends React.ComponentProps<"div"> {
-  shimmer?: boolean
-  variant?: "default" | "premium"
+  shimmer?: boolean;
+  variant?: "default" | "premium";
 }
 
-function Skeleton({ className, shimmer = true, variant = "default", ...props }: SkeletonProps) {
+function Skeleton({
+  className,
+  shimmer = true,
+  variant = "default",
+  ...props
+}: SkeletonProps) {
   return (
     <div
       data-slot="skeleton"
@@ -13,23 +18,24 @@ function Skeleton({ className, shimmer = true, variant = "default", ...props }: 
         "rounded-lg",
         shimmer
           ? variant === "premium"
-            ? "bg-gradient-to-r from-muted via-muted/60 to-muted animate-shimmer bg-[length:400%_100%]"
-            : "bg-gradient-to-r from-accent via-accent/50 to-accent animate-shimmer"
+            ? "bg-linear-to-r from-muted via-muted/50 to-muted animate-shimmer bg-size-[400%_100%]"
+            : "bg-linear-to-r from-accent via-accent/40 to-accent animate-shimmer bg-size-[200%_100%]"
           : "bg-accent animate-pulse",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function SkeletonCard({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/40 bg-card p-6 space-y-4",
-        "shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)]",
-        className
+        "rounded-xl border border-border/40 glass-luxury p-6 space-y-4",
+        "shadow-[0_4px_20px_rgba(0,0,0,0.06)]",
+        "dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]",
+        className,
       )}
       {...props}
     >
@@ -43,7 +49,7 @@ function SkeletonCard({ className, ...props }: React.ComponentProps<"div">) {
         <Skeleton className="h-3 w-20" variant="premium" />
       </div>
     </div>
-  )
+  );
 }
 
 function SkeletonChart({ className, ...props }: React.ComponentProps<"div">) {
@@ -52,7 +58,7 @@ function SkeletonChart({ className, ...props }: React.ComponentProps<"div">) {
       className={cn(
         "rounded-xl border border-border/40 bg-card p-6 space-y-4",
         "shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)]",
-        className
+        className,
       )}
       {...props}
     >
@@ -71,23 +77,30 @@ function SkeletonChart({ className, ...props }: React.ComponentProps<"div">) {
             <Skeleton
               key={i}
               className="flex-1 rounded-t-md"
-              style={{ height: `${height * 100}%`, animationDelay: `${i * 0.1}s` }}
+              style={{
+                height: `${height * 100}%`,
+                animationDelay: `${i * 0.1}s`,
+              }}
               variant="premium"
             />
           ))}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function SkeletonTable({ rows = 5, className, ...props }: React.ComponentProps<"div"> & { rows?: number }) {
+function SkeletonTable({
+  rows = 5,
+  className,
+  ...props
+}: React.ComponentProps<"div"> & { rows?: number }) {
   return (
     <div
       className={cn(
         "rounded-xl border border-border/40 bg-card p-6 space-y-4",
         "shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)]",
-        className
+        className,
       )}
       {...props}
     >
@@ -112,10 +125,13 @@ function SkeletonTable({ rows = 5, className, ...props }: React.ComponentProps<"
         ))}
       </div>
     </div>
-  )
+  );
 }
 
-function SkeletonTransaction({ className, ...props }: React.ComponentProps<"div">) {
+function SkeletonTransaction({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       className={cn("flex items-center gap-4 py-3 px-2 rounded-lg", className)}
@@ -131,17 +147,24 @@ function SkeletonTransaction({ className, ...props }: React.ComponentProps<"div"
         <Skeleton className="h-5 w-16 ml-auto rounded-full" variant="premium" />
       </div>
     </div>
-  )
+  );
 }
 
-function SkeletonMetricCards({ count = 4, className, ...props }: React.ComponentProps<"div"> & { count?: number }) {
+function SkeletonMetricCards({
+  count = 4,
+  className,
+  ...props
+}: React.ComponentProps<"div"> & { count?: number }) {
   return (
-    <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-4", className)} {...props}>
+    <div
+      className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-4", className)}
+      {...props}
+    >
       {Array.from({ length: count }).map((_, i) => (
         <SkeletonCard key={i} style={{ animationDelay: `${i * 0.1}s` }} />
       ))}
     </div>
-  )
+  );
 }
 
 export {
@@ -150,5 +173,5 @@ export {
   SkeletonChart,
   SkeletonTable,
   SkeletonTransaction,
-  SkeletonMetricCards
-}
+  SkeletonMetricCards,
+};

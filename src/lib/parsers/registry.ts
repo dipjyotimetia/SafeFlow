@@ -1,6 +1,6 @@
 // Bank parser registry - manages all available parsers
 
-import type { BankParser, ParseResult, PDFContent } from './types';
+import type { BankParser, ParseResult, PDFContent } from "./types";
 
 class ParserRegistry {
   private parsers: BankParser[] = [];
@@ -47,7 +47,9 @@ class ParserRegistry {
       return {
         success: false,
         transactions: [],
-        errors: ['Unable to detect bank format. Please select your bank manually or ensure you uploaded a valid bank statement.'],
+        errors: [
+          "Unable to detect bank format. Please select your bank manually or ensure you uploaded a valid bank statement.",
+        ],
         warnings: [],
       };
     }

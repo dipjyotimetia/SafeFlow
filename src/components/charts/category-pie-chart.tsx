@@ -1,8 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { formatAUD } from '@/lib/utils/currency';
+import { CHART_COLORS } from "@/lib/charts/config";
+import {
+  useChartAccessibility,
+  useChartAnimations,
+  useResponsiveHeight,
+} from "@/lib/charts/hooks";
+import { formatAUD } from "@/lib/utils/currency";
+import { useState } from "react";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 interface CategoryData {
   categoryId: string;
@@ -13,21 +19,12 @@ interface CategoryData {
 
 interface CategoryPieChartProps {
   data: CategoryData[];
+  maxCategories?: number;
+  showLegend?: boolean;
+  interactive?: boolean;
+  ariaLabel?: string;
+  height?: number;
 }
-
-// Premium emerald/teal color palette
-const COLORS = [
-  'oklch(0.55 0.15 160)', // emerald primary
-  'oklch(0.6 0.12 180)',  // teal
-  'oklch(0.7 0.14 85)',   // gold accent
-  'oklch(0.5 0.08 220)',  // slate blue
-  'oklch(0.65 0.18 145)', // success green
-  'oklch(0.6 0.1 200)',   // cyan
-  'oklch(0.55 0.12 280)', // purple
-  'oklch(0.65 0.15 30)',  // coral
-  'oklch(0.6 0.14 120)',  // lime
-  'oklch(0.5 0.1 260)',   // indigo
-];
 
 interface ChartDataItem {
   categoryId: string;
@@ -39,7 +36,13 @@ interface ChartDataItem {
 }
 
 // Tooltip component defined outside to avoid recreating during render
-function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartDataItem }> }) {
+function CustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: ChartDataItem }>;
+}) {
   if (active && payload && payload.length) {
     const item = payload[0].payload;
     return (
@@ -52,11 +55,11 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
           <p className="font-semibold text-sm">{item.categoryName}</p>
         </div>
         <div className="space-y-1.5">
-          <p className="text-xl font-bold tabular-nums font-display">{formatAUD(item.amount * 100)}</p>
+          <p className="text-xl font-bold tabular-nums font-display">
+            {formatAUD(item.amount * 100)}
+          </p>
           <div className="flex items-center gap-1.5">
-            <div
-              className="h-1.5 rounded-full flex-1 bg-muted overflow-hidden"
-            >
+            <div className="h-1.5 rounded-full flex-1 bg-muted overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
@@ -65,7 +68,9 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
                 }}
               />
             </div>
-            <span className="text-sm text-muted-foreground font-medium">{item.percentage.toFixed(1)}%</span>
+            <span className="text-sm text-muted-foreground font-medium">
+              {item.percentage.toFixed(1)}%
+            </span>
           </div>
         </div>
       </div>
@@ -74,32 +79,49 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
   return null;
 }
 
-export function CategoryPieChart({ data }: CategoryPieChartProps) {
+export function CategoryPieChart({
+  data,
+  maxCategories = 8,
+  showLegend = true,
+  interactive = true,
+  ariaLabel = "Category spending breakdown",
+  height = 300,
+}: CategoryPieChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const responsiveHeight = useResponsiveHeight(height);
+  const accessibilityProps = useChartAccessibility(
+    ariaLabel,
+    `Spending breakdown across ${data.length} categories`,
+  );
 
   // Calculate total for percentages
   const total = data.reduce((sum, d) => sum + d.amount, 0);
 
-  // Convert cents to dollars and limit to top 8 categories
+  // Convert cents to dollars and limit to configured max categories
   const chartData: ChartDataItem[] = data
-    .slice(0, 8)
+    .slice(0, maxCategories)
     .map((d, index) => ({
       ...d,
       amount: d.amount / 100,
-      fill: d.color || COLORS[index % COLORS.length],
+      fill:
+        d.color || CHART_COLORS.category[index % CHART_COLORS.category.length],
       percentage: total > 0 ? (d.amount / total) * 100 : 0,
     }));
 
-  const otherTotal = data.slice(8).reduce((sum, d) => sum + d.amount, 0);
+  const otherTotal = data
+    .slice(maxCategories)
+    .reduce((sum, d) => sum + d.amount, 0);
   if (otherTotal > 0) {
     chartData.push({
-      categoryId: 'other',
-      categoryName: 'Other',
+      categoryId: "other",
+      categoryName: "Other",
       amount: otherTotal / 100,
-      fill: 'oklch(0.65 0.02 160)', // muted teal
+      fill: "oklch(0.65 0.02 160)", // muted teal
       percentage: total > 0 ? (otherTotal / total) * 100 : 0,
     });
   }
+
+  const animationConfig = useChartAnimations(chartData.length);
 
   if (chartData.length === 0) {
     return (
@@ -112,7 +134,12 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 min-h-0 relative">
-        <ResponsiveContainer width="100%" height="100%" minHeight={160}>
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minHeight={160}
+          {...accessibilityProps}
+        >
           <PieChart>
             <Pie
               data={chartData}
@@ -123,23 +150,38 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
               paddingAngle={2}
               dataKey="amount"
               nameKey="categoryName"
-              onMouseEnter={(_, index) => setActiveIndex(index)}
-              onMouseLeave={() => setActiveIndex(null)}
-              isAnimationActive={true}
-              animationDuration={500}
-              animationEasing="ease-out"
+              onMouseEnter={
+                interactive ? (_, index) => setActiveIndex(index) : undefined
+              }
+              onMouseLeave={
+                interactive ? () => setActiveIndex(null) : undefined
+              }
+              isAnimationActive={animationConfig.isAnimationActive}
+              animationDuration={animationConfig.animationDuration}
+              animationEasing={animationConfig.animationEasing}
             >
               {chartData.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={entry.fill}
                   style={{
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease-out',
-                    opacity: activeIndex === null || activeIndex === index ? 1 : 0.5,
-                    transform: activeIndex === index ? 'scale(1.05)' : 'scale(1)',
-                    transformOrigin: 'center',
-                    filter: activeIndex === index ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none',
+                    cursor: interactive ? "pointer" : "default",
+                    transition: "all 0.2s ease-out",
+                    opacity:
+                      !interactive ||
+                      activeIndex === null ||
+                      activeIndex === index
+                        ? 1
+                        : 0.5,
+                    transform:
+                      interactive && activeIndex === index
+                        ? "scale(1.05)"
+                        : "scale(1)",
+                    transformOrigin: "center",
+                    filter:
+                      interactive && activeIndex === index
+                        ? "drop-shadow(0 4px 6px rgba(0,0,0,0.15))"
+                        : "none",
                   }}
                 />
               ))}
@@ -150,40 +192,63 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
         {/* Center label showing total - positioned absolutely */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center bg-card/80 backdrop-blur-sm rounded-full px-3 py-2 shadow-sm border border-border/20">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Total</p>
-            <p className="text-base font-bold tabular-nums font-display">{formatAUD(total)}</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Total
+            </p>
+            <p className="text-base font-bold tabular-nums font-display">
+              {formatAUD(total)}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Custom legend with percentages */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs px-2 pt-3 max-h-[90px] overflow-y-auto">
-        {chartData.map((entry, index) => (
-          <div
-            key={entry.categoryId}
-            className={`flex items-center justify-between gap-2 py-1 px-1.5 rounded-md transition-all duration-200 cursor-pointer ${
-              activeIndex === null || activeIndex === index
-                ? 'opacity-100'
-                : 'opacity-40'
-            } ${
-              activeIndex === index ? 'bg-accent/50' : 'hover:bg-accent/30'
-            }`}
-            onMouseEnter={() => setActiveIndex(index)}
-            onMouseLeave={() => setActiveIndex(null)}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <span
-                className="h-2.5 w-2.5 rounded-full flex-shrink-0 shadow-sm"
-                style={{ backgroundColor: entry.fill }}
-              />
-              <span className="text-muted-foreground truncate font-medium">{entry.categoryName}</span>
+      {showLegend && (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs px-2 pt-3 max-h-[90px] overflow-y-auto">
+          {chartData.map((entry, index) => (
+            <div
+              key={entry.categoryId}
+              className={`flex items-center justify-between gap-2 py-1 px-1.5 rounded-md transition-all duration-200 ${
+                interactive ? "cursor-pointer" : ""
+              } ${
+                !interactive || activeIndex === null || activeIndex === index
+                  ? "opacity-100"
+                  : "opacity-40"
+              } ${
+                interactive && activeIndex === index
+                  ? "bg-accent/50"
+                  : "hover:bg-accent/30"
+              }`}
+              onMouseEnter={
+                interactive ? () => setActiveIndex(index) : undefined
+              }
+              onMouseLeave={
+                interactive ? () => setActiveIndex(null) : undefined
+              }
+              role={interactive ? "button" : undefined}
+              tabIndex={interactive ? 0 : -1}
+              aria-label={
+                interactive
+                  ? `${entry.categoryName}: ${entry.percentage.toFixed(1)}%`
+                  : undefined
+              }
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="h-2.5 w-2.5 rounded-full shrink-0 shadow-sm"
+                  style={{ backgroundColor: entry.fill }}
+                />
+                <span className="text-muted-foreground truncate font-medium">
+                  {entry.categoryName}
+                </span>
+              </div>
+              <span className="font-semibold text-foreground shrink-0 tabular-nums">
+                {entry.percentage.toFixed(0)}%
+              </span>
             </div>
-            <span className="font-semibold text-foreground flex-shrink-0 tabular-nums">
-              {entry.percentage.toFixed(0)}%
-            </span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

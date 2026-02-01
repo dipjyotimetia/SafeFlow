@@ -140,7 +140,7 @@ export interface Holding extends Versionable {
 }
 
 // Price history for charts and analytics
-export type PriceHistorySource = 'api' | 'manual';
+export type PriceHistorySource = "api" | "manual";
 
 export interface PriceHistoryEntry {
   id: string;
@@ -510,8 +510,10 @@ export type GoalStatus = "active" | "achieved" | "paused" | "cancelled";
 
 export interface Goal extends Versionable {
   id: string;
+  memberId: string; // Family member who owns this goal
   name: string;
   type: GoalType;
+  priority: number; // 1-5, where 1 is highest priority
   targetAmount: number; // cents
   currentAmount: number; // cents - calculated/cached
   targetDate?: Date; // Optional deadline
@@ -530,7 +532,7 @@ export interface Goal extends Versionable {
   linkedHoldingIds?: string[];
 
   // Metadata
-  status: GoalStatus;
+  isActive: boolean; // Replaces status enum with simple active/inactive
   notes?: string;
   color?: string;
   icon?: string;
@@ -559,7 +561,7 @@ export interface PortfolioSnapshot {
 }
 
 // Tax Lot for FIFO/LIFO/Specific ID cost basis tracking
-export type CostBasisMethod = 'average' | 'fifo' | 'lifo' | 'specific-id';
+export type CostBasisMethod = "average" | "fifo" | "lifo" | "specific-id";
 
 export interface TaxLot extends Versionable {
   id: string;
