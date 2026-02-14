@@ -161,6 +161,7 @@ Open [localhost:3000](http://localhost:3000) and you're ready to go.
 ## Documentation
 
 - [User Guide](docs/USER_GUIDE.md) - Full walkthrough of daily workflows
+- [Local AI Chat Setup](docs/LOCAL_AI_SETUP.md) - Configure private local AI assistant
 - [Backup and Sync Guide](docs/BACKUP_AND_SYNC.md) - Data safety and restore process
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and fixes
 

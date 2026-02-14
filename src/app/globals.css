@@ -83,8 +83,8 @@
   --accent-foreground: oklch(0.3 0.05 205);
 
   --destructive: oklch(0.61 0.2 26);
-  --success: oklch(0.62 0.15 160);
-  --success-foreground: oklch(0.17 0.03 160);
+  --success: oklch(0.64 0.1 206);
+  --success-foreground: oklch(0.17 0.03 210);
   --warning: oklch(0.75 0.15 85);
   --warning-foreground: oklch(0.25 0.04 90);
 
@@ -94,7 +94,7 @@
 
   --chart-1: oklch(0.59 0.17 230);
   --chart-2: oklch(0.67 0.13 186);
-  --chart-3: oklch(0.72 0.12 144);
+  --chart-3: oklch(0.72 0.11 198);
   --chart-4: oklch(0.71 0.14 62);
   --chart-5: oklch(0.63 0.12 285);
 
@@ -134,8 +134,8 @@
   --accent-foreground: oklch(0.92 0.01 210);
 
   --destructive: oklch(0.68 0.19 25);
-  --success: oklch(0.72 0.14 160);
-  --success-foreground: oklch(0.19 0.03 160);
+  --success: oklch(0.74 0.1 208);
+  --success-foreground: oklch(0.19 0.03 214);
   --warning: oklch(0.79 0.13 84);
   --warning-foreground: oklch(0.18 0.03 88);
 
@@ -145,7 +145,7 @@
 
   --chart-1: oklch(0.73 0.16 229);
   --chart-2: oklch(0.73 0.12 186);
-  --chart-3: oklch(0.78 0.11 145);
+  --chart-3: oklch(0.78 0.1 198);
   --chart-4: oklch(0.79 0.12 75);
   --chart-5: oklch(0.74 0.1 286);
 
@@ -178,7 +178,7 @@
     position: relative;
     background-image:
       radial-gradient(circle at 0% 0%, oklch(0.88 0.05 210 / 0.33) 0%, transparent 45%),
-      radial-gradient(circle at 100% 15%, oklch(0.84 0.06 165 / 0.24) 0%, transparent 42%),
+      radial-gradient(circle at 100% 15%, oklch(0.84 0.06 205 / 0.24) 0%, transparent 42%),
       linear-gradient(180deg, oklch(0.99 0.004 225), oklch(0.975 0.008 230));
     background-attachment: fixed;
   }
@@ -186,7 +186,7 @@
   .dark body {
     background-image:
       radial-gradient(circle at 0% 0%, oklch(0.42 0.08 220 / 0.24) 0%, transparent 42%),
-      radial-gradient(circle at 100% 10%, oklch(0.45 0.08 175 / 0.2) 0%, transparent 40%),
+      radial-gradient(circle at 100% 10%, oklch(0.45 0.08 205 / 0.2) 0%, transparent 40%),
       linear-gradient(180deg, oklch(0.16 0.02 236), oklch(0.145 0.02 236));
   }
 
@@ -483,7 +483,7 @@
   }
 
   .glow-success {
-    box-shadow: 0 0 20px -4px oklch(0.63 0.15 160 / 0.5);
+    box-shadow: 0 0 20px -4px oklch(0.66 0.1 206 / 0.5);
   }
 
   .glow-primary {

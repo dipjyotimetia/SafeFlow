@@ -66,3 +66,14 @@ This guide explains how to use SafeFlow from first launch to ongoing maintenance
 3. Refresh investment prices.
 4. Check budgets and cashflow.
 5. Export a backup.
+
+## 11. Set up local AI chat (Ollama)
+
+1. Install Ollama from https://ollama.com/download.
+2. Start Ollama, then pull a model:
+   `ollama pull llama3.1:8b`
+3. Open **Settings > AI Assistant** in SafeFlow.
+4. Set host to `http://127.0.0.1:11434`.
+5. Select model `llama3.1:8b` (or any installed model).
+6. Click **Test**, then **Save AI Settings**.
+7. Optional: enable auto-categorize for imported transactions.
