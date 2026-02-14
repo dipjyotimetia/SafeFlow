@@ -38,6 +38,21 @@ interface TypographyProps
   as?: React.ElementType;
 }
 
+const DEFAULT_VARIANT_ELEMENT: Record<
+  NonNullable<TypographyProps["variant"]>,
+  keyof React.JSX.IntrinsicElements
+> = {
+  h1: "h1",
+  h2: "h2",
+  h3: "h3",
+  h4: "h4",
+  p: "p",
+  lead: "p",
+  large: "div",
+  small: "small",
+  muted: "p",
+};
+
 function Typography({
   className,
   variant,
@@ -45,7 +60,8 @@ function Typography({
   as,
   ...props
 }: TypographyProps) {
-  const Component = as || getDefaultElement(variant);
+  const defaultElement = DEFAULT_VARIANT_ELEMENT[variant ?? "p"];
+  const Component = as ?? defaultElement;
 
   return (
     <Component
@@ -53,29 +69,6 @@ function Typography({
       {...props}
     />
   );
-}
-
-function getDefaultElement(variant: TypographyProps["variant"]) {
-  switch (variant) {
-    case "h1":
-      return "h1";
-    case "h2":
-      return "h2";
-    case "h3":
-      return "h3";
-    case "h4":
-      return "h4";
-    case "large":
-      return "div";
-    case "lead":
-      return "p";
-    case "small":
-      return "small";
-    case "muted":
-      return "p";
-    default:
-      return "p";
-  }
 }
 
 // Convenience components

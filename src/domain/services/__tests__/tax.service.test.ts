@@ -9,6 +9,7 @@ import {
   filterInvestmentTransactionsForFY,
   filterTransactionsForFY,
   getMarginalTaxRate,
+  getMLSThresholds,
   MLS_THRESHOLDS,
   TAX_BRACKETS_2024_25,
 } from "../tax.service";
@@ -28,7 +29,7 @@ describe("Tax Service", () => {
     it("has correct top marginal rate", () => {
       const topBracket = TAX_BRACKETS_2024_25[TAX_BRACKETS_2024_25.length - 1];
       expect(topBracket.rate).toBe(45);
-      expect(topBracket.min).toBe(190001);
+      expect(topBracket.min).toBe(190000);
     });
   });
 
@@ -47,10 +48,10 @@ describe("Tax Service", () => {
         expect(result.marginalRate).toBe(0);
       });
 
-      it("calculates medicare levy on tax-free income", () => {
+      it("applies low-income Medicare levy reduction", () => {
         const result = calculateIncomeTax(1820000); // $18,200
-        // Medicare levy = $18,200 * 2% = $364
-        expect(result.medicareLevy.cents).toBe(36400);
+        // Below low-income threshold
+        expect(result.medicareLevy.cents).toBe(0);
       });
     });
 
@@ -323,6 +324,56 @@ describe("Tax Service", () => {
       );
     });
 
+    it("calculates MLS as a percentage (not 100x)", () => {
+      const result = estimateTax({
+        grossIncome: 11000000, // $110,000
+        deductions: 0,
+        capitalGains: 0,
+        frankingCredits: 0,
+        hasPrivateHealth: false,
+      });
+
+      // At $110,000 in FY 2025-26, MLS rate is 1% => $1,100
+      expect(result.medicareLevySurcharge.cents).toBe(110000);
+    });
+
+    it("applies MLS bracket boundaries correctly", () => {
+      const cases = [
+        { incomeDollars: 101000, expectedMLSCents: 0 },
+        { incomeDollars: 101001, expectedMLSCents: 101001 }, // 1% of $101,001
+        { incomeDollars: 118000, expectedMLSCents: 118000 }, // 1% of $118,000
+        { incomeDollars: 118001, expectedMLSCents: 147501 }, // 1.25% of $118,001
+        { incomeDollars: 158000, expectedMLSCents: 197500 }, // 1.25% of $158,000
+        { incomeDollars: 158001, expectedMLSCents: 237002 }, // 1.5% of $158,001
+      ];
+
+      for (const { incomeDollars, expectedMLSCents } of cases) {
+        const result = estimateTax({
+          grossIncome: incomeDollars * 100,
+          deductions: 0,
+          capitalGains: 0,
+          frankingCredits: 0,
+          hasPrivateHealth: false,
+        });
+
+        expect(result.medicareLevySurcharge.cents).toBe(expectedMLSCents);
+      }
+    });
+
+    it("applies family MLS thresholds with dependent-child adjustment", () => {
+      const result = estimateTax({
+        grossIncome: 20500000,
+        deductions: 0,
+        capitalGains: 0,
+        frankingCredits: 0,
+        hasPrivateHealth: false,
+        taxpayerType: "family",
+        dependentChildren: 2,
+      });
+
+      expect(result.medicareLevySurcharge.cents).toBe(205000);
+    });
+
     it("includes capital gains in taxable income", () => {
       const result = estimateTax({
         grossIncome: 10000000, // $100,000
@@ -334,6 +385,19 @@ describe("Tax Service", () => {
 
       // Taxable = $100,000 + $20,000 = $120,000
       expect(result.taxableIncome.cents).toBe(12000000);
+    });
+
+    it("does not reduce taxable income with capital losses", () => {
+      const result = estimateTax({
+        grossIncome: 10000000, // $100,000
+        deductions: 0,
+        capitalGains: -2000000, // -$20,000 capital loss
+        frankingCredits: 0,
+        hasPrivateHealth: true,
+      });
+
+      // Taxable income should not be reduced by capital loss
+      expect(result.taxableIncome.cents).toBe(10000000);
     });
 
     it("prevents negative taxable income", () => {
@@ -351,14 +415,25 @@ describe("Tax Service", () => {
 
   describe("MLS Thresholds", () => {
     it("has correct thresholds", () => {
-      expect(MLS_THRESHOLDS[0].max).toBe(93000);
+      expect(MLS_THRESHOLDS[0].max).toBe(101000);
       expect(MLS_THRESHOLDS[0].rate).toBe(0);
 
-      expect(MLS_THRESHOLDS[1].min).toBe(93001);
+      expect(MLS_THRESHOLDS[1].min).toBe(101001);
       expect(MLS_THRESHOLDS[1].rate).toBe(1);
 
       expect(MLS_THRESHOLDS[2].rate).toBe(1.25);
       expect(MLS_THRESHOLDS[3].rate).toBe(1.5);
+    });
+
+    it("returns family thresholds with dependants uplift", () => {
+      const thresholds = getMLSThresholds({
+        taxpayerType: "family",
+        dependentChildren: 3,
+      });
+
+      expect(thresholds[0].max).toBe(205000);
+      expect(thresholds[1].min).toBe(205001);
+      expect(thresholds[1].max).toBe(239000);
     });
   });
 
@@ -618,6 +693,16 @@ describe("Tax Service", () => {
         result.incomeTax.cents + result.medicareLevy.cents;
       expect(result.taxPayable.cents).toBe(
         totalTaxBeforeCredits - result.frankingCredits.cents
+      );
+    });
+
+    it("applies lower rates in FY 2026-27", () => {
+      const fy2025 = calculateIncomeTax(6000000, { financialYear: "2025-26" });
+      const fy2026 = calculateIncomeTax(6000000, { financialYear: "2026-27" });
+
+      expect(fy2026.incomeTax.cents).toBeLessThan(fy2025.incomeTax.cents);
+      expect(getMarginalTaxRate(6000000, { financialYear: "2026-27" })).toBe(
+        29
       );
     });
   });

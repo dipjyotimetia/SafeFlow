@@ -361,6 +361,17 @@ export interface ContributionSummary {
   nonConcessionalCap: number; // $120,000 for 2024-25
   concessionalRemaining: number;
   nonConcessionalRemaining: number;
+  baseConcessionalCap?: number;
+  baseNonConcessionalCap?: number;
+  carryForwardAvailable?: number;
+  carryForwardEligible?: boolean;
+  carryForwardReason?: string;
+  bringForwardYearsAvailable?: number;
+  bringForwardEligible?: boolean;
+  bringForwardReason?: string;
+  superGuaranteeRate?: number;
+  totalSuperBalanceForCapTests?: number;
+  transferBalanceCap?: number;
 }
 
 // UI types
@@ -532,6 +543,7 @@ export interface Goal extends Versionable {
   linkedHoldingIds?: string[];
 
   // Metadata
+  status?: GoalStatus; // Legacy status field retained for backward compatibility
   isActive: boolean; // Replaces status enum with simple active/inactive
   notes?: string;
   color?: string;

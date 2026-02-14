@@ -6,8 +6,10 @@ import { v4 as uuidv4 } from 'uuid';
 interface GoalStore {
   // CRUD operations
   createGoal: (data: {
+    memberId?: string;
     name: string;
     type: GoalType;
+    priority?: number;
     targetAmount: number; // cents
     targetDate?: Date;
     monthlyContribution?: number; // cents
@@ -46,8 +48,10 @@ export const useGoalStore = create<GoalStore>(() => ({
 
     await db.goals.add({
       id,
+      memberId: data.memberId ?? 'household',
       name: data.name,
       type: data.type,
+      priority: data.priority ?? 3,
       targetAmount: data.targetAmount,
       currentAmount: 0, // Will be calculated by hooks
       targetDate: data.targetDate,
@@ -58,6 +62,7 @@ export const useGoalStore = create<GoalStore>(() => ({
       includeSuperannuation: data.includeSuperannuation,
       linkedAccountIds: data.linkedAccountIds,
       linkedHoldingIds: data.linkedHoldingIds,
+      isActive: true,
       status: 'active',
       notes: data.notes,
       color: data.color,
@@ -82,6 +87,7 @@ export const useGoalStore = create<GoalStore>(() => ({
 
   achieveGoal: async (id) => {
     await db.goals.update(id, {
+      isActive: false,
       status: 'achieved',
       updatedAt: new Date(),
     });
@@ -89,6 +95,7 @@ export const useGoalStore = create<GoalStore>(() => ({
 
   pauseGoal: async (id) => {
     await db.goals.update(id, {
+      isActive: false,
       status: 'paused',
       updatedAt: new Date(),
     });
@@ -96,6 +103,7 @@ export const useGoalStore = create<GoalStore>(() => ({
 
   resumeGoal: async (id) => {
     await db.goals.update(id, {
+      isActive: true,
       status: 'active',
       updatedAt: new Date(),
     });
@@ -103,6 +111,7 @@ export const useGoalStore = create<GoalStore>(() => ({
 
   cancelGoal: async (id) => {
     await db.goals.update(id, {
+      isActive: false,
       status: 'cancelled',
       updatedAt: new Date(),
     });

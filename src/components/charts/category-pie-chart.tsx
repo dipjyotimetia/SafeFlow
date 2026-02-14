@@ -132,7 +132,7 @@ export function CategoryPieChart({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" style={{ minHeight: responsiveHeight }}>
       <div className="flex-1 min-h-0 relative">
         <ResponsiveContainer
           width="100%"

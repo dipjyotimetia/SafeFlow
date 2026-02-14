@@ -9,8 +9,8 @@
  * - School ratings
  * - Basic property stats
  *
- * Note: This is a stub implementation - actual API integration
- * requires registering for an API key at Microburbs.
+ * Requires a valid API key from Microburbs.
+ * Endpoints are called directly and surfaced as API errors when unavailable.
  */
 
 import type { AustralianState } from "@/types";
@@ -253,22 +253,45 @@ export class MicroburbsProvider implements MarketDataProvider {
     }
   }
 
-  // ============ API Methods (Stubs - Replace with actual API calls) ============
+  // ============ API Methods ============
+
+  private async request<T>(
+    path: string,
+    query?: Record<string, string | number | undefined>
+  ): Promise<T> {
+    if (!this.config) {
+      throw new Error("401 Microburbs API not configured");
+    }
+
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query ?? {})) {
+      if (value !== undefined && value !== null && value !== "") {
+        params.set(key, String(value));
+      }
+    }
+
+    const url = `${this.config.baseUrl}${path}${params.size ? `?${params.toString()}` : ""}`;
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`${response.status} ${body || response.statusText}`);
+    }
+
+    return response.json() as Promise<T>;
+  }
 
   private async fetchSuburb(
     suburb: string,
     state: AustralianState
   ): Promise<MicroburbsSuburbResponse> {
-    // TODO: Replace with actual API call when API key available
-    // const url = `${this.config!.baseUrl}/suburbs/${state}/${encodeURIComponent(suburb)}`;
-    // const response = await fetch(url, {
-    //   headers: { 'Authorization': `Bearer ${this.config!.apiKey}` }
-    // });
-    // return response.json();
-
-    // Stub response for development
-    throw new Error(
-      `Microburbs API integration pending. Suburb: ${suburb}, State: ${state}`
+    return this.request<MicroburbsSuburbResponse>(
+      `/suburbs/${state}/${encodeURIComponent(suburb)}`
     );
   }
 
@@ -277,19 +300,23 @@ export class MicroburbsProvider implements MarketDataProvider {
     state: AustralianState,
     radiusKm: number
   ): Promise<MicroburbsSuburbResponse[]> {
-    // TODO: Replace with actual API call
-    throw new Error(
-      `Microburbs nearby API pending. Suburb: ${suburb}, State: ${state}, Radius: ${radiusKm}km`
-    );
+    return this.request<MicroburbsSuburbResponse[]>("/suburbs/nearby", {
+      suburb,
+      state,
+      radiusKm,
+    });
   }
 
   private async searchApi(
     query: string,
     state?: AustralianState
   ): Promise<Array<{ suburb: string; state: AustralianState; postcode: string }>> {
-    // TODO: Replace with actual API call
-    throw new Error(
-      `Microburbs search API pending. Query: ${query}, State: ${state || "all"}`
+    return this.request<Array<{ suburb: string; state: AustralianState; postcode: string }>>(
+      "/suburbs/search",
+      {
+        q: query,
+        state,
+      }
     );
   }
 
