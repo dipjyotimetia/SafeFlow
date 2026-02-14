@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Reveal } from '@/components/ui/reveal';
 
 type GuideCard = {
   id: string;
@@ -157,7 +158,7 @@ export default function LearnMorePage() {
       </div>
 
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-10 sm:px-6 lg:px-8">
-        <header className="space-y-4">
+        <Reveal className="space-y-4">
           <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             SafeFlow Guide
@@ -183,9 +184,9 @@ export default function LearnMorePage() {
               <Button variant="outline">Open Full User Guide (Repo)</Button>
             </a>
           </div>
-        </header>
+        </Reveal>
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Reveal className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" delayMs={70}>
           {guideCards.map((step) => (
             <button
               key={step.id}
@@ -215,9 +216,10 @@ export default function LearnMorePage() {
               </Card>
             </button>
           ))}
-        </section>
+        </Reveal>
 
-        <Card variant="glass-luxury" className="border-primary/15">
+        <Reveal delayMs={90}>
+          <Card variant="glass-luxury" className="border-primary/15">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Shield className="h-5 w-5 text-primary" />
@@ -232,7 +234,8 @@ export default function LearnMorePage() {
             <p>2. If using cloud sync, set a strong encryption password and store it safely.</p>
             <p>3. Review imported transactions before saving to maintain clean data quality.</p>
           </CardContent>
-        </Card>
+          </Card>
+        </Reveal>
       </main>
 
       <Dialog open={!!activeGuide} onOpenChange={(open) => !open && setActiveGuide(null)}>

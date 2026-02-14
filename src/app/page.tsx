@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Reveal } from '@/components/ui/reveal';
 
 const features = [
   {
@@ -61,8 +62,8 @@ export default function LandingPage() {
           </Link>
         </header>
 
-        <section className="animate-enter grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
+        <Reveal className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="animate-enter">
             <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-primary">
               <Sparkles className="h-3.5 w-3.5" />
               Privacy-first family finance
@@ -93,7 +94,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <Card variant="glass-luxury" className="animate-enter stagger-2 overflow-hidden border-primary/15">
+          <Card variant="glass-luxury" className="animate-enter overflow-hidden border-primary/15">
             <CardContent className="space-y-4 p-6">
               <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -117,15 +118,15 @@ export default function LandingPage() {
               </div>
             </CardContent>
           </Card>
-        </section>
+        </Reveal>
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Reveal className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" delayMs={80}>
           {features.map((feature, index) => (
             <Card
               key={feature.title}
               variant="premium"
               className="animate-enter"
-              style={{ animationDelay: `${0.12 + index * 0.05}s` }}
+              style={{ animationDelay: `${0.08 + index * 0.05}s` }}
             >
               <CardContent className="p-5">
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
@@ -136,7 +137,7 @@ export default function LandingPage() {
               </CardContent>
             </Card>
           ))}
-        </section>
+        </Reveal>
       </main>
     </div>
   );

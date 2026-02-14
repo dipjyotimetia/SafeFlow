@@ -89,6 +89,7 @@ function MetricCard({
 
       <div className="relative mt-3">
         <p
+          key={`${title}-${value}`}
           className={cn(
             "metric-value animate-number text-3xl font-semibold leading-tight tabular-nums",
             variant === "positive" && "text-success",

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist_Mono, Plus_Jakarta_Sans, Sora } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({
+const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
@@ -13,16 +13,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const instrumentSerif = Instrument_Serif({
+const soraDisplay = Sora({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: "SafeFlow AU - Privacy-First Family Finance",
-  description: "Track expenses, manage cashflow, and monitor investments with complete privacy. Your data stays on your device.",
-  keywords: ["finance", "budget", "expense tracker", "Australia", "privacy", "local-first"],
+  description:
+    "Track expenses, manage cashflow, and monitor investments with complete privacy. Your data stays on your device.",
+  keywords: [
+    "finance",
+    "budget",
+    "expense tracker",
+    "Australia",
+    "privacy",
+    "local-first",
+  ],
 };
 
 export default function RootLayout({
@@ -33,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}
+        className={`${plusJakartaSans.variable} ${geistMono.variable} ${soraDisplay.variable} antialiased`}
       >
         {children}
         <Toaster richColors position="top-right" />

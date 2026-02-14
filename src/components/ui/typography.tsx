@@ -5,12 +5,12 @@ import { cn } from "@/lib/utils";
 const typographyVariants = cva("", {
   variants: {
     variant: {
-      h1: "scroll-m-20 text-4xl font-bold tracking-tight lg:text-5xl",
-      h2: "scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0",
-      h3: "scroll-m-20 text-2xl font-semibold tracking-tight",
+      h1: "scroll-m-20 font-display text-4xl font-semibold tracking-tight lg:text-6xl",
+      h2: "scroll-m-20 font-display text-3xl font-semibold tracking-tight lg:text-4xl",
+      h3: "scroll-m-20 font-display text-2xl font-semibold tracking-tight",
       h4: "scroll-m-20 text-xl font-semibold tracking-tight",
-      p: "leading-7 [&:not(:first-child)]:mt-6",
-      lead: "text-xl text-muted-foreground/80 leading-7",
+      p: "leading-7 text-[0.98rem]",
+      lead: "text-lg text-muted-foreground/85 leading-7",
       large: "text-lg font-semibold",
       small: "text-sm font-medium leading-none",
       muted: "text-sm text-muted-foreground",
@@ -80,7 +80,7 @@ function TypographyH1({
   return (
     <h1
       className={cn(
-        "scroll-m-20 text-4xl font-bold tracking-tight lg:text-5xl",
+        "scroll-m-20 font-display text-4xl font-semibold tracking-tight lg:text-6xl",
         "bg-linear-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent",
         className,
       )}
@@ -99,7 +99,7 @@ function TypographyH2({
   return (
     <h2
       className={cn(
-        "scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0",
+        "scroll-m-20 font-display text-3xl font-semibold tracking-tight lg:text-4xl",
         className,
       )}
       {...props}
@@ -117,7 +117,7 @@ function TypographyH3({
   return (
     <h3
       className={cn(
-        "scroll-m-20 text-2xl font-semibold tracking-tight",
+        "scroll-m-20 font-display text-2xl font-semibold tracking-tight",
         className,
       )}
       {...props}
@@ -134,7 +134,7 @@ function TypographyLead({
 }: React.ComponentProps<"p">) {
   return (
     <p
-      className={cn("text-xl text-muted-foreground/80 leading-7", className)}
+      className={cn("text-lg text-muted-foreground/85 leading-7", className)}
       {...props}
     >
       {children}
