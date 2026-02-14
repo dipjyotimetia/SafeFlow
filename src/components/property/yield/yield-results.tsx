@@ -11,10 +11,10 @@ interface YieldResultsProps {
 }
 
 const assessmentColors = {
-  excellent: "bg-green-500",
-  good: "bg-blue-500",
-  fair: "bg-yellow-500",
-  poor: "bg-red-500",
+  excellent: "bg-success",
+  good: "bg-primary",
+  fair: "bg-warning",
+  poor: "bg-destructive",
 };
 
 const assessmentDescriptions = {
@@ -38,9 +38,9 @@ export function YieldResults({ results }: YieldResultsProps) {
   const { grossYield, netYield, assessment, annualRent, annualExpenses, netOperatingIncome } = results;
 
   const getYieldIcon = (yieldValue: number) => {
-    if (yieldValue >= 5) return <TrendingUp className="h-5 w-5 text-green-500" />;
-    if (yieldValue >= 4) return <Minus className="h-5 w-5 text-yellow-500" />;
-    return <TrendingDown className="h-5 w-5 text-red-500" />;
+    if (yieldValue >= 5) return <TrendingUp className="h-5 w-5 text-success" />;
+    if (yieldValue >= 4) return <Minus className="h-5 w-5 text-warning" />;
+    return <TrendingDown className="h-5 w-5 text-destructive" />;
   };
 
   return (
@@ -98,7 +98,7 @@ export function YieldResults({ results }: YieldResultsProps) {
               <>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Annual Expenses</span>
-                  <span className="font-medium text-red-500">
+                  <span className="font-medium text-destructive">
                     -{formatAUD(annualExpenses)}
                   </span>
                 </div>
@@ -122,19 +122,19 @@ export function YieldResults({ results }: YieldResultsProps) {
         <CardContent>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-green-500" />
+              <div className="h-3 w-3 rounded-full bg-success" />
               <span>&gt; 6% - Excellent</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-blue-500" />
+              <div className="h-3 w-3 rounded-full bg-primary" />
               <span>5% - 6% - Good</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-yellow-500" />
+              <div className="h-3 w-3 rounded-full bg-warning" />
               <span>4% - 5% - Fair</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-red-500" />
+              <div className="h-3 w-3 rounded-full bg-destructive" />
               <span>&lt; 4% - Below Average</span>
             </div>
           </div>

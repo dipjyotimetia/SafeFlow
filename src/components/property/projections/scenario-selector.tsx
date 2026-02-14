@@ -56,19 +56,19 @@ const SCENARIO_INFO: Record<
     label: "Conservative",
     description: "Lower growth, higher costs - stress test scenario",
     vacancyRate: 3.0,
-    color: "text-amber-600 dark:text-amber-400",
+    color: "text-warning",
   },
   moderate: {
     label: "Moderate",
     description: "Long-term average growth rates",
     vacancyRate: 2.0,
-    color: "text-blue-600 dark:text-blue-400",
+    color: "text-primary",
   },
   optimistic: {
     label: "Optimistic",
     description: "Above-average growth, favorable conditions",
     vacancyRate: 1.0,
-    color: "text-emerald-600 dark:text-emerald-400",
+    color: "text-success",
   },
 };
 

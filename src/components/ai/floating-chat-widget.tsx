@@ -66,7 +66,7 @@ export function FloatingChatWidget() {
         onClick={toggleWidget}
         className={cn(
           'fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50',
-          'bg-emerald-600 hover:bg-emerald-700 text-white',
+          'bg-success hover:bg-success/90 text-white',
           'transition-transform hover:scale-105'
         )}
       >
@@ -92,7 +92,7 @@ export function FloatingChatWidget() {
         )}
         onClick={toggleWidget}
       >
-        <Bot className="h-5 w-5 text-emerald-600" />
+        <Bot className="h-5 w-5 text-success" />
         <span className="text-sm font-medium">SafeFlow AI</span>
         <StatusIndicator
           status={connectionStatus}
@@ -116,7 +116,7 @@ export function FloatingChatWidget() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/50">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-emerald-600 flex items-center justify-center">
+          <div className="h-8 w-8 rounded-full bg-success flex items-center justify-center">
             <Bot className="h-4 w-4 text-white" />
           </div>
           <div>
@@ -184,8 +184,8 @@ export function FloatingChatWidget() {
       >
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-full p-6 text-center">
-            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/40 dark:to-emerald-800/40 flex items-center justify-center mb-4 shadow-sm">
-              <Sparkles className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-success/18 to-primary/20 shadow-sm">
+              <Sparkles className="h-8 w-8 text-success" />
             </div>
             <h4 className="font-semibold text-base mb-2">Welcome to SafeFlow AI</h4>
             <p className="text-sm text-muted-foreground max-w-[280px] leading-relaxed">

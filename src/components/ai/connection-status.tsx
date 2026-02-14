@@ -53,7 +53,7 @@ export function ConnectionStatus({
   // Connected and ready
   if (status === 'connected' && isModelReady) {
     return (
-      <div className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400">
+      <div className="flex items-center gap-2 px-4 py-2 text-sm text-success">
         <CheckCircle2 className="h-4 w-4" />
         <span>Connected to local AI</span>
       </div>
@@ -139,17 +139,17 @@ export function StatusIndicator({
       <div
         className={cn(
           'h-2 w-2 rounded-full',
-          isConnected && 'bg-emerald-500',
-          isConnecting && 'bg-yellow-500 animate-pulse',
-          !isConnected && !isConnecting && 'bg-red-500'
+          isConnected && 'bg-success',
+          isConnecting && 'bg-warning animate-pulse',
+          !isConnected && !isConnecting && 'bg-destructive'
         )}
       />
       {isConnecting ? (
         <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
       ) : isConnected ? (
-        <Wifi className="h-3 w-3 text-emerald-500" />
+        <Wifi className="h-3 w-3 text-success" />
       ) : (
-        <WifiOff className="h-3 w-3 text-red-500" />
+        <WifiOff className="h-3 w-3 text-destructive" />
       )}
     </div>
   );

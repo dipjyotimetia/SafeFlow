@@ -13,7 +13,7 @@
 
 **Privacy-first personal finance management built for Australians**
 
-[**Live Demo**](https://dipjyotimetia.github.io/SafeFlow) · [**Get Started**](#-quick-start) · [**Documentation**](#-architecture) · [**Contributing**](CONTRIBUTING.md)
+[**Live Demo**](https://dipjyotimetia.github.io/SafeFlow) · [**Get Started**](#-quick-start) · [**User Guide**](docs/USER_GUIDE.md) · [**Contributing**](CONTRIBUTING.md)
 
 <br />
 
@@ -157,6 +157,12 @@ npm run dev
 ```
 
 Open [localhost:3000](http://localhost:3000) and you're ready to go.
+
+## Documentation
+
+- [User Guide](docs/USER_GUIDE.md) - Full walkthrough of daily workflows
+- [Backup and Sync Guide](docs/BACKUP_AND_SYNC.md) - Data safety and restore process
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and fixes
 
 <details>
 <summary><strong>Environment Variables (Optional)</strong></summary>

@@ -228,8 +228,8 @@ export function EditHoldingDialog({ holding, open, onOpenChange, onSuccess }: Ed
 
           {/* Warning if changing units or cost basis */}
           {requiresReason && (
-            <Alert variant="default" className="border-amber-500 bg-amber-50 dark:bg-amber-950">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <Alert variant="default" className="border-warning/50 bg-warning/10 dark:bg-warning/15">
+              <AlertTriangle className="h-4 w-4 text-warning" />
               <AlertDescription className="text-sm">
                 Manually adjusting units or cost basis can affect your tax calculations.
                 This should only be done to correct errors, not to record buy/sell transactions.

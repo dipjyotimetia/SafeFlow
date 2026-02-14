@@ -18,21 +18,21 @@ interface AffordabilityResultsProps {
 }
 
 const statusIcons = {
-  green: <CheckCircle className="h-6 w-6 text-green-500" />,
-  amber: <AlertTriangle className="h-6 w-6 text-yellow-500" />,
-  red: <XCircle className="h-6 w-6 text-red-500" />,
+  green: <CheckCircle className="h-6 w-6 text-success" />,
+  amber: <AlertTriangle className="h-6 w-6 text-warning" />,
+  red: <XCircle className="h-6 w-6 text-destructive" />,
 };
 
 const statusColors = {
-  green: "bg-green-500",
-  amber: "bg-yellow-500",
-  red: "bg-red-500",
+  green: "bg-success",
+  amber: "bg-warning",
+  red: "bg-destructive",
 };
 
 const statusBgColors = {
-  green: "bg-green-50 border-green-200",
-  amber: "bg-yellow-50 border-yellow-200",
-  red: "bg-red-50 border-red-200",
+  green: "bg-success/10 border-success/30",
+  amber: "bg-warning/10 border-warning/30",
+  red: "bg-destructive/10 border-destructive/30",
 };
 
 export function AffordabilityResults({ results }: AffordabilityResultsProps) {
@@ -172,14 +172,14 @@ export function AffordabilityResults({ results }: AffordabilityResultsProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Living Expenses</span>
-              <span className="font-medium text-red-500">
+              <span className="font-medium text-destructive">
                 -{formatAUD(monthlyLivingExpenses)}
               </span>
             </div>
             {monthlyExistingDebtPayments > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Existing Debts</span>
-                <span className="font-medium text-red-500">
+                <span className="font-medium text-destructive">
                   -{formatAUD(monthlyExistingDebtPayments)}
                 </span>
               </div>
@@ -192,7 +192,7 @@ export function AffordabilityResults({ results }: AffordabilityResultsProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Proposed Repayment</span>
-              <span className="font-medium text-red-500">
+              <span className="font-medium text-destructive">
                 -{formatAUD(proposedRepayment)}
               </span>
             </div>
@@ -218,7 +218,7 @@ export function AffordabilityResults({ results }: AffordabilityResultsProps) {
                       rentalCoverageRatio >= 1.3
                         ? "text-success"
                         : rentalCoverageRatio >= 1.0
-                        ? "text-yellow-600"
+                        ? "text-warning"
                         : "text-destructive"
                     }`}
                   >

@@ -26,25 +26,25 @@ const quickActions = [
     label: "Spending",
     icon: TrendingUp,
     prompt: "How's my spending this month?",
-    color: "text-blue-500",
+    color: "text-primary",
   },
   {
     label: "Budget",
     icon: Wallet,
     prompt: "Help me create a budget based on my spending.",
-    color: "text-emerald-500",
+    color: "text-success",
   },
   {
     label: "Tax",
     icon: Receipt,
     prompt: "What expenses might be tax deductible?",
-    color: "text-orange-500",
+    color: "text-warning",
   },
   {
     label: "Investments",
     icon: PiggyBank,
     prompt: "How is my investment portfolio performing?",
-    color: "text-purple-500",
+    color: "text-primary",
   },
 ];
 
@@ -128,7 +128,7 @@ export function ChatInput({
             disabled={disabled || isStreaming}
             className={cn(
               "min-h-[44px] max-h-[120px] resize-none pr-2",
-              "bg-background border-border/50 focus:border-emerald-500/50",
+              "bg-background border-border/50 focus:border-success/50",
               "transition-colors duration-150",
               disabled && "opacity-50 cursor-not-allowed"
             )}
@@ -152,7 +152,7 @@ export function ChatInput({
             disabled={!input.trim() || disabled}
             className={cn(
               "shrink-0 h-[44px] w-[44px] rounded-lg",
-              "bg-emerald-600 hover:bg-emerald-700",
+              "bg-success hover:bg-success/90",
               "disabled:bg-muted disabled:text-muted-foreground"
             )}
           >

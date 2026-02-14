@@ -498,8 +498,8 @@ export default function SettingsPage() {
                   <li>Tax records and CGT data</li>
                   <li>All imported bank statements</li>
                 </ul>
-                <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md p-3">
-                  <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                <div className="bg-warning/10 dark:bg-warning/15 border border-warning/30 dark:border-warning/35 rounded-md p-3">
+                  <p className="text-sm text-warning font-medium">
                     We strongly recommend exporting a backup before proceeding.
                   </p>
                 </div>
@@ -525,7 +525,7 @@ export default function SettingsPage() {
             <AlertDialogAction
               onClick={handleClearAllData}
               disabled={isClearing || !confirmClearData}
-              className="bg-red-600 hover:bg-red-700 disabled:opacity-50"
+              className="bg-destructive hover:bg-destructive/90 disabled:opacity-50"
             >
               {isClearing ? (
                 <>

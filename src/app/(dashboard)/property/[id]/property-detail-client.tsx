@@ -106,7 +106,7 @@ export default function PropertyDetailClient() {
                 variant="secondary"
                 className={
                   property.status === "active"
-                    ? "bg-green-100 text-green-800"
+                    ? "bg-success/15 text-success"
                     : "bg-gray-100 text-gray-800"
                 }
               >
@@ -168,7 +168,7 @@ export default function PropertyDetailClient() {
           <CardContent>
             <div className="text-2xl font-bold">{formatAUD(totalDebt)}</div>
             <p
-              className={`text-xs ${lvr > 80 ? "text-amber-600" : "text-success"}`}
+              className={`text-xs ${lvr > 80 ? "text-warning" : "text-success"}`}
             >
               {formatPercent(lvr)} LVR
             </p>

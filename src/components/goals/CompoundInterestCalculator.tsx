@@ -138,7 +138,7 @@ export function CompoundInterestCalculator() {
                 className="bg-muted-foreground/30 transition-all"
                 style={{ width: `${contributionPercentage}%` }}
               />
-              <div className="bg-green-500 transition-all" style={{ width: `${interestPercentage}%` }} />
+              <div className="bg-success transition-all" style={{ width: `${interestPercentage}%` }} />
             </div>
           </div>
 

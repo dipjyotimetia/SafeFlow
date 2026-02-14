@@ -41,9 +41,9 @@ const propertyTypeIcons: Record<string, React.ElementType> = {
 };
 
 const statusColors: Record<string, string> = {
-  active: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  active: "bg-success/15 text-success dark:bg-success/20",
   sold: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-  archived: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+  archived: "bg-warning/15 text-warning dark:bg-warning/20",
 };
 
 export function PropertyCard({
@@ -152,9 +152,9 @@ export function PropertyCard({
             <p className="text-xs text-muted-foreground">Growth</p>
             <div className="flex items-center gap-1">
               {growth >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <TrendingUp className="h-4 w-4 text-success" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-500" />
+                <TrendingDown className="h-4 w-4 text-destructive" />
               )}
               <span
                 className={`text-sm font-medium ${growth >= 0 ? "text-success" : "text-destructive"}`}
@@ -166,7 +166,7 @@ export function PropertyCard({
           <div>
             <p className="text-xs text-muted-foreground">LVR</p>
             <p
-              className={`text-sm font-medium ${lvr > 80 ? "text-amber-600" : "text-success"}`}
+              className={`text-sm font-medium ${lvr > 80 ? "text-warning" : "text-success"}`}
             >
               {formatPercent(lvr)}
             </p>
@@ -194,7 +194,7 @@ export function PropertyCard({
 
         {!currentRental && (
           <div className="mt-4 pt-4 border-t">
-            <Badge variant="outline" className="text-amber-600 border-amber-300">
+            <Badge variant="outline" className="text-warning border-warning/40">
               Vacant
             </Badge>
           </div>

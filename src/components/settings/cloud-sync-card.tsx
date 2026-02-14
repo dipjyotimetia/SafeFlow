@@ -489,7 +489,7 @@ export function CloudSyncCard() {
                     <div key={field.name} className="space-y-2">
                       <Label htmlFor={field.name}>
                         {field.label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                        {field.required && <span className="text-destructive ml-1">*</span>}
                       </Label>
                       <Input
                         id={field.name}
@@ -601,8 +601,8 @@ export function CloudSyncCard() {
                     )}
                     {status === 'syncing' && (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                        <span className="text-sm text-blue-600">Syncing...</span>
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <span className="text-sm text-primary">Syncing...</span>
                       </>
                     )}
                     {status === 'error' && (
@@ -718,10 +718,10 @@ export function CloudSyncCard() {
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Password strength</span>
                       <span className={
-                        passwordValidation.strength === 'strong' ? 'text-green-600' :
-                        passwordValidation.strength === 'good' ? 'text-blue-600' :
-                        passwordValidation.strength === 'fair' ? 'text-yellow-600' :
-                        'text-red-600'
+                        passwordValidation.strength === 'strong' ? 'text-success' :
+                        passwordValidation.strength === 'good' ? 'text-primary' :
+                        passwordValidation.strength === 'fair' ? 'text-warning' :
+                        'text-destructive'
                       }>
                         {passwordValidation.strength.charAt(0).toUpperCase() + passwordValidation.strength.slice(1)}
                       </span>
@@ -729,10 +729,10 @@ export function CloudSyncCard() {
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all duration-300 ${
-                          passwordValidation.strength === 'strong' ? 'bg-green-500' :
-                          passwordValidation.strength === 'good' ? 'bg-blue-500' :
-                          passwordValidation.strength === 'fair' ? 'bg-yellow-500' :
-                          'bg-red-500'
+                          passwordValidation.strength === 'strong' ? 'bg-success' :
+                          passwordValidation.strength === 'good' ? 'bg-primary' :
+                          passwordValidation.strength === 'fair' ? 'bg-warning' :
+                          'bg-destructive'
                         }`}
                         style={{ width: `${passwordValidation.strengthPercent}%` }}
                       />

@@ -37,8 +37,8 @@ interface TransactionFormProps {
 const TRANSACTION_TYPES: { value: InvestmentTransactionType; label: string; icon: React.ReactNode }[] = [
   { value: 'buy', label: 'Buy', icon: <TrendingUp className="h-4 w-4 text-success" /> },
   { value: 'sell', label: 'Sell', icon: <TrendingDown className="h-4 w-4 text-destructive" /> },
-  { value: 'dividend', label: 'Dividend', icon: <DollarSign className="h-4 w-4 text-blue-500" /> },
-  { value: 'distribution', label: 'Distribution', icon: <Banknote className="h-4 w-4 text-purple-500" /> },
+  { value: 'dividend', label: 'Dividend', icon: <DollarSign className="h-4 w-4 text-primary" /> },
+  { value: 'distribution', label: 'Distribution', icon: <Banknote className="h-4 w-4 text-primary" /> },
   { value: 'fee', label: 'Fee', icon: <Percent className="h-4 w-4 text-muted-foreground" /> },
 ];
 

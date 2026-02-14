@@ -85,7 +85,7 @@ export function FileDropZone({
         isDragActive && 'border-primary bg-primary/5',
         !isDragActive && 'border-muted-foreground/25 hover:border-primary/50',
         disabled && 'opacity-50 cursor-not-allowed',
-        error && 'border-red-500'
+        error && 'border-destructive'
       )}
     >
       <input {...getInputProps()} />
@@ -99,7 +99,7 @@ export function FileDropZone({
           <p className="text-xs text-muted-foreground mt-2">PDF files only, max 10MB</p>
         </>
       )}
-      {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+      {error && <p className="text-sm text-destructive mt-2">{error}</p>}
     </div>
   );
 }

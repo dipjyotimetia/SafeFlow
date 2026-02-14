@@ -22,10 +22,10 @@ interface YieldScenariosProps {
 }
 
 const assessmentColors = {
-  excellent: "bg-green-500",
-  good: "bg-blue-500",
-  fair: "bg-yellow-500",
-  poor: "bg-red-500",
+  excellent: "bg-success",
+  good: "bg-primary",
+  fair: "bg-warning",
+  poor: "bg-destructive",
 };
 
 export function YieldScenarios({

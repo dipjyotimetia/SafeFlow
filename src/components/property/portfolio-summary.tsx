@@ -27,28 +27,28 @@ export function PortfolioSummary() {
       value: summary.propertyCount.toString(),
       subtitle: `${rentalSummary.occupiedCount} occupied`,
       icon: Building2,
-      color: "text-blue-500",
+      color: "text-primary",
     },
     {
       title: "Total Value",
       value: formatAUD(summary.totalValue),
       subtitle: `${formatPercent(summary.totalGrowth)} growth`,
       icon: Home,
-      color: "text-green-500",
+      color: "text-success",
     },
     {
       title: "Total Equity",
       value: formatAUD(summary.totalEquity),
       subtitle: `${formatPercent(100 - summary.averageLVR)} equity ratio`,
       icon: TrendingUp,
-      color: "text-emerald-500",
+      color: "text-success",
     },
     {
       title: "Total Debt",
       value: formatAUD(summary.totalDebt),
       subtitle: `${formatPercent(summary.averageLVR)} avg LVR`,
       icon: Landmark,
-      color: "text-orange-500",
+      color: "text-warning",
     },
     {
       title: "Weekly Rent",
@@ -63,7 +63,7 @@ export function PortfolioSummary() {
       subtitle: `${rentalSummary.vacantCount} vacant`,
       icon: Wallet,
       color:
-        rentalSummary.occupancyRate >= 90 ? "text-green-500" : "text-amber-500",
+        rentalSummary.occupancyRate >= 90 ? "text-success" : "text-warning",
     },
   ];
 

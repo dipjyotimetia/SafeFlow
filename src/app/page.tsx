@@ -85,9 +85,11 @@ export default function LandingPage() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="h-11 px-6">
-                Learn More
-              </Button>
+              <Link href="/learn-more">
+                <Button size="lg" variant="outline" className="h-11 px-6">
+                  Learn More
+                </Button>
+              </Link>
             </div>
           </div>
 

@@ -127,7 +127,7 @@ export function SyncProviderConfig({
         <CardContent className="space-y-4">
           {/* Current Provider Status */}
           {currentProvider && isConnected && (
-            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-between p-3 bg-success/10 dark:bg-success/15 rounded-lg border border-success/30 dark:border-success/35">
               <div className="flex items-center gap-3">
                 {providerIcons[currentProvider]}
                 <div>
@@ -139,7 +139,7 @@ export function SyncProviderConfig({
                   </p>
                 </div>
               </div>
-              <Badge variant="default" className="bg-green-600">
+              <Badge variant="default" className="bg-success">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 Active
               </Badge>
@@ -196,7 +196,7 @@ export function SyncProviderConfig({
               <div key={field.name} className="space-y-2">
                 <Label htmlFor={field.name}>
                   {field.label}
-                  {field.required && <span className="text-red-500 ml-1">*</span>}
+                  {field.required && <span className="text-destructive ml-1">*</span>}
                 </Label>
                 <Input
                   id={field.name}
@@ -214,7 +214,7 @@ export function SyncProviderConfig({
             ))}
 
             {error && (
-              <p className="text-sm text-red-500">{error}</p>
+              <p className="text-sm text-destructive">{error}</p>
             )}
           </div>
 

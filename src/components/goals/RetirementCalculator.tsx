@@ -165,7 +165,7 @@ export function RetirementCalculator() {
               <div
                 className={cn(
                   'p-6 rounded-lg text-center',
-                  projection.isOnTrack ? 'bg-green-500/10' : 'bg-amber-500/10'
+                  projection.isOnTrack ? 'bg-success/10' : 'bg-warning/12'
                 )}
               >
                 <p className="text-sm text-muted-foreground mb-2">Projected Balance at {retirementAge}</p>
@@ -180,8 +180,8 @@ export function RetirementCalculator() {
                     </>
                   ) : (
                     <>
-                      <AlertTriangle className="h-4 w-4 text-amber-600" />
-                      <span className="text-amber-600">May need adjustment</span>
+                      <AlertTriangle className="h-4 w-4 text-warning" />
+                      <span className="text-warning">May need adjustment</span>
                     </>
                   )}
                 </div>
@@ -216,7 +216,7 @@ export function RetirementCalculator() {
 
             {/* Recommendation */}
             {!projection.isOnTrack && projection.requiredMonthlyContribution && (
-              <div className="mt-6 p-4 bg-amber-500/10 rounded-lg border border-amber-500/20">
+              <div className="mt-6 p-4 bg-warning/12 rounded-lg border border-warning/50/20">
                 <p className="text-sm">
                   <span className="font-medium">Recommendation:</span> To reach your target of{' '}
                   {formatAUD(targetIncomeCents)}/month income, consider increasing your total

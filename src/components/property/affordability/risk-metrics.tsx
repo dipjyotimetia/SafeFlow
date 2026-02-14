@@ -23,19 +23,19 @@ export function RiskMetricsCard({
 
   const getVacancyColor = (vacancy: number) => {
     if (vacancy >= 10) return "text-success";
-    if (vacancy >= 5) return "text-yellow-600";
+    if (vacancy >= 5) return "text-warning";
     return "text-destructive";
   };
 
   const getCoverageColor = (ratio: number) => {
     if (ratio >= 1.3) return "text-success";
-    if (ratio >= 1.0) return "text-yellow-600";
+    if (ratio >= 1.0) return "text-warning";
     return "text-destructive";
   };
 
   const getBufferColor = (months: number) => {
     if (months >= 6) return "text-success";
-    if (months >= 3) return "text-yellow-600";
+    if (months >= 3) return "text-warning";
     return "text-destructive";
   };
 

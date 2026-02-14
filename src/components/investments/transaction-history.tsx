@@ -246,7 +246,7 @@ export function TransactionHistory({ holdingId, holdingSymbol: _holdingSymbol }:
                       'text-right font-medium',
                       transaction.type === 'buy' && 'text-destructive',
                       transaction.type === 'sell' && 'text-success',
-                      (transaction.type === 'dividend' || transaction.type === 'distribution') && 'text-blue-600'
+                      (transaction.type === 'dividend' || transaction.type === 'distribution') && 'text-primary'
                     )}
                   >
                     {transaction.type === 'buy' ? '-' : ''}
@@ -371,7 +371,7 @@ function TransactionSummary({ transactions }: { transactions: InvestmentTransact
       </div>
       <div>
         <p className="text-xs text-muted-foreground">Dividends Received</p>
-        <p className="text-sm font-medium text-blue-600">{formatAUD(stats.totalDividends)}</p>
+        <p className="text-sm font-medium text-primary">{formatAUD(stats.totalDividends)}</p>
         {stats.totalFrankingCredits > 0 && (
           <p className="text-xs text-muted-foreground">
             +{formatAUD(stats.totalFrankingCredits)} franking

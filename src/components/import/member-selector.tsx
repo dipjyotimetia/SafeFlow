@@ -102,19 +102,19 @@ export function MemberSelector({
 
       {/* Suggestion banner */}
       {parseResult.detectedName && parseResult.confidence >= 0.5 && (
-        <div className="mb-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+        <div className="mb-3 p-3 rounded-lg bg-primary/10 dark:bg-primary/15 border border-primary/30 dark:border-primary/35">
           <div className="flex items-start gap-2">
-            <User className="h-4 w-4 text-blue-600 mt-0.5" />
+            <User className="h-4 w-4 text-primary mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              <p className="text-sm font-medium text-primary">
                 Detected: {parseResult.detectedName}
               </p>
               {parseResult.suggestedMemberId && parseResult.suggestedMemberName ? (
-                <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                <p className="mt-0.5 text-xs text-primary">
                   Matched to existing member: {parseResult.suggestedMemberName}
                 </p>
               ) : (
-                <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                <p className="mt-0.5 text-xs text-primary">
                   No matching member found - create new?
                 </p>
               )}

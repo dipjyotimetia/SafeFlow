@@ -20,9 +20,9 @@ interface StressTestResultsProps {
 }
 
 const statusColors = {
-  green: "bg-green-500",
-  amber: "bg-yellow-500",
-  red: "bg-red-500",
+  green: "bg-success",
+  amber: "bg-warning",
+  red: "bg-destructive",
 };
 
 export function StressTestResults({
@@ -72,11 +72,11 @@ export function StressTestResults({
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     {scenario.monthlyCashflow >= 0 ? (
-                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      <TrendingUp className="h-4 w-4 text-success" />
                     ) : scenario.monthlyCashflow >= -50000 ? (
-                      <Minus className="h-4 w-4 text-yellow-500" />
+                      <Minus className="h-4 w-4 text-warning" />
                     ) : (
-                      <TrendingDown className="h-4 w-4 text-red-500" />
+                      <TrendingDown className="h-4 w-4 text-destructive" />
                     )}
                     <span
                       className={

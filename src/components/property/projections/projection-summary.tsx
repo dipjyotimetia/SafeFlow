@@ -54,7 +54,7 @@ function ProjectionMetricCard({
             <span
               className={cn(
                 "flex items-center text-xs",
-                trend === "up" ? "text-emerald-600" : "text-red-600"
+                trend === "up" ? "text-success" : "text-destructive"
               )}
             >
               {trend === "up" ? (
@@ -281,8 +281,8 @@ export function ProjectionSummary({
                         className={cn(
                           "py-2 text-right",
                           p.annualCashflowBeforeTax >= 0
-                            ? "text-emerald-600"
-                            : "text-red-600"
+                            ? "text-success"
+                            : "text-destructive"
                         )}
                       >
                         {formatAUD(p.annualCashflowBeforeTax)}

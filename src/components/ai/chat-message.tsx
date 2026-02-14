@@ -155,7 +155,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm",
           isUser
             ? "bg-primary text-primary-foreground"
-            : "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white"
+            : "bg-gradient-to-br from-success to-primary text-primary-foreground"
         )}
       >
         {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
@@ -178,7 +178,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
           {renderedContent}
           {isStreaming && (
             <span className="inline-flex items-center ml-1">
-              <RefreshCw className="h-3 w-3 animate-spin text-emerald-500" />
+              <RefreshCw className="h-3 w-3 animate-spin text-success" />
             </span>
           )}
         </div>
@@ -193,7 +193,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
             >
               {copied ? (
                 <>
-                  <Check className="h-3 w-3 mr-1 text-emerald-500" />
+                  <Check className="h-3 w-3 mr-1 text-success" />
                   Copied!
                 </>
               ) : (

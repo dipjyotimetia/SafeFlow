@@ -380,7 +380,7 @@ export default function SuperannuationPage() {
                       </p>
                     ) : null}
                     {contributionSummary.carryForwardReason ? (
-                      <p className="text-xs text-amber-600">{contributionSummary.carryForwardReason}</p>
+                      <p className="text-xs text-warning">{contributionSummary.carryForwardReason}</p>
                     ) : null}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="flex justify-between">
@@ -426,7 +426,7 @@ export default function SuperannuationPage() {
                       </p>
                     ) : null}
                     {contributionSummary.bringForwardReason ? (
-                      <p className="text-xs text-amber-600">{contributionSummary.bringForwardReason}</p>
+                      <p className="text-xs text-warning">{contributionSummary.bringForwardReason}</p>
                     ) : null}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="flex justify-between">

@@ -171,9 +171,9 @@ export function PortfolioPerformance() {
               className={cn(
                 'text-sm font-medium px-2 py-0.5 rounded-full',
                 trendDirection === 'positive' &&
-                  'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                  'bg-success/15 text-success dark:bg-success/20 text-success',
                 trendDirection === 'negative' &&
-                  'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                  'bg-destructive/15 text-destructive dark:bg-destructive/20 text-destructive',
                 trendDirection === 'neutral' &&
                   'bg-muted text-muted-foreground'
               )}

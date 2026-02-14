@@ -77,7 +77,7 @@ export function CategorizationStatusCard({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-emerald-600" />
+              <Sparkles className="h-5 w-5 text-success" />
               <CardTitle className="text-base">AI Categorization</CardTitle>
               {isProcessing && (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -87,7 +87,7 @@ export function CategorizationStatusCard({
                   Online
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="text-yellow-600 text-xs">
+                <Badge variant="secondary" className="text-warning text-xs">
                   <WifiOff className="h-3 w-3 mr-1" />
                   Offline
                 </Badge>
@@ -131,7 +131,7 @@ export function CategorizationStatusCard({
                 <div className="text-xs text-muted-foreground">Categorized</div>
               </div>
               <div className="text-center p-3 rounded-lg bg-muted/50">
-                <div className="text-2xl font-semibold text-yellow-600">
+                <div className="text-2xl font-semibold text-warning">
                   {transactionCounts.uncategorized}
                 </div>
                 <div className="text-xs text-muted-foreground">Uncategorized</div>
@@ -149,7 +149,7 @@ export function CategorizationStatusCard({
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-emerald-600 transition-all"
+                    className="h-full bg-success transition-all"
                     style={{
                       width: `${(transactionCounts.categorized / transactionCounts.total) * 100}%`,
                     }}

@@ -165,7 +165,7 @@ export function GoalCard({ progress, onEdit }: GoalCardProps) {
           </div>
           <Progress
             value={progressClamped}
-            className={cn("h-2", !onTrack && goal.targetDate && "bg-amber-200")}
+            className={cn("h-2", !onTrack && goal.targetDate && "bg-warning/30")}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{progressPercent.toFixed(1)}% complete</span>
@@ -185,7 +185,7 @@ export function GoalCard({ progress, onEdit }: GoalCardProps) {
             <div
               className={cn(
                 "flex items-center gap-1 text-xs",
-                onTrack ? "text-success" : "text-amber-600",
+                onTrack ? "text-success" : "text-warning",
               )}
             >
               {onTrack ? (

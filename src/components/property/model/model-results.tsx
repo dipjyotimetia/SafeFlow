@@ -142,7 +142,7 @@ export function ModelResults({
                 className={
                   results.cashflowAfterTaxAnnuallyLow >= 0
                     ? "bg-success/20 text-success hover:bg-success/30"
-                    : "bg-amber-500/20 text-amber-600 hover:bg-amber-500/30"
+                    : "bg-warning/20 text-warning hover:bg-warning/30"
                 }
               >
                 {results.cashflowAfterTaxAnnuallyLow >= 0 ? (
@@ -666,7 +666,7 @@ export function ModelResults({
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             Cashflow After Tax
             {results.cashflowAfterTaxAnnuallyLow < 0 && (
-              <Badge variant="secondary" className="text-amber-600">
+              <Badge variant="secondary" className="text-warning">
                 Negatively Geared
               </Badge>
             )}

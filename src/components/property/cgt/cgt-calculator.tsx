@@ -281,7 +281,7 @@ export function CGTCalculator({
                   value={division40}
                   onChange={(e) => setDivision40(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground text-amber-600">
+                <p className="text-xs text-muted-foreground text-warning">
                   ⚠️ Added back to capital gain on sale
                 </p>
               </div>
@@ -430,7 +430,7 @@ export function CGTCalculator({
                     <span className="text-muted-foreground">
                       Add: Div 40 Depreciation Recapture
                     </span>
-                    <span className="text-amber-600">
+                    <span className="text-warning">
                       +{formatAUD(result.deprecationRecapture)}
                     </span>
                   </div>
@@ -440,7 +440,7 @@ export function CGTCalculator({
                     <span className="text-muted-foreground">
                       Less: 50% CGT Discount
                     </span>
-                    <span className="text-emerald-600">
+                    <span className="text-success">
                       -{formatAUD(Math.round(result.adjustedCapitalGain / 2))}
                     </span>
                   </div>
