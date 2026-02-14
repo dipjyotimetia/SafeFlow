@@ -714,9 +714,9 @@ export default function ImportPage() {
                           )}
                           <span className="block text-xs mt-1">
                             Balance: $
-                            {superParseResult.account.totalBalance.toLocaleString(
+                            {(superParseResult.account.totalBalance / 100).toLocaleString(
                               "en-AU",
-                              { minimumFractionDigits: 2 }
+                              { minimumFractionDigits: 2, maximumFractionDigits: 2 }
                             )}
                           </span>
                           <span className="block text-xs">

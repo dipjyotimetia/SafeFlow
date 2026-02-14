@@ -291,17 +291,21 @@ export class AustralianSuperParser implements SuperParser {
         const dateMatch = line.match(datePattern);
         if (dateMatch) {
           const date = this.parseDate(dateMatch[0]) ?? defaultDate;
-          const amountMatch = line.match(/\$?([\d,]+(?:\.\d{2})?)/);
+          const amountMatch = this.extractAmountMatchFromLine(line, dateMatch[0]);
 
           if (amountMatch) {
-            const amount = this.parseAmount(amountMatch[1]);
+            const amount = this.parseAmount(amountMatch);
             if (amount > 0) {
               const type = this.determineTransactionType(line);
               transactions.push({
                 date,
                 type,
                 amount: ['fees', 'insurance'].includes(type) ? -amount : amount,
-                description: line.replace(dateMatch[0], '').replace(amountMatch[0], '').trim().substring(0, 100),
+                description: line
+                  .replace(dateMatch[0], '')
+                  .replace(amountMatch, '')
+                  .trim()
+                  .substring(0, 100),
                 rawText: line,
               });
             }
@@ -312,6 +316,22 @@ export class AustralianSuperParser implements SuperParser {
     }
 
     return transactions;
+  }
+
+  private extractAmountMatchFromLine(line: string, dateToken: string): string | null {
+    const withoutDate = line.replace(dateToken, ' ');
+    const matches = Array.from(withoutDate.matchAll(/\$?\s*([\d,]+(?:\.\d{2})?)/g));
+    if (matches.length === 0) {
+      return null;
+    }
+
+    // Prefer currency-looking numbers to avoid capturing day/month values.
+    const preferred = matches.filter(
+      (match) =>
+        match[0].includes('$') || match[1].includes(',') || match[1].includes('.')
+    );
+    const selected = (preferred.length > 0 ? preferred : matches).at(-1);
+    return selected?.[1] ?? null;
   }
 
   private determineTransactionType(text: string): SuperTransactionType {

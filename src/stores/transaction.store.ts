@@ -11,6 +11,29 @@ import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { create } from "zustand";
 
+type BulkImportDedupInput = {
+  accountId: string;
+  type: TransactionType;
+  amount: number;
+  description: string;
+  date: Date;
+};
+
+export function buildBulkImportDedupKey(input: BulkImportDedupInput): string {
+  const normalizedDescription = input.description
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+  return [
+    input.accountId,
+    input.type,
+    input.date.toISOString().split("T")[0],
+    input.amount,
+    normalizedDescription,
+  ].join("_");
+}
+
 interface TransactionStore {
   // Filter state
   filters: FilterOptions;
@@ -415,30 +438,45 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
       .anyOf(accountIds)
       .toArray();
 
-    // Create a key for each existing transaction for duplicate detection
-    const existingKeys = new Set(
-      existingTransactions.map((t) => {
-        const date = t.date instanceof Date ? t.date : new Date(t.date);
-        return `${t.accountId}_${date.toISOString().split("T")[0]}_${
-          t.amount
-        }_${t.description.substring(0, 50)}`;
-      })
-    );
+    // Track existing duplicate counts by exact normalized key.
+    // Using counts avoids dropping legitimate same-day repeats when only part
+    // of that key set already exists in the database.
+    const existingKeyCounts = new Map<string, number>();
+    for (const t of existingTransactions) {
+      const date = t.date instanceof Date ? t.date : new Date(t.date);
+      const key = buildBulkImportDedupKey({
+        accountId: t.accountId,
+        type: t.type,
+        amount: t.amount,
+        description: t.description,
+        date,
+      });
+      existingKeyCounts.set(key, (existingKeyCounts.get(key) ?? 0) + 1);
+    }
+    const incomingKeyCounts = new Map<string, number>();
 
     const recordsToAdd: Transaction[] = [];
 
     for (const t of transactions) {
       const date = new Date(t.date);
-      const key = `${t.accountId}_${date.toISOString().split("T")[0]}_${
-        t.amount
-      }_${t.description.substring(0, 50)}`;
+      const key = buildBulkImportDedupKey({
+        accountId: t.accountId,
+        type: t.type,
+        amount: t.amount,
+        description: t.description,
+        date,
+      });
 
-      if (existingKeys.has(key)) {
+      const seenInIncoming = incomingKeyCounts.get(key) ?? 0;
+      const existingCount = existingKeyCounts.get(key) ?? 0;
+
+      if (seenInIncoming < existingCount) {
+        incomingKeyCounts.set(key, seenInIncoming + 1);
         skipped++;
         continue;
       }
 
-      existingKeys.add(key);
+      incomingKeyCounts.set(key, seenInIncoming + 1);
 
       recordsToAdd.push({
         id: uuidv4(),

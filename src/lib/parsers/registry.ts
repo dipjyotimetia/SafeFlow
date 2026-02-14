@@ -2,7 +2,7 @@
 
 import type { BankParser, ParseResult, PDFContent } from "./types";
 
-class ParserRegistry {
+export class ParserRegistry {
   private parsers: BankParser[] = [];
 
   register(parser: BankParser): void {
@@ -21,10 +21,21 @@ class ParserRegistry {
   }
 
   /**
-   * Find the first parser that can handle the given content
+   * Find all parsers that can handle the given content
    */
-  findParser(text: string): BankParser | undefined {
-    return this.parsers.find((parser) => parser.canParse(text));
+  findParsers(text: string): BankParser[] {
+    return this.parsers.filter((parser) => parser.canParse(text));
+  }
+
+  /**
+   * Score a parse result for parser auto-detection
+   */
+  private scoreParseResult(result: ParseResult): number {
+    const successScore = result.success ? 1000 : 0;
+    const transactionScore = result.transactions.length * 10;
+    const errorPenalty = result.errors.length * 50;
+    const warningPenalty = result.warnings.length * 5;
+    return successScore + transactionScore - errorPenalty - warningPenalty;
   }
 
   /**
@@ -41,9 +52,10 @@ class ParserRegistry {
       }
     }
 
-    // Auto-detect bank
-    const parser = this.findParser(text);
-    if (!parser) {
+    // Auto-detect bank by evaluating all candidates
+    const candidates = this.findParsers(text);
+
+    if (candidates.length === 0) {
       return {
         success: false,
         transactions: [],
@@ -54,7 +66,40 @@ class ParserRegistry {
       };
     }
 
-    return parser.parse(text);
+    // Fast path: only one candidate
+    if (candidates.length === 1) {
+      return candidates[0].parse(text);
+    }
+
+    // Evaluate all candidate parsers and choose the strongest result
+    let bestResult: ParseResult | null = null;
+    let bestScore = Number.NEGATIVE_INFINITY;
+
+    for (const parser of candidates) {
+      try {
+        const result = parser.parse(text);
+        const score = this.scoreParseResult(result);
+        if (score > bestScore) {
+          bestScore = score;
+          bestResult = result;
+        }
+      } catch {
+        // Ignore failed parser and continue to other candidates
+      }
+    }
+
+    if (!bestResult) {
+      return {
+        success: false,
+        transactions: [],
+        errors: [
+          "Detected a statement format but failed to parse transactions. Please try selecting your institution manually.",
+        ],
+        warnings: [],
+      };
+    }
+
+    return bestResult;
   }
 }
 

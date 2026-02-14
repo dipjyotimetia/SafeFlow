@@ -27,6 +27,7 @@ export {
   cleanDescription,
   shouldSkipLine,
   extractStatementPeriod,
+  normalizeDateToStatementPeriod,
   SKIP_PATTERNS,
 
   // Utilities

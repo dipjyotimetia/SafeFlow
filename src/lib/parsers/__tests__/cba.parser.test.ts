@@ -97,5 +97,23 @@ describe('CBA Parser', () => {
       expect(result.transactions).toBeDefined();
       expect(Array.isArray(result.transactions)).toBe(true);
     });
+
+    it('should infer previous year for December dates in Jan-ending statements', () => {
+      const cbaStatement = `
+        Commonwealth Bank
+        Statement Period: 15/12/2024 to 15/01/2025
+
+        20 Dec Groceries 25.00 1,000.00
+        10 Jan Salary 2,000.00 3,000.00
+      `;
+
+      const result = cbaParser.parse(cbaStatement);
+      const decemberTx = result.transactions.find(
+        (t) => t.description.toLowerCase().includes('groceries')
+      );
+
+      expect(decemberTx).toBeDefined();
+      expect(decemberTx?.date.getFullYear()).toBe(2024);
+    });
   });
 });

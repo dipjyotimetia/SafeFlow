@@ -8,6 +8,7 @@ import {
   cleanDescription,
   shouldSkipLine,
   createTransactionKey,
+  normalizeDateToStatementPeriod,
   toCents,
   Decimal,
 } from '../utils';
@@ -106,6 +107,11 @@ export class RaizParser implements BankParser {
       const transaction = this.parseTransactionLine(line, currentYear);
 
       if (transaction) {
+        transaction.date = normalizeDateToStatementPeriod(
+          transaction.date,
+          transaction.rawText ?? line,
+          statementPeriod
+        );
         const key = createTransactionKey(transaction.date, transaction.description, transaction.amount);
 
         if (!seenTransactions.has(key)) {

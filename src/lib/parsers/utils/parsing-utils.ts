@@ -473,6 +473,74 @@ export function extractDateFromLine(
   return null;
 }
 
+function hasExplicitYearInLine(line: string): boolean {
+  const slashMatch = line.match(DATE_PATTERNS.slashFormat);
+  if (slashMatch && slashMatch[3]) {
+    return true;
+  }
+
+  const dashMatch = line.match(DATE_PATTERNS.dashFormat);
+  if (dashMatch && dashMatch[3]) {
+    return true;
+  }
+
+  const monthNameMatch = line.match(DATE_PATTERNS.monthNameFormat);
+  if (monthNameMatch && monthNameMatch[3]) {
+    return true;
+  }
+
+  const isoMatch = line.match(DATE_PATTERNS.isoFormat);
+  return !!isoMatch;
+}
+
+/**
+ * Align a parsed transaction date to a statement period when the line has no explicit year.
+ */
+export function normalizeDateToStatementPeriod(
+  date: Date,
+  rawLine: string,
+  statementPeriod?: { start: Date; end: Date }
+): Date {
+  if (!statementPeriod || hasExplicitYearInLine(rawLine)) {
+    return date;
+  }
+
+  const candidates: Date[] = [];
+  for (const yearOffset of [-1, 0, 1]) {
+    const candidate = new Date(date);
+    candidate.setFullYear(candidate.getFullYear() + yearOffset);
+    candidates.push(candidate);
+  }
+
+  const inRange = candidates.find(
+    (candidate) =>
+      candidate.getTime() >= statementPeriod.start.getTime() &&
+      candidate.getTime() <= statementPeriod.end.getTime()
+  );
+  if (inRange) {
+    return inRange;
+  }
+
+  // Fall back to the candidate closest to the statement period bounds.
+  let best = candidates[0];
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const candidate of candidates) {
+    let distance = 0;
+    if (candidate.getTime() < statementPeriod.start.getTime()) {
+      distance = statementPeriod.start.getTime() - candidate.getTime();
+    } else if (candidate.getTime() > statementPeriod.end.getTime()) {
+      distance = candidate.getTime() - statementPeriod.end.getTime();
+    }
+
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = candidate;
+    }
+  }
+
+  return best;
+}
+
 /**
  * Create a unique key for duplicate detection
  */

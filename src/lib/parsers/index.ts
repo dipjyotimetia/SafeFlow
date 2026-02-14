@@ -55,6 +55,7 @@ export {
   determineTransactionSign,
   cleanDescription,
   extractStatementPeriod,
+  normalizeDateToStatementPeriod,
   shouldSkipLine,
   extractDateFromLine,
   createTransactionKey,

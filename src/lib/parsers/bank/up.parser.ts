@@ -8,6 +8,7 @@ import {
   analyzeTransaction,
   shouldSkipLine,
   createTransactionKey,
+  normalizeDateToStatementPeriod,
   toCents,
   Decimal,
 } from '../utils';
@@ -27,7 +28,7 @@ export class UpParser implements BankParser {
 
   // Patterns to identify Up Bank statements
   private readonly identifiers = [
-    /Up(?:\s+Bank)?/i,
+    /\bUp Bank\b/i,
     /up\.com\.au/i,
     /Up Banking/i,
     /Up Saver/i,
@@ -36,7 +37,6 @@ export class UpParser implements BankParser {
 
   // Additional Up-specific skip patterns
   private readonly upSkipPatterns = [
-    /^Round\s+Up\s+Transfer/i,
     /^Instant\s+Transfer/i,
     /^Cover\s+from/i,
   ];
@@ -74,6 +74,11 @@ export class UpParser implements BankParser {
       const transaction = this.parseTransactionLine(line, currentYear);
 
       if (transaction) {
+        transaction.date = normalizeDateToStatementPeriod(
+          transaction.date,
+          transaction.rawText ?? line,
+          statementPeriod
+        );
         const key = createTransactionKey(transaction.date, transaction.description, transaction.amount);
 
         if (!seenTransactions.has(key)) {
