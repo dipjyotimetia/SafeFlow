@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { MetricCard } from '@/components/ui/metric-card';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -91,6 +92,7 @@ export default function InvestmentsPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isTransactionFormOpen, setIsTransactionFormOpen] = useState(false);
+  const [tableDensity, setTableDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const hasAutoRefreshed = useRef(false);
   const [newHolding, setNewHolding] = useState({
     symbol: '',
@@ -214,15 +216,60 @@ export default function InvestmentsPage() {
   return (
     <>
       <Header title="Investments" />
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">Investment Portfolio</h2>
-            <p className="text-sm text-muted-foreground">
-              Track your stocks, ETFs, and crypto
-            </p>
-          </div>
-          <div className="flex gap-2">
+      <div className="pb-10">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:px-8">
+          <Card variant="glass-luxury" className="border-primary/15 animate-enter">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <CardTitle className="text-2xl">Investment Portfolio</CardTitle>
+                <CardDescription>
+                  Track stocks, ETFs, crypto, and performance trends.
+                </CardDescription>
+              </div>
+              <div className="hidden gap-2 sm:flex">
+                <Button
+                  variant="outline"
+                  onClick={handleRefreshPrices}
+                  disabled={isRefreshingPrices || holdings.length === 0}
+                >
+                  {isRefreshingPrices ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Refresh Prices
+                </Button>
+                <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Holding
+                </Button>
+              </div>
+            </CardHeader>
+          </Card>
+
+        {/* Portfolio Summary */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <MetricCard
+            title="Total Value"
+            value={formatAUD(summary.totalValue)}
+            description={`${summary.holdingCount} holding${summary.holdingCount !== 1 ? 's' : ''}`}
+            variant="default"
+          />
+          <MetricCard
+            title="Total Cost Basis"
+            value={formatAUD(summary.totalCostBasis)}
+            description="Amount invested"
+            variant="default"
+          />
+          <MetricCard
+            title="Unrealized Gain/Loss"
+            value={`${summary.totalGainLoss >= 0 ? '+' : ''}${formatAUD(summary.totalGainLoss)}`}
+            description={`${summary.gainLossPercent >= 0 ? '+' : ''}${summary.gainLossPercent.toFixed(2)}% return`}
+            variant={summary.totalGainLoss >= 0 ? 'positive' : 'negative'}
+          />
+        </div>
+
+        <div className="flex gap-2 sm:hidden">
             <Button
               variant="outline"
               onClick={handleRefreshPrices}
@@ -240,60 +287,10 @@ export default function InvestmentsPage() {
               Add Holding
             </Button>
           </div>
-        </div>
-
-        {/* Portfolio Summary */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatAUD(summary.totalValue)}</div>
-              <p className="text-xs text-muted-foreground">
-                {summary.holdingCount} holding{summary.holdingCount !== 1 ? 's' : ''}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Cost Basis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatAUD(summary.totalCostBasis)}</div>
-              <p className="text-xs text-muted-foreground">Amount invested</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Unrealized Gain/Loss</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                className={cn(
-                  'text-2xl font-bold',
-                  summary.totalGainLoss >= 0 ? 'text-success' : 'text-destructive'
-                )}
-              >
-                {summary.totalGainLoss >= 0 ? '+' : ''}
-                {formatAUD(summary.totalGainLoss)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                <span className={summary.gainLossPercent >= 0 ? 'text-success' : 'text-destructive'}>
-                  {summary.gainLossPercent >= 0 ? '+' : ''}
-                  {summary.gainLossPercent.toFixed(2)}%
-                </span>{' '}
-                return
-              </p>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Portfolio Charts & Top Movers */}
         {holdings.length > 0 && (
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-5 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <PortfolioPerformance />
             </div>
@@ -305,7 +302,7 @@ export default function InvestmentsPage() {
         )}
 
         {/* Holdings Table */}
-        <Card>
+        <Card variant="premium">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -321,7 +318,7 @@ export default function InvestmentsPage() {
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                          <span className="inline-flex items-center gap-1 text-xs text-warning">
                             <AlertCircle className="h-3 w-3" />
                             Stale
                           </span>
@@ -334,15 +331,49 @@ export default function InvestmentsPage() {
                   )}
                 </CardDescription>
               </div>
+              <Select
+                value={tableDensity}
+                onValueChange={(value) =>
+                  setTableDensity(value as 'comfortable' | 'compact')
+                }
+              >
+                <SelectTrigger className="w-[150px]" aria-label="Select table density">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="comfortable">Comfortable</SelectItem>
+                  <SelectItem value="compact">Compact</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+              <div className="py-6">
+                <div className="space-y-2">
+                  {Array.from({ length: 7 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 p-3"
+                    >
+                      <div className="h-8 w-8 animate-pulse rounded-lg bg-muted" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                        <div className="h-3 w-32 animate-pulse rounded bg-muted/80" />
+                      </div>
+                      <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+                      <div className="h-3 w-16 animate-pulse rounded bg-muted/80" />
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : holdings.length > 0 ? (
-              <Table>
+              <Table
+                containerClassName="max-h-[68vh] overflow-auto"
+                className={cn(
+                  tableDensity === 'compact' && '[&_td]:py-2 [&_th]:h-9',
+                )}
+              >
                 <TableHeader>
                   <TableRow>
                     <TableHead>Asset</TableHead>
@@ -434,7 +465,11 @@ export default function InvestmentsPage() {
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Open actions for ${holding.symbol}`}
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -452,7 +487,7 @@ export default function InvestmentsPage() {
                                 Edit Holding
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                className="text-destructive"
+                                variant="destructive"
                                 onClick={() => handleDeleteHolding(holding)}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
@@ -479,6 +514,7 @@ export default function InvestmentsPage() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
 
       {/* Add Holding Dialog */}

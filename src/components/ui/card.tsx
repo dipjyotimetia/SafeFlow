@@ -4,52 +4,21 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "text-card-foreground flex flex-col gap-6 rounded-xl border py-6 transition-all duration-300",
+  "text-card-foreground flex flex-col gap-6 rounded-2xl border py-6 transition-all duration-300",
   {
     variants: {
       variant: {
-        default: "bg-card shadow-sm hover:shadow-md",
-        gradient: "gradient-card shadow-sm hover:shadow-md",
-        glass: [
-          "glass border-border/40",
-          "shadow-sm hover:shadow-md",
-          "hover:-translate-y-0.5",
-        ].join(" "),
-        "glass-luxury": [
-          "glass-luxury border-border/20",
-          "shadow-[0_8px_32px_rgba(0,0,0,0.08)]",
-          "hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]",
-          "hover:-translate-y-1",
-          "dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]",
-          "dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)]",
-        ].join(" "),
-        elevated: "bg-card shadow-md hover:shadow-lg hover:-translate-y-0.5",
-        luxury: [
-          "bg-card border-border/40",
-          "shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)]",
-          "hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06)]",
-          "hover:-translate-y-0.5",
-          "dark:shadow-[0_1px_3px_rgba(0,0,0,0.2),0_4px_12px_rgba(0,0,0,0.15)]",
-          "dark:hover:shadow-[0_2px_6px_rgba(0,0,0,0.25),0_8px_24px_rgba(0,0,0,0.2)]",
-        ].join(" "),
-        premium: [
-          "bg-linear-to-br from-card to-card/95",
-          "border-border/30",
-          "shadow-[0_1px_2px_rgba(0,0,0,0.03),0_2px_4px_rgba(0,0,0,0.03),0_4px_8px_rgba(0,0,0,0.03),0_8px_16px_rgba(0,0,0,0.03)]",
-          "hover:shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_8px_16px_rgba(0,0,0,0.04),0_16px_32px_rgba(0,0,0,0.04)]",
-          "hover:-translate-y-1",
-          "dark:from-card dark:to-card/90",
-          "dark:border-border/20",
-          "dark:shadow-[0_1px_2px_rgba(0,0,0,0.15),0_2px_4px_rgba(0,0,0,0.15),0_4px_8px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)]",
-          "dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.2),0_4px_8px_rgba(0,0,0,0.2),0_8px_16px_rgba(0,0,0,0.15),0_16px_32px_rgba(0,0,0,0.15)]",
-        ].join(" "),
-        floating: [
-          "bg-card border-border/30",
-          "shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
-          "hover:shadow-[0_16px_40px_rgba(0,0,0,0.16)]",
-          "hover:-translate-y-2",
-          "animate-float-slow",
-        ].join(" "),
+        default: "bg-card border-border/70 shadow-premium hover:shadow-premium-lg",
+        gradient: "gradient-card border-border/70 shadow-premium hover:shadow-premium-lg",
+        glass: "glass border-border/70 shadow-premium hover:shadow-premium-lg",
+        "glass-luxury": "glass-luxury border-border/70 shadow-premium-lg hover:-translate-y-0.5",
+        elevated: "bg-card border-border/70 shadow-premium-lg hover:-translate-y-0.5",
+        luxury:
+          "bg-linear-to-b from-card to-card/90 border-border/70 shadow-premium-lg hover:-translate-y-0.5",
+        premium:
+          "bg-linear-to-b from-card to-card/92 border-border/70 shadow-premium hover:shadow-premium-lg hover:-translate-y-0.5",
+        floating:
+          "bg-card border-border/70 shadow-premium-lg hover:shadow-[0_24px_50px_oklch(0.16_0.02_236_/_0.2)] hover:-translate-y-1 animate-float-slow",
       },
     },
     defaultVariants: {
@@ -59,7 +28,8 @@ const cardVariants = cva(
 );
 
 export interface CardProps
-  extends React.ComponentProps<"div">, VariantProps<typeof cardVariants> {}
+  extends React.ComponentProps<"div">,
+    VariantProps<typeof cardVariants> {}
 
 function Card({ className, variant, ...props }: CardProps) {
   return (
@@ -88,7 +58,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      className={cn("leading-none font-semibold tracking-tight", className)}
       {...props}
     />
   );
@@ -119,11 +89,7 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
 
 function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div
-      data-slot="card-content"
-      className={cn("px-6", className)}
-      {...props}
-    />
+    <div data-slot="card-content" className={cn("px-6", className)} {...props} />
   );
 }
 

@@ -37,13 +37,13 @@ const accountIcons: Record<AccountType, typeof Building2> = {
 };
 
 const accountColors: Record<AccountType, string> = {
-  bank: 'text-blue-600 bg-blue-100',
-  credit: 'text-orange-600 bg-orange-100',
-  cash: 'text-success bg-green-100',
-  investment: 'text-purple-600 bg-purple-100',
-  crypto: 'text-yellow-600 bg-yellow-100',
-  asset: 'text-teal-600 bg-teal-100',
-  liability: 'text-destructive bg-red-100',
+  bank: 'text-primary bg-primary/15',
+  credit: 'text-warning bg-warning/15',
+  cash: 'text-success bg-success/15',
+  investment: 'text-primary bg-primary/12',
+  crypto: 'text-warning bg-warning/15',
+  asset: 'text-primary bg-accent/30',
+  liability: 'text-destructive bg-destructive/12',
 };
 
 interface AccountCardProps {
@@ -55,31 +55,38 @@ interface AccountCardProps {
 export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const Icon = accountIcons[account.type];
   const colorClass = accountColors[account.type];
-  const isNegative = account.balance < 0 || account.type === 'liability' || account.type === 'credit';
-  const hasInstitutionIcon = account.institution && isKnownInstitution(account.institution);
+  const isNegative =
+    account.balance < 0 || account.type === 'liability' || account.type === 'credit';
+  const hasInstitutionIcon =
+    account.institution && isKnownInstitution(account.institution);
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card variant="premium" className="group">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           {hasInstitutionIcon ? (
             <InstitutionIcon institution={account.institution!} size="lg" />
           ) : (
-            <div className={cn('p-2 rounded-lg', colorClass)}>
+            <div className={cn('rounded-xl p-2.5', colorClass)}>
               <Icon className="h-5 w-5" />
             </div>
           )}
-          <div>
-            <CardTitle className="text-base font-medium">{account.name}</CardTitle>
+          <div className="min-w-0">
+            <CardTitle className="truncate text-base font-medium">{account.name}</CardTitle>
             {account.institution && (
-              <p className="text-xs text-muted-foreground">{account.institution}</p>
+              <p className="truncate text-xs text-muted-foreground">{account.institution}</p>
             )}
           </div>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-lg"
+              aria-label={`Open actions for account ${account.name}`}
+            >
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -89,8 +96,8 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
               Edit
             </DropdownMenuItem>
             <DropdownMenuItem
+              variant="destructive"
               onClick={() => onDelete(account)}
-              className="text-destructive focus:text-destructive"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
@@ -102,17 +109,17 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
       <CardContent>
         <div
           className={cn(
-            'text-2xl font-bold',
-            isNegative ? 'text-destructive' : 'text-foreground'
+            'metric-value text-2xl font-semibold tabular-nums',
+            isNegative ? 'text-destructive' : 'text-foreground',
           )}
         >
           {formatAUD(Math.abs(account.balance))}
           {isNegative && account.balance !== 0 && (
-            <span className="text-sm font-normal text-muted-foreground ml-1">owed</span>
+            <span className="ml-1 text-sm font-normal text-muted-foreground">owed</span>
           )}
         </div>
-        <p className="text-xs text-muted-foreground capitalize mt-1">
-          {account.type.replace('-', ' ')} Account
+        <p className="mt-1 text-xs capitalize text-muted-foreground">
+          {account.type.replace('-', ' ')} account
         </p>
       </CardContent>
     </Card>

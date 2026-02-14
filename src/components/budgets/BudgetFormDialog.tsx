@@ -35,7 +35,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
   const { createBudget, updateBudget } = useBudgetStore();
 
   const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState<string>('');
+  const [categoryId, setCategoryId] = useState<string>('all');
   const [amountDisplay, setAmountDisplay] = useState('');
   const [amountCents, setAmountCents] = useState(0);
   const [period, setPeriod] = useState<BudgetPeriod>('monthly');
@@ -44,13 +44,13 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
   useEffect(() => {
     if (budget) {
       setName(budget.name);
-      setCategoryId(budget.categoryId || '');
+      setCategoryId(budget.categoryId || 'all');
       setAmountDisplay((budget.amount / 100).toFixed(2));
       setAmountCents(budget.amount);
       setPeriod(budget.period);
     } else {
       setName('');
-      setCategoryId('');
+      setCategoryId('all');
       setAmountDisplay('');
       setAmountCents(0);
       setPeriod('monthly');
@@ -86,7 +86,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
       if (budget) {
         await updateBudget(budget.id, {
           name: name.trim(),
-          categoryId: categoryId || undefined,
+          categoryId: categoryId === 'all' ? undefined : categoryId,
           amount: amountCents,
           period,
         });
@@ -94,7 +94,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
       } else {
         await createBudget({
           name: name.trim(),
-          categoryId: categoryId || undefined,
+          categoryId: categoryId === 'all' ? undefined : categoryId,
           amount: amountCents,
           period,
         });
@@ -111,7 +111,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[440px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{budget ? 'Edit Budget' : 'Create Budget'}</DialogTitle>
@@ -140,7 +140,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
                   <SelectValue placeholder="All spending" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All spending</SelectItem>
+                  <SelectItem value="all">All spending</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}

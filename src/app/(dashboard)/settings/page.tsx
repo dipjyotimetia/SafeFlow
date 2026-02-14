@@ -162,9 +162,19 @@ export default function SettingsPage() {
   return (
     <>
       <Header title="Settings" />
-      <div className="p-6 space-y-6 max-w-3xl">
+      <div className="pb-10">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:px-8">
+        <Card variant="glass-luxury" className="border-primary/15 animate-enter">
+          <CardHeader>
+            <CardTitle className="text-2xl">Workspace Preferences</CardTitle>
+            <CardDescription>
+              Configure appearance, AI, backup, and privacy controls.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
         {/* Appearance */}
-        <Card>
+        <Card variant="premium">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
@@ -197,7 +207,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Display Preferences */}
-        <Card>
+        <Card variant="premium">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
@@ -235,7 +245,7 @@ export default function SettingsPage() {
         <CloudSyncCard />
 
         {/* Investment Price Settings */}
-        <Card>
+        <Card variant="premium">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
@@ -268,7 +278,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* AI Assistant Settings */}
-        <Card>
+        <Card variant="premium">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bot className="h-5 w-5" />
@@ -283,11 +293,11 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="font-medium">Connection Status</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" role="status" aria-live="polite">
                   {connectionStatus === 'connected' ? (
                     <>
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      <span className="text-sm text-green-600">Connected</span>
+                      <CheckCircle2 className="h-4 w-4 text-success" />
+                      <span className="text-sm text-success">Connected</span>
                       {isModelReady && (
                         <Badge variant="secondary" className="text-xs">
                           Model Ready
@@ -296,13 +306,13 @@ export default function SettingsPage() {
                     </>
                   ) : connectionStatus === 'connecting' ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                      <span className="text-sm text-blue-600">Connecting...</span>
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <span className="text-sm text-primary">Connecting...</span>
                     </>
                   ) : connectionStatus === 'error' ? (
                     <>
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                      <span className="text-sm text-red-600">Error</span>
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                      <span className="text-sm text-destructive">Error</span>
                     </>
                   ) : (
                     <>
@@ -315,7 +325,12 @@ export default function SettingsPage() {
                   <p className="text-xs text-destructive">{connectionError}</p>
                 )}
               </div>
-              <Button variant="outline" size="sm" onClick={handleTestConnection}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestConnection}
+                disabled={connectionStatus === 'connecting'}
+              >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Test
               </Button>
@@ -382,7 +397,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Local Backup */}
-        <Card>
+        <Card variant="premium">
           <CardHeader>
             <CardTitle>Local Backup</CardTitle>
             <CardDescription>
@@ -418,7 +433,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Danger Zone */}
-        <Card className="border-red-200">
+        <Card variant="premium" className="border-destructive/30">
           <CardHeader>
             <CardTitle className="text-destructive">Danger Zone</CardTitle>
             <CardDescription>
@@ -445,7 +460,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* About */}
-        <Card>
+        <Card variant="premium">
           <CardHeader>
             <CardTitle>About SafeFlow AU</CardTitle>
           </CardHeader>
@@ -460,6 +475,7 @@ export default function SettingsPage() {
             </p>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       {/* Clear Data Dialog */}

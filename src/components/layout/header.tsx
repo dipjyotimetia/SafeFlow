@@ -1,5 +1,6 @@
 "use client";
 
+import { format } from "date-fns";
 import { Cloud, CloudOff, RefreshCw, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,11 +34,8 @@ interface HeaderProps {
 
 export function Header({ title, className }: HeaderProps) {
   const currentFY = getCurrentFinancialYear();
-
-  // Get sync status from store
   const { status: syncStatus, isConnected } = useSyncStore();
 
-  // Family member filtering
   const { members } = useFamilyMembers({ activeOnly: true });
   const { selectedMemberId, setSelectedMemberId } = useFamilyStore();
   const selectedMember = members.find((m) => m.id === selectedMemberId);
@@ -45,22 +43,22 @@ export function Header({ title, className }: HeaderProps) {
   const getSyncIcon = () => {
     switch (syncStatus) {
       case "syncing":
-        return <RefreshCw className="h-4 w-4 animate-spin text-primary" />;
+        return <RefreshCw className="h-4 w-4 animate-spin" />;
       case "synced":
-        return <Cloud className="h-4 w-4 text-success" />;
+        return <Cloud className="h-4 w-4" />;
       case "error":
-        return <CloudOff className="h-4 w-4 text-destructive" />;
+        return <CloudOff className="h-4 w-4" />;
       case "offline":
-        return <CloudOff className="h-4 w-4 text-warning" />;
+        return <CloudOff className="h-4 w-4" />;
       default:
-        return <Cloud className="h-4 w-4 text-muted-foreground" />;
+        return <Cloud className="h-4 w-4" />;
     }
   };
 
   const getSyncText = () => {
     switch (syncStatus) {
       case "syncing":
-        return "Syncing...";
+        return "Syncing";
       case "synced":
         return "Synced";
       case "error":
@@ -75,135 +73,122 @@ export function Header({ title, className }: HeaderProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/40",
-        "glass-luxury supports-backdrop-filter:bg-background/60",
-        "px-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)]",
-        "dark:shadow-[0_2px_8px_rgba(0,0,0,0.2)]",
+        "sticky top-0 z-30 border-b border-border/60 px-5 py-3",
+        "glass-luxury supports-backdrop-filter:bg-background/70",
         className,
       )}
     >
-      {/* Page title - with spacing for mobile menu */}
-      <div className="flex-1 md:pl-0 pl-10">
-        {title && (
-          <h1 className="text-xl font-semibold tracking-tight bg-linear-to-r from-foreground to-foreground/80 bg-clip-text animate-enter-fast">
-            {title}
-          </h1>
-        )}
-      </div>
+      <div className="flex flex-wrap items-center gap-3 md:gap-4">
+        <div className="min-w-0 flex-1 pl-10 md:pl-0">
+          {title && (
+            <h1 className="animate-enter-fast truncate text-xl font-semibold tracking-tight md:text-2xl">
+              {title}
+            </h1>
+          )}
+          <p className="hidden text-xs text-muted-foreground sm:block">
+            {format(new Date(), "EEEE, d MMMM yyyy")}
+          </p>
+        </div>
 
-      {/* Family Member Filter */}
-      {members.length > 0 && (
-        <Select
-          value={selectedMemberId ?? "all"}
-          onValueChange={(value) =>
-            setSelectedMemberId(value === "all" ? null : value)
-          }
-        >
-          <SelectTrigger className="w-[140px] sm:w-40 h-9 glass-subtle border-border/60 shadow-sm">
-            <SelectValue>
-              {selectedMember ? (
+        {members.length > 0 && (
+          <Select
+            value={selectedMemberId ?? "all"}
+            onValueChange={(value) =>
+              setSelectedMemberId(value === "all" ? null : value)
+            }
+          >
+            <SelectTrigger className="h-9 w-[150px] border-border/70 bg-card/60 shadow-none sm:w-[190px]">
+              <SelectValue>
+                {selectedMember ? (
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: selectedMember.color }}
+                    />
+                    <span className="truncate">{selectedMember.name}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>All Members</span>
+                  </div>
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full shrink-0 shadow-[0_0_4px_rgba(0,0,0,0.2)]"
-                    style={{ backgroundColor: selectedMember.color }}
-                  />
-                  <span className="truncate">{selectedMember.name}</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 shrink-0" />
+                  <Users className="h-4 w-4" />
                   <span>All Members</span>
                 </div>
-              )}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span>All Members</span>
-              </div>
-            </SelectItem>
-            {members.map((member) => (
-              <SelectItem key={member.id} value={member.id}>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: member.color }}
-                  />
-                  <span>{member.name}</span>
-                </div>
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-
-      {/* Financial Year Badge */}
-      <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-linear-to-r from-primary/10 to-primary/5 border border-primary/15 text-primary text-sm font-semibold shadow-sm">
-        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-subtle" />
-        {formatFinancialYear(currentFY)}
-      </div>
-
-      {/* Sync Status */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className={cn(
-          "gap-2 rounded-full px-3 transition-all duration-300",
-          syncStatus === "syncing" && "bg-primary/10 text-primary",
-          syncStatus === "synced" && "bg-success/10 text-success",
-          syncStatus === "error" && "bg-destructive/10 text-destructive",
-          syncStatus === "offline" && "bg-warning/10 text-warning",
-          !syncStatus && "hover:bg-accent/50",
+              {members.map((member) => (
+                <SelectItem key={member.id} value={member.id}>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: member.color }}
+                    />
+                    <span>{member.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
-      >
-        {getSyncIcon()}
-        <span className="hidden sm:inline text-sm font-medium">
-          {getSyncText()}
-        </span>
-      </Button>
 
-      {/* User Menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full bg-muted/50 hover:bg-muted transition-all duration-200 hover:scale-105"
-          >
-            <User className="h-5 w-5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="w-56 shadow-lg border-border/60"
-        >
-          <DropdownMenuLabel className="font-semibold">
-            My Account
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {isConnected ? (
-            <>
-              <DropdownMenuItem className="cursor-pointer">
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                Sync Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive cursor-pointer focus:text-destructive">
-                Disconnect
-              </DropdownMenuItem>
-            </>
-          ) : (
-            <DropdownMenuItem className="cursor-pointer">
-              <Cloud className="mr-2 h-4 w-4" />
-              Connect Cloud Sync
-            </DropdownMenuItem>
+        <div className="hidden items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-sm font-medium text-primary sm:flex">
+          <span className="h-1.5 w-1.5 animate-pulse-subtle rounded-full bg-primary" />
+          {formatFinancialYear(currentFY)}
+        </div>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "h-9 rounded-full border border-border/70 bg-card/70 px-3 text-xs",
+            syncStatus === "syncing" && "text-primary",
+            syncStatus === "synced" && "text-success",
+            syncStatus === "error" && "text-destructive",
+            syncStatus === "offline" && "text-warning",
           )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        >
+          {getSyncIcon()}
+          <span className="hidden sm:inline">{getSyncText()}</span>
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full border border-border/70 bg-card/70"
+              aria-label="Open user menu"
+            >
+              <User className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="font-semibold">My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {isConnected ? (
+              <>
+                <DropdownMenuItem className="cursor-pointer">Profile</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">Sync Settings</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                  Disconnect
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem className="cursor-pointer">
+                <Cloud className="mr-2 h-4 w-4" />
+                Connect Cloud Sync
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   );
 }

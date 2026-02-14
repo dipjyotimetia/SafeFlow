@@ -30,14 +30,14 @@ export function BudgetCard({ progress, onEdit, onDelete }: BudgetCardProps) {
   };
 
   const getProgressColorClass = () => {
-    if (isOverBudget) return '[&>[data-slot=progress-indicator]]:bg-red-500';
-    if (percentUsed >= 90) return '[&>[data-slot=progress-indicator]]:bg-yellow-500';
-    if (percentUsed >= 75) return '[&>[data-slot=progress-indicator]]:bg-orange-500';
-    return '[&>[data-slot=progress-indicator]]:bg-green-500';
+    if (isOverBudget) return '[&>[data-slot=progress-indicator]]:bg-destructive';
+    if (percentUsed >= 90) return '[&>[data-slot=progress-indicator]]:bg-warning';
+    if (percentUsed >= 75) return '[&>[data-slot=progress-indicator]]:bg-warning/80';
+    return '[&>[data-slot=progress-indicator]]:bg-success';
   };
 
   return (
-    <Card>
+    <Card variant="premium" className="group">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{budget.name}</CardTitle>
         <div className="flex items-center gap-2">
@@ -46,7 +46,12 @@ export function BudgetCard({ progress, onEdit, onDelete }: BudgetCardProps) {
           </Badge>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
+                aria-label={`Open actions for budget ${budget.name}`}
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -58,7 +63,7 @@ export function BudgetCard({ progress, onEdit, onDelete }: BudgetCardProps) {
                 </DropdownMenuItem>
               )}
               {onDelete && (
-                <DropdownMenuItem onClick={onDelete} className="text-destructive">
+                <DropdownMenuItem variant="destructive" onClick={onDelete}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
                 </DropdownMenuItem>
@@ -73,19 +78,12 @@ export function BudgetCard({ progress, onEdit, onDelete }: BudgetCardProps) {
             <span className="text-muted-foreground">
               {formatCurrency(spent)} of {formatCurrency(budget.amount)}
             </span>
-            <span
-              className={
-                isOverBudget ? 'text-destructive font-medium' : 'text-muted-foreground'
-              }
-            >
+            <span className={isOverBudget ? 'font-semibold text-destructive' : 'text-muted-foreground'}>
               {Math.round(percentUsed)}%
             </span>
           </div>
 
-          <Progress
-            value={Math.min(percentUsed, 100)}
-            className={`h-2 ${getProgressColorClass()}`}
-          />
+          <Progress value={Math.min(percentUsed, 100)} className={`h-2.5 ${getProgressColorClass()}`} />
 
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">
@@ -94,10 +92,10 @@ export function BudgetCard({ progress, onEdit, onDelete }: BudgetCardProps) {
             <span
               className={
                 isOverBudget
-                  ? 'text-destructive font-medium'
+                  ? 'font-semibold text-destructive'
                   : remaining < budget.amount * 0.1
-                  ? 'text-yellow-600 font-medium'
-                  : 'text-success font-medium'
+                    ? 'font-semibold text-warning'
+                    : 'font-semibold text-success'
               }
             >
               {formatCurrency(Math.abs(remaining))}

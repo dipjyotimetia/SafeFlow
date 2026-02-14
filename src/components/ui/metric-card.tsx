@@ -5,67 +5,24 @@ import { TrendingUp, TrendingDown, Minus, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const metricCardVariants = cva(
-  "relative overflow-hidden rounded-xl border p-6 transition-all duration-300 group",
+  "group relative overflow-hidden rounded-2xl border p-5 transition-all duration-300",
   {
     variants: {
       variant: {
-        default: [
-          "bg-card",
-          "shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)]",
-          "hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06)]",
-          "hover:-translate-y-0.5",
-          "border-border/40",
-          "dark:shadow-[0_1px_3px_rgba(0,0,0,0.2),0_4px_12px_rgba(0,0,0,0.15)]",
-          "dark:hover:shadow-[0_2px_6px_rgba(0,0,0,0.25),0_8px_24px_rgba(0,0,0,0.2)]",
-        ].join(" "),
-        glass: [
-          "glass border-border/30",
-          "shadow-[0_4px_20px_rgba(0,0,0,0.06)]",
-          "hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)]",
-          "hover:-translate-y-1",
-          "dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]",
-          "dark:hover:shadow-[0_8px_32px_rgba(0,0,0,0.3)]",
-        ].join(" "),
-        gradient: [
-          "gradient-card",
-          "shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)]",
-          "hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06)]",
-          "hover:-translate-y-0.5",
-          "border-border/30",
-        ].join(" "),
-        positive: [
-          "bg-linear-to-br from-card via-card to-success/8",
-          "shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)]",
-          "hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06),0_0_20px_-5px_rgba(34,197,94,0.15)]",
-          "hover:-translate-y-0.5",
-          "border-success/10",
-          "dark:to-success/10",
-          "dark:border-success/15",
-        ].join(" "),
-        negative: [
-          "bg-linear-to-br from-card via-card to-destructive/8",
-          "shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)]",
-          "hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06),0_0_20px_-5px_rgba(239,68,68,0.15)]",
-          "hover:-translate-y-0.5",
-          "border-destructive/10",
-          "dark:to-destructive/10",
-          "dark:border-destructive/15",
-        ].join(" "),
-        luxury: [
-          "glass-luxury border-border/20",
-          "shadow-[0_8px_30px_rgba(0,0,0,0.08)]",
-          "hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]",
-          "hover:-translate-y-1 hover:scale-[1.02]",
-          "dark:shadow-[0_8px_30px_rgba(0,0,0,0.25)]",
-          "dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)]",
-        ].join(" "),
-        floating: [
-          "bg-card border-border/30",
-          "shadow-[0_12px_40px_rgba(0,0,0,0.10)]",
-          "hover:shadow-[0_20px_60px_rgba(0,0,0,0.15)]",
-          "hover:-translate-y-2",
-          "animate-float-slow",
-        ].join(" "),
+        default:
+          "border-border/70 bg-card/90 shadow-premium hover:-translate-y-0.5 hover:shadow-premium-lg",
+        glass:
+          "glass border-border/70 shadow-premium hover:-translate-y-0.5 hover:shadow-premium-lg",
+        gradient:
+          "gradient-card border-border/70 shadow-premium hover:-translate-y-0.5 hover:shadow-premium-lg",
+        positive:
+          "border-success/30 bg-linear-to-b from-card to-success/8 shadow-premium hover:-translate-y-0.5 hover:shadow-premium-lg",
+        negative:
+          "border-destructive/25 bg-linear-to-b from-card to-destructive/8 shadow-premium hover:-translate-y-0.5 hover:shadow-premium-lg",
+        luxury:
+          "glass-luxury border-border/70 shadow-premium-lg hover:-translate-y-1",
+        floating:
+          "border-border/70 bg-card/90 shadow-premium-lg hover:-translate-y-1 animate-float-slow",
       },
     },
     defaultVariants: {
@@ -75,8 +32,7 @@ const metricCardVariants = cva(
 );
 
 export interface MetricCardProps
-  extends
-    React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof metricCardVariants> {
   title: string;
   value: string;
@@ -106,44 +62,35 @@ function MetricCard({
       className={cn(metricCardVariants({ variant }), className)}
       {...props}
     >
-      {/* Subtle gradient overlay for depth */}
-      <div className="absolute inset-0 bg-linear-to-br from-transparent via-transparent to-primary/2 pointer-events-none rounded-xl" />
+      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-transparent via-transparent to-primary/5" />
 
-      <div className="relative flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground tracking-wide">
-          {title}
-        </p>
+      <div className="relative flex items-start justify-between gap-3">
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
         {Icon && (
           <div
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300",
-              variant === "positive" &&
-                "bg-success/10 group-hover:bg-success/15",
-              variant === "negative" &&
-                "bg-destructive/10 group-hover:bg-destructive/15",
-              variant !== "positive" &&
-                variant !== "negative" &&
-                "bg-primary/10 group-hover:bg-primary/15",
+              "flex h-9 w-9 items-center justify-center rounded-xl",
+              variant === "positive" && "bg-success/15",
+              variant === "negative" && "bg-destructive/15",
+              variant !== "positive" && variant !== "negative" && "bg-primary/15",
             )}
           >
             <Icon
               className={cn(
-                "h-4 w-4 transition-transform duration-300 group-hover:scale-110",
+                "h-4 w-4",
                 variant === "positive" && "text-success",
                 variant === "negative" && "text-destructive",
-                variant !== "positive" &&
-                  variant !== "negative" &&
-                  "text-primary",
+                variant !== "positive" && variant !== "negative" && "text-primary",
               )}
             />
           </div>
         )}
       </div>
 
-      <div className="relative mt-4">
+      <div className="relative mt-3">
         <p
           className={cn(
-            "text-3xl font-bold tracking-tight font-display tabular-nums animate-number",
+            "metric-value animate-number text-3xl font-semibold leading-tight tabular-nums",
             variant === "positive" && "text-success",
             variant === "negative" && "text-destructive",
           )}
@@ -151,24 +98,26 @@ function MetricCard({
           {value}
         </p>
 
-        <div className="mt-2 flex items-center gap-2">
-          {trend && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full transition-colors",
-                trend === "up" && "text-success bg-success/10",
-                trend === "down" && "text-destructive bg-destructive/10",
-                trend === "neutral" && "text-muted-foreground bg-muted",
-              )}
-            >
-              <TrendIcon className="h-3 w-3" />
-              {trendValue}
-            </span>
-          )}
-          {description && (
-            <span className="text-xs text-muted-foreground">{description}</span>
-          )}
-        </div>
+        {(trend || description) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {trend && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                  trend === "up" && "bg-success/15 text-success",
+                  trend === "down" && "bg-destructive/15 text-destructive",
+                  trend === "neutral" && "bg-muted text-muted-foreground",
+                )}
+              >
+                <TrendIcon className="h-3 w-3" />
+                {trendValue ?? "Change"}
+              </span>
+            )}
+            {description && (
+              <span className="text-xs text-muted-foreground">{description}</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
