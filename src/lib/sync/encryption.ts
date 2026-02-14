@@ -5,34 +5,51 @@ const ALGORITHM = 'AES-GCM';
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12; // 96 bits recommended for GCM
 const SALT_LENGTH = 16;
-const ITERATIONS = 100000; // PBKDF2 iterations
+const LEGACY_KDF_ITERATIONS = 100000;
+const CURRENT_KDF_ITERATIONS = 310000; // OWASP/NIST-aligned modern baseline
+const KDF_TYPE = 'PBKDF2';
+const KDF_HASH = 'SHA-256';
+const ENCRYPTION_VERSION = 2;
+const PASSWORD_HASH_ITERATIONS = LEGACY_KDF_ITERATIONS;
 
 export interface EncryptedData {
   ciphertext: string; // base64
   iv: string; // base64
   salt: string; // base64
   version: number;
+  kdfType?: 'PBKDF2';
+  kdfIterations?: number;
+  kdfHash?: 'SHA-256';
 }
 
 /**
  * Derive a cryptographic key from a password using PBKDF2
  */
-async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+async function deriveKey(
+  password: string,
+  salt: Uint8Array,
+  options?: {
+    iterations?: number;
+    hash?: 'SHA-256';
+  }
+): Promise<CryptoKey> {
+  const iterations = options?.iterations ?? LEGACY_KDF_ITERATIONS;
+  const hash = options?.hash ?? KDF_HASH;
   const encoder = new TextEncoder();
   const passwordKey = await crypto.subtle.importKey(
     'raw',
     encoder.encode(password),
-    'PBKDF2',
+    KDF_TYPE,
     false,
     ['deriveKey']
   );
 
   return crypto.subtle.deriveKey(
     {
-      name: 'PBKDF2',
+      name: KDF_TYPE,
       salt: salt.buffer as ArrayBuffer,
-      iterations: ITERATIONS,
-      hash: 'SHA-256',
+      iterations,
+      hash,
     },
     passwordKey,
     { name: ALGORITHM, length: KEY_LENGTH },
@@ -88,7 +105,10 @@ export async function encrypt(data: string, password: string): Promise<Encrypted
 
   const salt = generateSalt();
   const iv = generateIV();
-  const key = await deriveKey(password, salt);
+  const key = await deriveKey(password, salt, {
+    iterations: CURRENT_KDF_ITERATIONS,
+    hash: KDF_HASH,
+  });
 
   const ciphertext = await crypto.subtle.encrypt(
     { name: ALGORITHM, iv: iv.buffer as ArrayBuffer },
@@ -100,7 +120,10 @@ export async function encrypt(data: string, password: string): Promise<Encrypted
     ciphertext: arrayToBase64(new Uint8Array(ciphertext)),
     iv: arrayToBase64(iv),
     salt: arrayToBase64(salt),
-    version: 1,
+    version: ENCRYPTION_VERSION,
+    kdfType: KDF_TYPE,
+    kdfIterations: CURRENT_KDF_ITERATIONS,
+    kdfHash: KDF_HASH,
   };
 }
 
@@ -112,7 +135,10 @@ export async function decrypt(encryptedData: EncryptedData, password: string): P
   const iv = base64ToArray(encryptedData.iv);
   const ciphertext = base64ToArray(encryptedData.ciphertext);
 
-  const key = await deriveKey(password, salt);
+  const key = await deriveKey(password, salt, {
+    iterations: encryptedData.kdfIterations ?? LEGACY_KDF_ITERATIONS,
+    hash: encryptedData.kdfHash ?? KDF_HASH,
+  });
 
   const decrypted = await crypto.subtle.decrypt(
     { name: ALGORITHM, iv: iv.buffer as ArrayBuffer },
@@ -133,14 +159,14 @@ export async function hashPassword(password: string, salt?: string): Promise<{ h
   const encoder = new TextEncoder();
   const passwordBytes = encoder.encode(password);
 
-  const key = await crypto.subtle.importKey('raw', passwordBytes, 'PBKDF2', false, ['deriveBits']);
+  const key = await crypto.subtle.importKey('raw', passwordBytes, KDF_TYPE, false, ['deriveBits']);
 
   const hashBits = await crypto.subtle.deriveBits(
     {
-      name: 'PBKDF2',
+      name: KDF_TYPE,
       salt: saltBytes.buffer as ArrayBuffer,
-      iterations: ITERATIONS,
-      hash: 'SHA-256',
+      iterations: PASSWORD_HASH_ITERATIONS,
+      hash: KDF_HASH,
     },
     key,
     256

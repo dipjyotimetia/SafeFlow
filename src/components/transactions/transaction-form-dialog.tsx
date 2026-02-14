@@ -55,9 +55,28 @@ const formSchema = z.object({
     }, { message: 'Must be a valid positive number' }),
   description: z.string().min(1, 'Description is required'),
   categoryId: z.string().optional(),
+  transferToAccountId: z.string().optional(),
   date: z.date(),
   notes: z.string().optional(),
   isDeductible: z.boolean().optional(),
+}).superRefine((values, ctx) => {
+  if (values.type === 'transfer') {
+    if (!values.transferToAccountId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['transferToAccountId'],
+        message: 'Destination account is required for transfers',
+      });
+    }
+
+    if (values.transferToAccountId && values.transferToAccountId === values.accountId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['transferToAccountId'],
+        message: 'Destination account must be different from source account',
+      });
+    }
+  }
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -88,6 +107,7 @@ export function TransactionFormDialog({
       amount: transaction ? (transaction.amount / 100).toFixed(2) : '',
       description: transaction?.description ?? '',
       categoryId: transaction?.categoryId ?? '',
+      transferToAccountId: transaction?.transferToAccountId ?? '',
       date: transaction?.date ? new Date(transaction.date) : new Date(),
       notes: transaction?.notes ?? '',
       isDeductible: transaction?.isDeductible ?? false,
@@ -95,6 +115,7 @@ export function TransactionFormDialog({
   });
 
   const selectedType = form.watch('type');
+  const selectedAccountId = form.watch('accountId');
 
   // Filter categories based on transaction type
   const filteredCategories = categories.filter((c) => {
@@ -111,12 +132,19 @@ export function TransactionFormDialog({
         amount: transaction ? (transaction.amount / 100).toFixed(2) : '',
         description: transaction?.description ?? '',
         categoryId: transaction?.categoryId ?? '',
+        transferToAccountId: transaction?.transferToAccountId ?? '',
         date: transaction?.date ? new Date(transaction.date) : new Date(),
         notes: transaction?.notes ?? '',
         isDeductible: transaction?.isDeductible ?? false,
       });
     }
   }, [open, transaction, defaultAccountId, form]);
+
+  useEffect(() => {
+    if (selectedType !== 'transfer') {
+      form.setValue('transferToAccountId', '');
+    }
+  }, [selectedType, form]);
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
@@ -130,6 +158,10 @@ export function TransactionFormDialog({
           amount,
           description: values.description,
           categoryId: values.categoryId || undefined,
+          transferToAccountId:
+            values.type === 'transfer'
+              ? values.transferToAccountId || undefined
+              : undefined,
           date: values.date,
           notes: values.notes || undefined,
           isDeductible: values.isDeductible,
@@ -143,6 +175,10 @@ export function TransactionFormDialog({
           description: values.description,
           date: values.date,
           categoryId: values.categoryId || undefined,
+          transferToAccountId:
+            values.type === 'transfer'
+              ? values.transferToAccountId || undefined
+              : undefined,
           notes: values.notes || undefined,
           isDeductible: values.isDeductible,
         });
@@ -309,6 +345,35 @@ export function TransactionFormDialog({
                 )}
               />
             </div>
+
+            {selectedType === 'transfer' && (
+              <FormField
+                control={form.control}
+                name="transferToAccountId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Destination Account</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select destination account" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {accounts
+                          .filter((account) => account.id !== selectedAccountId)
+                          .map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

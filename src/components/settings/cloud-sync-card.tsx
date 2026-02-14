@@ -51,6 +51,9 @@ import { toast } from 'sonner';
 import {
   backendRegistry,
   getRequiredConfigFields,
+  getSyncMetadata,
+  saveInsecureHttpAcknowledgment,
+  hasInsecureHttpAcknowledgment,
   type SyncBackendType,
   type BackendConfig,
   type GoogleDriveConfig,
@@ -91,6 +94,18 @@ function isValidPath(path: string): boolean {
   if (path.includes('..')) return false;
   // Must start with / for WebDAV paths
   return true;
+}
+
+function getInsecureHttpEndpoint(config: BackendConfig): string | null {
+  if (config.type === 'webdav' && config.serverUrl.startsWith('http://')) {
+    return config.serverUrl;
+  }
+
+  if (config.type === 's3' && config.endpoint.startsWith('http://')) {
+    return config.endpoint;
+  }
+
+  return null;
 }
 
 function validatePassword(password: string): PasswordValidation {
@@ -175,6 +190,14 @@ export function CloudSyncCard() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showInsecureEndpointDialog, setShowInsecureEndpointDialog] = useState(false);
+  const [insecureEndpointAcknowledged, setInsecureEndpointAcknowledged] = useState(false);
+  const [pendingConnection, setPendingConnection] = useState<{
+    provider: SyncBackendType;
+    config: BackendConfig;
+    insecureEndpoint: string;
+  } | null>(null);
+  const [storedInsecureEndpoint, setStoredInsecureEndpoint] = useState<string | null>(null);
 
   // Optimized Zustand selectors with shallow comparison to minimize re-renders
   const connectionState = useSyncStore(
@@ -223,7 +246,15 @@ export function CloudSyncCard() {
 
   // Initialize from storage on mount
   useEffect(() => {
-    initializeFromStorage();
+    const init = async () => {
+      await initializeFromStorage();
+      const metadata = await getSyncMetadata();
+      setStoredInsecureEndpoint(metadata?.insecureHttpEndpoint || null);
+    };
+
+    init().catch((err) => {
+      console.error('[CloudSyncCard] Failed to initialize sync metadata:', err);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -238,6 +269,12 @@ export function CloudSyncCard() {
 
   const availableBackends = backendRegistry.getAvailableBackends();
   const configFields = selectedProvider ? getRequiredConfigFields(selectedProvider) : [];
+  const insecurePreviewEndpoint =
+    selectedProvider === 'webdav' && configValues.serverUrl?.trim().startsWith('http://')
+      ? configValues.serverUrl.trim()
+      : selectedProvider === 's3' && configValues.endpoint?.trim().startsWith('http://')
+        ? configValues.endpoint.trim()
+        : null;
 
   const handleProviderSelect = (value: string) => {
     setSelectedProvider(value as SyncBackendType);
@@ -340,22 +377,57 @@ export function CloudSyncCard() {
     return requiredFields.every((f) => configValues[f.name]?.trim());
   };
 
-  const handleConnect = async () => {
-    const config = buildConfig();
-    if (!config) return;
-
+  const executeConnect = async (provider: SyncBackendType, config: BackendConfig) => {
     setIsConnecting(true);
     try {
-      await connectProvider(selectedProvider!, config);
-      toast.success(`Connected to ${availableBackends.find((b) => b.type === selectedProvider)?.displayName}`);
+      await connectProvider(provider, config);
+      toast.success(`Connected to ${availableBackends.find((b) => b.type === provider)?.displayName}`);
+      setStoredInsecureEndpoint(getInsecureHttpEndpoint(config));
       setSelectedProvider(null);
       setConfigValues({});
+      setPendingConnection(null);
+      setShowInsecureEndpointDialog(false);
+      setInsecureEndpointAcknowledged(false);
     } catch (err) {
       console.error('[CloudSyncCard] Connection failed:', err);
       toast.error(err instanceof Error ? err.message : 'Connection failed');
     } finally {
       setIsConnecting(false);
     }
+  };
+
+  const handleConnect = async () => {
+    const config = buildConfig();
+    if (!config || !selectedProvider) return;
+
+    const insecureEndpoint = getInsecureHttpEndpoint(config);
+    if (insecureEndpoint) {
+      const acknowledged = await hasInsecureHttpAcknowledgment(insecureEndpoint);
+      if (!acknowledged) {
+        setPendingConnection({
+          provider: selectedProvider,
+          config,
+          insecureEndpoint,
+        });
+        setInsecureEndpointAcknowledged(false);
+        setShowInsecureEndpointDialog(true);
+        return;
+      }
+      setStoredInsecureEndpoint(insecureEndpoint);
+    }
+
+    await executeConnect(selectedProvider, config);
+  };
+
+  const handleConfirmInsecureEndpoint = async () => {
+    if (!pendingConnection || !insecureEndpointAcknowledged) {
+      toast.error('Please acknowledge the HTTP transport warning to continue');
+      return;
+    }
+
+    await saveInsecureHttpAcknowledgment(pendingConnection.insecureEndpoint);
+    setStoredInsecureEndpoint(pendingConnection.insecureEndpoint);
+    await executeConnect(pendingConnection.provider, pendingConnection.config);
   };
 
   const handleDisconnect = async () => {
@@ -503,6 +575,17 @@ export function CloudSyncCard() {
                 </div>
               )}
 
+              {insecurePreviewEndpoint && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>HTTP Endpoint Warning</AlertTitle>
+                  <AlertDescription>
+                    This endpoint uses HTTP without transport encryption. App-level encryption still protects your
+                    sync payload, but endpoint metadata and traffic timing remain exposed on the network.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Connect Button */}
               {selectedProvider && (
                 <Button
@@ -553,6 +636,16 @@ export function CloudSyncCard() {
                   Disconnect
                 </Button>
               </div>
+
+              {storedInsecureEndpoint && (activeBackendType === 'webdav' || activeBackendType === 's3') && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Insecure Transport Acknowledged</AlertTitle>
+                  <AlertDescription>
+                    Active sync endpoint is using HTTP: {storedInsecureEndpoint}
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Encryption Status */}
               <div className="flex items-center justify-between">
@@ -688,6 +781,50 @@ export function CloudSyncCard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Insecure Endpoint Confirmation */}
+      <AlertDialog
+        open={showInsecureEndpointDialog}
+        onOpenChange={(open) => {
+          setShowInsecureEndpointDialog(open);
+          if (!open) {
+            setPendingConnection(null);
+            setInsecureEndpointAcknowledged(false);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm HTTP Sync Endpoint</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are connecting to an endpoint over HTTP:
+              {' '}
+              {pendingConnection?.insecureEndpoint}
+              . This is less secure than HTTPS. Continue only if this is a trusted local/private network.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 py-2">
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={insecureEndpointAcknowledged}
+                onChange={(e) => setInsecureEndpointAcknowledged(e.target.checked)}
+              />
+              <span>I understand and accept the risk of using an HTTP endpoint.</span>
+            </label>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmInsecureEndpoint}
+              disabled={!insecureEndpointAcknowledged || isConnecting}
+            >
+              {isConnecting ? 'Connecting...' : 'Connect Anyway'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Password Dialog */}
       <AlertDialog open={showPasswordDialog} onOpenChange={handlePasswordDialogChange}>

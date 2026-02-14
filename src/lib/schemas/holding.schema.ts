@@ -66,6 +66,11 @@ export const investmentTransactionSchema = z.object({
   // Tax fields
   capitalGain: moneyInCentsSchema.optional(),
   holdingPeriod: z.number().int().min(0).optional(),
+  costBasisReduction: positiveMoneySchema.optional(),
+  frankingPercentage: z.number().min(0).max(100).optional(),
+  companyTaxRate: z.union([z.literal(25), z.literal(30)]).optional(),
+  frankingCreditAmount: positiveMoneySchema.optional(),
+  grossedUpAmount: positiveMoneySchema.optional(),
 }).merge(timestampFieldsSchema);
 
 // Schema for creating an investment transaction

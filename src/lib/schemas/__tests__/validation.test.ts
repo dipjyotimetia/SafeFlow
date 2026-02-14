@@ -147,6 +147,8 @@ describe('Validation Schemas', () => {
           amount: 1000,
           description: 'Test',
           date: new Date(),
+          transferToAccountId:
+            type === 'transfer' ? '123e4567-e89b-12d3-a456-426614174001' : undefined,
         };
         expect(transactionCreateSchema.safeParse(transaction).success).toBe(true);
       });

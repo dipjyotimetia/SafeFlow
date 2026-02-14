@@ -66,8 +66,7 @@ export const transactionSchema = z.object({
   isReconciled: z.boolean(),
 }).merge(timestampFieldsSchema);
 
-// Schema for creating a new transaction
-export const transactionCreateSchema = z.object({
+const transactionBaseWriteSchema = z.object({
   accountId: uuidSchema,
   type: transactionTypeSchema,
   amount: positiveMoneySchema,
@@ -82,8 +81,32 @@ export const transactionCreateSchema = z.object({
   atoCategory: optionalStringSchema,
 });
 
+// Schema for creating a new transaction
+export const transactionCreateSchema = transactionBaseWriteSchema.superRefine((value, ctx) => {
+  if (value.type !== 'transfer') {
+    return;
+  }
+
+  if (!value.transferToAccountId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['transferToAccountId'],
+      message: 'Transfer transactions require transferToAccountId',
+    });
+    return;
+  }
+
+  if (value.transferToAccountId === value.accountId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['transferToAccountId'],
+      message: 'Transfer source and destination accounts must be different',
+    });
+  }
+});
+
 // Schema for updating an existing transaction
-export const transactionUpdateSchema = transactionCreateSchema.partial();
+export const transactionUpdateSchema = transactionBaseWriteSchema.partial();
 
 // Schema for bulk import transactions
 export const transactionImportSchema = z.object({

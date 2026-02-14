@@ -34,6 +34,50 @@ export function buildBulkImportDedupKey(input: BulkImportDedupInput): string {
   ].join("_");
 }
 
+type TransactionBalanceFields = Pick<
+  Transaction,
+  "type" | "amount" | "accountId" | "transferToAccountId"
+>;
+
+function addAccountDelta(deltas: Map<string, number>, accountId: string, delta: number): void {
+  if (!delta) return;
+  deltas.set(accountId, (deltas.get(accountId) || 0) + delta);
+}
+
+/**
+ * Apply or reverse transaction effect on account balances.
+ * direction = 1 applies the transaction, direction = -1 reverses it.
+ */
+function applyTransactionBalanceDelta(
+  tx: TransactionBalanceFields,
+  deltas: Map<string, number>,
+  direction: 1 | -1 = 1
+): void {
+  if (tx.type === "transfer" && tx.transferToAccountId) {
+    addAccountDelta(deltas, tx.accountId, -tx.amount * direction);
+    addAccountDelta(deltas, tx.transferToAccountId, tx.amount * direction);
+    return;
+  }
+
+  const sourceDelta =
+    tx.type === "income" ? tx.amount * direction : -tx.amount * direction;
+  addAccountDelta(deltas, tx.accountId, sourceDelta);
+}
+
+async function applyAccountDeltas(
+  deltas: Map<string, number>,
+  updatedAt: Date
+): Promise<void> {
+  for (const [accountId, delta] of deltas) {
+    const account = await db.accounts.get(accountId);
+    if (!account) continue;
+    await db.accounts.update(accountId, {
+      balance: account.balance + delta,
+      updatedAt,
+    });
+  }
+}
+
 interface TransactionStore {
   // Filter state
   filters: FilterOptions;
@@ -59,6 +103,7 @@ interface TransactionStore {
     isDeductible?: boolean;
     gstAmount?: number;
     atoCategory?: string;
+    transferToAccountId?: string;
   }) => Promise<string>;
 
   updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>;
@@ -191,6 +236,13 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
 
       // Wrap in transaction for atomicity - if balance update fails, transaction is rolled back
       await db.transaction("rw", [db.transactions, db.accounts], async () => {
+        const createdTransaction: TransactionBalanceFields = {
+          accountId: validData.accountId,
+          type: validData.type,
+          amount: validData.amount,
+          transferToAccountId: validData.transferToAccountId,
+        };
+
         await db.transactions.add({
           id,
           accountId: validData.accountId,
@@ -211,37 +263,9 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
           updatedAt: now,
         });
 
-        // Update account balance atomically
-        if (validData.type === "transfer" && validData.transferToAccountId) {
-          // For transfers: deduct from source, add to destination
-          const sourceAccount = await db.accounts.get(validData.accountId);
-          const destAccount = await db.accounts.get(validData.transferToAccountId);
-
-          if (sourceAccount) {
-            await db.accounts.update(validData.accountId, {
-              balance: sourceAccount.balance - validData.amount,
-              updatedAt: now,
-            });
-          }
-
-          if (destAccount) {
-            await db.accounts.update(validData.transferToAccountId, {
-              balance: destAccount.balance + validData.amount,
-              updatedAt: now,
-            });
-          }
-        } else {
-          // For income/expense: adjust source account only
-          const sourceAccount = await db.accounts.get(validData.accountId);
-          if (sourceAccount) {
-            const balanceChange =
-              validData.type === "income" ? validData.amount : -validData.amount;
-            await db.accounts.update(validData.accountId, {
-              balance: sourceAccount.balance + balanceChange,
-              updatedAt: now,
-            });
-          }
-        }
+        const deltas = new Map<string, number>();
+        applyTransactionBalanceDelta(createdTransaction, deltas, 1);
+        await applyAccountDeltas(deltas, now);
       });
 
       return id;
@@ -291,9 +315,72 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
         }
       }
 
-      await db.transactions.update(id, {
-        ...data,
-        updatedAt: new Date(),
+      await db.transaction("rw", [db.transactions, db.accounts], async () => {
+        const existingTransaction = await db.transactions.get(id);
+        if (!existingTransaction) {
+          throw new SafeFlowError(
+            `Transaction not found: ${id}`,
+            ErrorCode.DB_NOT_FOUND
+          );
+        }
+
+        const merged: Transaction = {
+          ...existingTransaction,
+          ...data,
+        };
+
+        const sourceAccount = await db.accounts.get(merged.accountId);
+        if (!sourceAccount) {
+          throw new SafeFlowError(
+            `Account not found: ${merged.accountId}`,
+            ErrorCode.VALIDATION_FAILED
+          );
+        }
+
+        if (merged.categoryId) {
+          const category = await db.categories.get(merged.categoryId);
+          if (!category) {
+            throw new SafeFlowError(
+              `Category not found: ${merged.categoryId}`,
+              ErrorCode.VALIDATION_FAILED
+            );
+          }
+        }
+
+        if (merged.type === "transfer") {
+          if (!merged.transferToAccountId) {
+            throw new SafeFlowError(
+              "Transfer transactions require a destination account (transferToAccountId)",
+              ErrorCode.VALIDATION_FAILED
+            );
+          }
+
+          if (merged.transferToAccountId === merged.accountId) {
+            throw new SafeFlowError(
+              "Cannot transfer to the same account",
+              ErrorCode.VALIDATION_FAILED
+            );
+          }
+
+          const destination = await db.accounts.get(merged.transferToAccountId);
+          if (!destination) {
+            throw new SafeFlowError(
+              `Destination account not found: ${merged.transferToAccountId}`,
+              ErrorCode.VALIDATION_FAILED
+            );
+          }
+        }
+
+        const now = new Date();
+        const deltas = new Map<string, number>();
+        applyTransactionBalanceDelta(existingTransaction, deltas, -1);
+        applyTransactionBalanceDelta(merged, deltas, 1);
+
+        await db.transactions.update(id, {
+          ...data,
+          updatedAt: now,
+        });
+        await applyAccountDeltas(deltas, now);
       });
     } catch (error) {
       logError("updateTransaction", error);
@@ -310,18 +397,10 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
     await db.transaction("rw", [db.transactions, db.accounts], async () => {
       const transaction = await db.transactions.get(id);
       if (transaction) {
-        // Reverse the balance change
-        const account = await db.accounts.get(transaction.accountId);
-        if (account) {
-          const balanceChange =
-            transaction.type === "income"
-              ? -transaction.amount
-              : transaction.amount;
-          await db.accounts.update(transaction.accountId, {
-            balance: account.balance + balanceChange,
-            updatedAt: new Date(),
-          });
-        }
+        const now = new Date();
+        const deltas = new Map<string, number>();
+        applyTransactionBalanceDelta(transaction, deltas, -1);
+        await applyAccountDeltas(deltas, now);
 
         await db.transactions.delete(id);
       }
@@ -343,14 +422,7 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
       const accountUpdates = new Map<string, number>();
       for (const transaction of transactions) {
         if (transaction) {
-          const balanceChange =
-            transaction.type === "income"
-              ? -transaction.amount
-              : transaction.amount;
-          accountUpdates.set(
-            transaction.accountId,
-            (accountUpdates.get(transaction.accountId) || 0) + balanceChange
-          );
+          applyTransactionBalanceDelta(transaction, accountUpdates, -1);
         }
       }
 
@@ -359,15 +431,7 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
 
       // Update all account balances
       const now = new Date();
-      for (const [accountId, change] of accountUpdates) {
-        const account = await db.accounts.get(accountId);
-        if (account) {
-          await db.accounts.update(accountId, {
-            balance: account.balance + change,
-            updatedAt: now,
-          });
-        }
-      }
+      await applyAccountDeltas(accountUpdates, now);
     });
 
     set({ selectedIds: new Set() });
@@ -394,16 +458,24 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
       updatedAt: now,
     }));
 
-    await db.transactions.bulkAdd(records);
+    await db.transaction("rw", [db.transactions, db.importBatches, db.accounts], async () => {
+      await db.transactions.bulkAdd(records);
 
-    // Track the import batch
-    await db.importBatches.add({
-      id: batchId,
-      source: importSource,
-      fileName: "",
-      transactionCount: records.length,
-      importedAt: now,
-      status: "completed",
+      // Track the import batch
+      await db.importBatches.add({
+        id: batchId,
+        source: importSource,
+        fileName: "",
+        transactionCount: records.length,
+        importedAt: now,
+        status: "completed",
+      });
+
+      const deltas = new Map<string, number>();
+      for (const record of records) {
+        applyTransactionBalanceDelta(record, deltas, 1);
+      }
+      await applyAccountDeltas(deltas, now);
     });
 
     return records.length;
@@ -416,9 +488,18 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
       .toArray();
 
     const ids = transactions.map((t) => t.id);
-    await db.transactions.bulkDelete(ids);
+    const now = new Date();
 
-    await db.importBatches.update(batchId, { status: "failed" });
+    await db.transaction("rw", [db.transactions, db.importBatches, db.accounts], async () => {
+      const deltas = new Map<string, number>();
+      for (const transaction of transactions) {
+        applyTransactionBalanceDelta(transaction, deltas, -1);
+      }
+
+      await db.transactions.bulkDelete(ids);
+      await applyAccountDeltas(deltas, now);
+      await db.importBatches.update(batchId, { status: "failed" });
+    });
 
     return ids.length;
   },

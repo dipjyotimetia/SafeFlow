@@ -38,6 +38,8 @@ export {
   saveBackendConfig,
   loadBackendConfig,
   clearBackendConfig,
+  saveInsecureHttpAcknowledgment,
+  hasInsecureHttpAcknowledgment,
   // Backend-agnostic sync
   syncWithBackend,
   forceUploadToBackend,

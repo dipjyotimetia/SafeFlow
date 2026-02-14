@@ -78,19 +78,21 @@ export function TransactionForm({ holding, open, onOpenChange, onSuccess }: Tran
   }, [open, holding.currentPrice]);
 
   // Calculate total amount
+  const showFrankingFields = transactionType === 'dividend' || transactionType === 'distribution';
+  const showUnitsField = transactionType === 'buy' || transactionType === 'sell';
   const parsedUnits = parseFloat(units) || 0;
   const parsedPrice = parseFloat(pricePerUnit) || 0;
   const parsedFees = parseFloat(fees) || 0;
-  const totalAmount = parsedUnits * parsedPrice + parsedFees;
+  const totalAmount = showUnitsField
+    ? parsedUnits * parsedPrice + parsedFees
+    : parsedPrice + parsedFees;
 
   // Calculate franking credit preview for dividends
   const parsedFranking = parseFloat(frankingPercentage) || 0;
+  const frankingBaseAmount = showUnitsField ? parsedUnits * parsedPrice : parsedPrice;
   const frankingCredit = transactionType === 'dividend' || transactionType === 'distribution'
-    ? (totalAmount * (parsedFranking / 100) * (companyTaxRate / (100 - companyTaxRate)))
+    ? (frankingBaseAmount * (parsedFranking / 100) * (companyTaxRate / (100 - companyTaxRate)))
     : 0;
-
-  const showFrankingFields = transactionType === 'dividend' || transactionType === 'distribution';
-  const showUnitsField = transactionType === 'buy' || transactionType === 'sell';
 
   const handleSubmit = async () => {
     // Validation
@@ -104,8 +106,18 @@ export function TransactionForm({ holding, open, onOpenChange, onSuccess }: Tran
       return;
     }
 
-    if (parsedPrice <= 0 && transactionType !== 'fee') {
-      toast.error('Please enter a valid price');
+    if (parsedPrice <= 0) {
+      toast.error(showUnitsField ? 'Please enter a valid price per unit' : 'Please enter a valid amount');
+      return;
+    }
+
+    if (parsedFees < 0) {
+      toast.error('Fees cannot be negative');
+      return;
+    }
+
+    if (showFrankingFields && (parsedFranking < 0 || parsedFranking > 100)) {
+      toast.error('Franking percentage must be between 0 and 100');
       return;
     }
 

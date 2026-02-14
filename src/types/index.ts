@@ -172,6 +172,8 @@ export interface InvestmentTransaction extends Versionable {
   // Tax (Phase 3)
   capitalGain?: number;
   holdingPeriod?: number; // days
+  // Cost basis removed by a sell transaction (for deterministic reversal)
+  costBasisReduction?: number; // cents
 
   // Franking credits (for dividends/distributions)
   frankingPercentage?: number; // 0-100 (100 = fully franked)
@@ -219,6 +221,10 @@ export interface SyncMetadata {
   // Multi-backend support
   backendType?: "google-drive" | "webdav" | "s3" | "local-file";
   backendConfig?: string; // Serialized JSON config (credentials stored here)
+  // Optional insecure endpoint acknowledgment metadata
+  insecureHttpAcknowledged?: boolean;
+  insecureHttpAcknowledgedAt?: Date;
+  insecureHttpEndpoint?: string;
 }
 
 /**

@@ -109,6 +109,17 @@ export const syncDataSchema = z.object({
   chatConversations: z.array(chatConversationSchema).optional().default([]),
   categorizationQueue: z.array(categorizationQueueItemSchema).optional().default([]),
   merchantPatterns: z.array(merchantPatternSchema).optional().default([]),
+  budgets: z.array(z.unknown()).optional().default([]),
+  familyMembers: z.array(z.unknown()).optional().default([]),
+  goals: z.array(z.unknown()).optional().default([]),
+  priceHistory: z.array(z.unknown()).optional().default([]),
+  portfolioHistory: z.array(z.unknown()).optional().default([]),
+  properties: z.array(z.unknown()).optional().default([]),
+  propertyLoans: z.array(z.unknown()).optional().default([]),
+  propertyExpenses: z.array(z.unknown()).optional().default([]),
+  propertyRentals: z.array(z.unknown()).optional().default([]),
+  propertyDepreciation: z.array(z.unknown()).optional().default([]),
+  propertyModels: z.array(z.unknown()).optional().default([]),
 });
 
 // Sync metadata schema
@@ -119,6 +130,9 @@ export const syncMetadataSchema = z.object({
   driveFileId: optionalStringSchema,
   conflictState: z.enum(['none', 'pending', 'resolved']).optional(),
   encryptionKeyHash: optionalStringSchema,
+  insecureHttpAcknowledged: z.boolean().optional(),
+  insecureHttpAcknowledgedAt: dateSchema.optional(),
+  insecureHttpEndpoint: optionalStringSchema,
 });
 
 // Type exports

@@ -4,7 +4,6 @@
 - [Local AI Chat Setup](./LOCAL_AI_SETUP.md)
 - [Backup and Sync Guide](./BACKUP_AND_SYNC.md)
 - [Troubleshooting](./TROUBLESHOOTING.md)
-- [AU Compliance Notes](./au-compliance-fixes.md)
 
 Use these docs in order if you are new:
 

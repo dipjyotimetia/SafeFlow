@@ -132,17 +132,35 @@ export default function ImportPage() {
 
     setIsImporting(true);
     try {
-      // Convert parsed transactions to our transaction format
-      // Use the parser's type field directly - it already analyzes the transaction
-      // Convert 'transfer' type to 'expense' since transfers aren't aggregated in reports
-      const transactionsToImport = selectedTransactions.map((t) => ({
-        accountId: targetAccountId,
-        type: (t.type === "transfer" ? "expense" : t.type) as TransactionType,
-        amount: Math.abs(t.amount),
-        description: t.description,
-        date: t.date.toISOString(),
-        notes: t.reference || undefined,
-      }));
+      // Convert parsed transactions to app transaction format.
+      // For parsed transfers, preserve direction without changing DB shape:
+      // transfer-in => income, transfer-out => expense, plus audit annotation in notes.
+      const transactionsToImport = selectedTransactions.map((t) => {
+        const transferDirection =
+          t.type === "transfer" ? (t.amount >= 0 ? "in" : "out") : null;
+        const mappedType =
+          t.type === "transfer"
+            ? transferDirection === "in"
+              ? "income"
+              : "expense"
+            : t.type;
+        const transferAuditNote =
+          transferDirection
+            ? `[Transfer annotation] originalType=transfer; direction=${transferDirection}; signedAmountCents=${t.amount}`
+            : null;
+        const combinedNotes = [t.reference, transferAuditNote]
+          .filter(Boolean)
+          .join(" | ");
+
+        return {
+          accountId: targetAccountId,
+          type: mappedType as TransactionType,
+          amount: Math.abs(t.amount),
+          description: t.description,
+          date: t.date.toISOString(),
+          notes: combinedNotes || undefined,
+        };
+      });
 
       // Import transactions with member assignment
       const result = await bulkImport(

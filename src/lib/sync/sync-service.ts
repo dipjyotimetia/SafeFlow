@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { encrypt, decrypt, hashPassword, verifyPassword, type EncryptedData } from './encryption';
 import type { SyncBackend, SyncBackendType, BackendConfig } from './backends/types';
+import { syncDataSchema } from '@/lib/schemas/sync.schema';
 import type {
   Account,
   Transaction,
@@ -108,6 +109,61 @@ async function withTimeout<T>(
   }
 }
 
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+
+function reviveIsoDates(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(reviveIsoDates);
+  }
+
+  if (value && typeof value === 'object') {
+    const revivedEntries = Object.entries(value).map(([key, nestedValue]) => {
+      if (typeof nestedValue === 'string' && ISO_DATE_REGEX.test(nestedValue)) {
+        return [key, new Date(nestedValue)];
+      }
+      return [key, reviveIsoDates(nestedValue)];
+    });
+    return Object.fromEntries(revivedEntries);
+  }
+
+  return value;
+}
+
+function parseAndValidateSyncData(json: string): SyncData {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    throw new Error('Invalid sync payload: malformed JSON');
+  }
+
+  const validationResult = syncDataSchema.safeParse(reviveIsoDates(parsed));
+  if (!validationResult.success) {
+    throw new Error(`Invalid sync payload: ${validationResult.error.message}`);
+  }
+
+  return validationResult.data as SyncData;
+}
+
+/**
+ * Import sync data with best-effort rollback protection.
+ * Dexie transactions are already atomic, but this provides an additional
+ * recovery guard for unexpected runtime failures.
+ */
+async function importDataWithRollback(data: SyncData): Promise<void> {
+  const preImportSnapshot = await exportData();
+  try {
+    await importData(data);
+  } catch (error) {
+    try {
+      await importData(preImportSnapshot);
+    } catch (rollbackError) {
+      console.error('[SyncService] Rollback failed:', rollbackError);
+    }
+    throw error;
+  }
+}
+
 /**
  * Export all data from IndexedDB
  */
@@ -195,8 +251,15 @@ export async function exportData(): Promise<SyncData> {
  * Import data into IndexedDB (replaces all existing data)
  */
 export async function importData(data: SyncData): Promise<void> {
+  const validationResult = syncDataSchema.safeParse(data);
+  if (!validationResult.success) {
+    throw new Error(`Invalid sync data: ${validationResult.error.message}`);
+  }
+
+  const validatedData = validationResult.data as SyncData;
+
   // Validate version
-  if (data.version > SYNC_VERSION) {
+  if (validatedData.version > SYNC_VERSION) {
     throw new Error('Data was exported from a newer version of the app. Please update the app first.');
   }
 
@@ -258,30 +321,30 @@ export async function importData(data: SyncData): Promise<void> {
 
       // Import new data using bulkPut to handle conflicts gracefully (upsert behavior)
       // This prevents sync failures when records already exist
-      if (data.accounts?.length) await db.accounts.bulkPut(data.accounts);
-      if (data.transactions?.length) await db.transactions.bulkPut(data.transactions);
-      if (data.categories?.length) await db.categories.bulkPut(data.categories);
-      if (data.holdings?.length) await db.holdings.bulkPut(data.holdings);
-      if (data.investmentTransactions?.length) await db.investmentTransactions.bulkPut(data.investmentTransactions);
-      if (data.taxItems?.length) await db.taxItems.bulkPut(data.taxItems);
-      if (data.importBatches?.length) await db.importBatches.bulkPut(data.importBatches);
-      if (data.superannuationAccounts?.length) await db.superannuationAccounts.bulkPut(data.superannuationAccounts);
-      if (data.superTransactions?.length) await db.superTransactions.bulkPut(data.superTransactions);
-      if (data.chatConversations?.length) await db.chatConversations.bulkPut(data.chatConversations);
-      if (data.categorizationQueue?.length) await db.categorizationQueue.bulkPut(data.categorizationQueue);
-      if (data.merchantPatterns?.length) await db.merchantPatterns.bulkPut(data.merchantPatterns);
-      if (data.budgets?.length) await db.budgets.bulkPut(data.budgets);
-      if (data.familyMembers?.length) await db.familyMembers.bulkPut(data.familyMembers);
-      if (data.goals?.length) await db.goals.bulkPut(data.goals);
-      if (data.priceHistory?.length) await db.priceHistory.bulkPut(data.priceHistory);
-      if (data.portfolioHistory?.length) await db.portfolioHistory.bulkPut(data.portfolioHistory);
+      if (validatedData.accounts?.length) await db.accounts.bulkPut(validatedData.accounts);
+      if (validatedData.transactions?.length) await db.transactions.bulkPut(validatedData.transactions);
+      if (validatedData.categories?.length) await db.categories.bulkPut(validatedData.categories);
+      if (validatedData.holdings?.length) await db.holdings.bulkPut(validatedData.holdings);
+      if (validatedData.investmentTransactions?.length) await db.investmentTransactions.bulkPut(validatedData.investmentTransactions);
+      if (validatedData.taxItems?.length) await db.taxItems.bulkPut(validatedData.taxItems);
+      if (validatedData.importBatches?.length) await db.importBatches.bulkPut(validatedData.importBatches);
+      if (validatedData.superannuationAccounts?.length) await db.superannuationAccounts.bulkPut(validatedData.superannuationAccounts);
+      if (validatedData.superTransactions?.length) await db.superTransactions.bulkPut(validatedData.superTransactions);
+      if (validatedData.chatConversations?.length) await db.chatConversations.bulkPut(validatedData.chatConversations);
+      if (validatedData.categorizationQueue?.length) await db.categorizationQueue.bulkPut(validatedData.categorizationQueue);
+      if (validatedData.merchantPatterns?.length) await db.merchantPatterns.bulkPut(validatedData.merchantPatterns);
+      if (validatedData.budgets?.length) await db.budgets.bulkPut(validatedData.budgets);
+      if (validatedData.familyMembers?.length) await db.familyMembers.bulkPut(validatedData.familyMembers);
+      if (validatedData.goals?.length) await db.goals.bulkPut(validatedData.goals);
+      if (validatedData.priceHistory?.length) await db.priceHistory.bulkPut(validatedData.priceHistory);
+      if (validatedData.portfolioHistory?.length) await db.portfolioHistory.bulkPut(validatedData.portfolioHistory);
       // Property tables (backward compatible - optional in older exports)
-      if (data.properties?.length) await db.properties.bulkPut(data.properties);
-      if (data.propertyLoans?.length) await db.propertyLoans.bulkPut(data.propertyLoans);
-      if (data.propertyExpenses?.length) await db.propertyExpenses.bulkPut(data.propertyExpenses);
-      if (data.propertyRentals?.length) await db.propertyRentals.bulkPut(data.propertyRentals);
-      if (data.propertyDepreciation?.length) await db.propertyDepreciation.bulkPut(data.propertyDepreciation);
-      if (data.propertyModels?.length) await db.propertyModels.bulkPut(data.propertyModels);
+      if (validatedData.properties?.length) await db.properties.bulkPut(validatedData.properties);
+      if (validatedData.propertyLoans?.length) await db.propertyLoans.bulkPut(validatedData.propertyLoans);
+      if (validatedData.propertyExpenses?.length) await db.propertyExpenses.bulkPut(validatedData.propertyExpenses);
+      if (validatedData.propertyRentals?.length) await db.propertyRentals.bulkPut(validatedData.propertyRentals);
+      if (validatedData.propertyDepreciation?.length) await db.propertyDepreciation.bulkPut(validatedData.propertyDepreciation);
+      if (validatedData.propertyModels?.length) await db.propertyModels.bulkPut(validatedData.propertyModels);
     }
   );
 }
@@ -430,9 +493,9 @@ export async function syncWithDrive(password: string): Promise<SyncResult> {
 
       const encrypted: EncryptedData = JSON.parse(encryptedJson);
       const decrypted = await decrypt(encrypted, password);
-      const data: SyncData = JSON.parse(decrypted);
+      const data = parseAndValidateSyncData(decrypted);
 
-      await importData(data);
+      await importDataWithRollback(data);
 
       await saveSyncMetadata({
         lastSyncAt: new Date(),
@@ -539,9 +602,9 @@ export async function forceDownload(password: string): Promise<SyncResult> {
 
     const encrypted: EncryptedData = JSON.parse(encryptedJson);
     const decrypted = await decrypt(encrypted, password);
-    const data: SyncData = JSON.parse(decrypted);
+    const data = parseAndValidateSyncData(decrypted);
 
-    await importData(data);
+    await importDataWithRollback(data);
 
     const metadata = await getSyncMetadata();
     await saveSyncMetadata({
@@ -576,8 +639,8 @@ export async function exportLocalBackup(): Promise<string> {
  * Import data from local backup file
  */
 export async function importLocalBackup(json: string): Promise<void> {
-  const data: SyncData = JSON.parse(json);
-  await importData(data);
+  const data = parseAndValidateSyncData(json);
+  await importDataWithRollback(data);
 }
 
 // ============ Backend Configuration Persistence ============
@@ -697,6 +760,29 @@ export async function clearBackendConfig(): Promise<void> {
   });
 }
 
+export async function saveInsecureHttpAcknowledgment(endpoint: string): Promise<void> {
+  const normalizedEndpoint = endpoint.trim();
+  if (!normalizedEndpoint) return;
+
+  await saveSyncMetadata({
+    insecureHttpAcknowledged: true,
+    insecureHttpAcknowledgedAt: new Date(),
+    insecureHttpEndpoint: normalizedEndpoint,
+  });
+}
+
+export async function hasInsecureHttpAcknowledgment(endpoint: string): Promise<boolean> {
+  const normalizedEndpoint = endpoint.trim();
+  if (!normalizedEndpoint) return false;
+
+  const metadata = await getSyncMetadata();
+  return Boolean(
+    metadata?.insecureHttpAcknowledged &&
+    metadata?.insecureHttpEndpoint &&
+    metadata.insecureHttpEndpoint === normalizedEndpoint
+  );
+}
+
 // ============ Backend-Agnostic Sync Functions ============
 
 /**
@@ -795,9 +881,9 @@ export async function syncWithBackend(
       }
 
       const decrypted = await decrypt(encrypted, password);
-      const data: SyncData = JSON.parse(decrypted);
+      const data = parseAndValidateSyncData(decrypted);
 
-      await importData(data);
+      await importDataWithRollback(data);
 
       await saveSyncMetadata({
         lastSyncAt: new Date(),
@@ -915,9 +1001,9 @@ export async function forceDownloadFromBackend(
     }
 
     const decrypted = await decrypt(encrypted, password);
-    const data: SyncData = JSON.parse(decrypted);
+    const data = parseAndValidateSyncData(decrypted);
 
-    await importData(data);
+    await importDataWithRollback(data);
 
     const metadata = await getSyncMetadata();
     await saveSyncMetadata({
