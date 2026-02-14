@@ -761,9 +761,9 @@ export default function ImportPage() {
             {/* Supported Super Funds */}
             <Card>
               <CardHeader>
-                <CardTitle>Supported Super Funds</CardTitle>
+                <CardTitle>Super Statement Parser Coverage</CardTitle>
                 <CardDescription>
-                  We currently support these Australian super funds
+                  Automatic PDF parsing is currently available for these funds. Others can still be tracked via manual account setup.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -789,8 +789,8 @@ export default function ImportPage() {
                           Ready
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="ml-auto text-xs">
-                          Soon
+                        <Badge variant="outline" className="ml-auto text-xs">
+                          Planned
                         </Badge>
                       )}
                     </div>

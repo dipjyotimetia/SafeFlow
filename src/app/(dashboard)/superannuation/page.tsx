@@ -364,7 +364,9 @@ export default function SuperannuationPage() {
                       <PiggyBank className="h-4 w-4" />
                       Concessional Contributions
                     </CardTitle>
-                    <CardDescription>Pre-tax contributions (cap: $30,000)</CardDescription>
+                    <CardDescription>
+                      Pre-tax contributions (cap: {formatAUD(contributionSummary.concessionalCap)})
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between text-sm">
@@ -372,6 +374,14 @@ export default function SuperannuationPage() {
                       <span>Remaining: {formatAUD(contributionSummary.concessionalRemaining)}</span>
                     </div>
                     <Progress value={Math.min(concessionalPercent, 100)} className="h-2" />
+                    {contributionSummary.carryForwardAvailable ? (
+                      <p className="text-xs text-muted-foreground">
+                        Includes carry-forward amount of {formatAUD(contributionSummary.carryForwardAvailable)}
+                      </p>
+                    ) : null}
+                    {contributionSummary.carryForwardReason ? (
+                      <p className="text-xs text-amber-600">{contributionSummary.carryForwardReason}</p>
+                    ) : null}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Employer SG:</span>
@@ -399,7 +409,9 @@ export default function SuperannuationPage() {
                       <Shield className="h-4 w-4" />
                       Non-Concessional Contributions
                     </CardTitle>
-                    <CardDescription>After-tax contributions (cap: $120,000)</CardDescription>
+                    <CardDescription>
+                      After-tax contributions (cap: {formatAUD(contributionSummary.nonConcessionalCap)})
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between text-sm">
@@ -407,6 +419,15 @@ export default function SuperannuationPage() {
                       <span>Remaining: {formatAUD(contributionSummary.nonConcessionalRemaining)}</span>
                     </div>
                     <Progress value={Math.min(nonConcessionalPercent, 100)} className="h-2" />
+                    {contributionSummary.bringForwardYearsAvailable ? (
+                      <p className="text-xs text-muted-foreground">
+                        Bring-forward window: {contributionSummary.bringForwardYearsAvailable} year
+                        {contributionSummary.bringForwardYearsAvailable !== 1 ? 's' : ''}
+                      </p>
+                    ) : null}
+                    {contributionSummary.bringForwardReason ? (
+                      <p className="text-xs text-amber-600">{contributionSummary.bringForwardReason}</p>
+                    ) : null}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Personal:</span>
@@ -431,9 +452,22 @@ export default function SuperannuationPage() {
                   <CardTitle className="text-sm font-medium">Contribution Caps {formatFinancialYear(selectedFY)}</CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
-                  <p><strong>Concessional (pre-tax):</strong> $30,000 per year - includes employer SG, salary sacrifice, and personal deductible contributions. Taxed at 15% in the fund.</p>
-                  <p><strong>Non-concessional (after-tax):</strong> $120,000 per year with 3-year bring-forward of up to $360,000. No tax in the fund.</p>
-                  <p><strong>Super Guarantee:</strong> 11.5% of ordinary time earnings (increasing to 12% from 1 July 2025).</p>
+                  <p>
+                    <strong>Concessional (pre-tax):</strong> Base cap {formatAUD(contributionSummary.baseConcessionalCap || contributionSummary.concessionalCap)}.
+                    Current usable cap {formatAUD(contributionSummary.concessionalCap)} including any carry-forward.
+                  </p>
+                  <p>
+                    <strong>Non-concessional (after-tax):</strong> Base cap {formatAUD(contributionSummary.baseNonConcessionalCap || contributionSummary.nonConcessionalCap)}.
+                    Current usable cap {formatAUD(contributionSummary.nonConcessionalCap)} based on bring-forward eligibility.
+                  </p>
+                  <p>
+                    <strong>Super Guarantee:</strong> {contributionSummary.superGuaranteeRate || 12}% of ordinary time earnings for {formatFinancialYear(selectedFY)}.
+                  </p>
+                  <p>
+                    <strong>Cap test balance (30 June prior year proxy):</strong>{' '}
+                    {formatAUD(contributionSummary.totalSuperBalanceForCapTests || 0)} against transfer balance cap{' '}
+                    {formatAUD(contributionSummary.transferBalanceCap || 0)}.
+                  </p>
                 </CardContent>
               </Card>
             </TabsContent>

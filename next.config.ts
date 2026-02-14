@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
   },
   // Note: Security headers must be configured at the hosting level for static exports
   // For GitHub Pages, consider using meta tags in layout.tsx for CSP if needed
+  turbopack: {
+    // Prevent Turbopack from treating a parent folder as repo root in local multi-project dirs
+    root: __dirname,
+  },
 };
 
 export default nextConfig;

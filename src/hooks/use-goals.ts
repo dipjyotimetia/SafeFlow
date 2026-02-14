@@ -11,6 +11,17 @@ interface UseGoalsOptions {
   type?: GoalType;
 }
 
+function getGoalStatus(goal: {
+  isActive: boolean;
+  status?: GoalStatus;
+  targetAmount: number;
+  currentAmount: number;
+}): GoalStatus {
+  if (goal.status) return goal.status;
+  if (goal.isActive) return "active";
+  return goal.currentAmount >= goal.targetAmount ? "achieved" : "paused";
+}
+
 /**
  * Get all goals with optional filtering
  */
@@ -21,7 +32,7 @@ export function useGoals(options: UseGoalsOptions = {}) {
     let results = await db.goals.toArray();
 
     if (status) {
-      results = results.filter((g) => g.status === status);
+      results = results.filter((g) => getGoalStatus(g) === status);
     }
 
     if (type) {

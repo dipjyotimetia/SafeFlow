@@ -10,10 +10,11 @@ import type {
 } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { getFinancialYearForDate } from '@/lib/utils/financial-year';
-
-// Contribution caps for 2024-25 FY (in cents)
-const CONCESSIONAL_CAP = 30000 * 100;
-const NON_CONCESSIONAL_CAP = 120000 * 100;
+import {
+  calculateBringForwardCap,
+  calculateCarryForwardConcessional,
+  getSuperCapConfig,
+} from '@/lib/utils/super-caps';
 
 // Types that count as concessional contributions
 const CONCESSIONAL_TYPES: SuperTransactionType[] = [
@@ -276,10 +277,11 @@ export const useSuperannuationStore = create<SuperannuationStore>(() => ({
   },
 
   getContributionSummary: async (financialYear) => {
-    const transactions = await db.superTransactions
-      .where('financialYear')
-      .equals(financialYear)
-      .toArray();
+    const [transactions, allTransactions, superAccounts] = await Promise.all([
+      db.superTransactions.where('financialYear').equals(financialYear).toArray(),
+      db.superTransactions.toArray(),
+      db.superannuationAccounts.toArray(),
+    ]);
 
     let employerSG = 0;
     let employerAdditional = 0;
@@ -318,6 +320,31 @@ export const useSuperannuationStore = create<SuperannuationStore>(() => ({
 
     const totalConcessional = employerSG + employerAdditional + salarySacrifice + personalConcessional;
     const totalNonConcessional = personalNonConcessional + spouseContribution;
+    const capConfig = getSuperCapConfig(financialYear);
+    const totalSuperBalance = superAccounts.reduce((sum, account) => sum + account.totalBalance, 0);
+    const concessionalByFY = allTransactions.reduce<Record<string, number>>((acc, tx) => {
+      if (
+        tx.type === 'employer-sg' ||
+        tx.type === 'employer-additional' ||
+        tx.type === 'salary-sacrifice' ||
+        tx.type === 'personal-concessional'
+      ) {
+        acc[tx.financialYear] = (acc[tx.financialYear] || 0) + Math.abs(tx.amount);
+      }
+      return acc;
+    }, {});
+
+    const carryForward = calculateCarryForwardConcessional({
+      financialYear,
+      concessionalContributionsByFY: concessionalByFY,
+      totalSuperBalancePreviousJune30: totalSuperBalance,
+    });
+    const bringForward = calculateBringForwardCap({
+      financialYear,
+      totalSuperBalancePreviousJune30: totalSuperBalance,
+    });
+    const concessionalCap = capConfig.concessionalCap + carryForward.available;
+    const nonConcessionalCap = bringForward.availableCap;
 
     return {
       financialYear,
@@ -330,10 +357,21 @@ export const useSuperannuationStore = create<SuperannuationStore>(() => ({
       spouseContribution,
       totalConcessional,
       totalNonConcessional,
-      concessionalCap: CONCESSIONAL_CAP,
-      nonConcessionalCap: NON_CONCESSIONAL_CAP,
-      concessionalRemaining: Math.max(0, CONCESSIONAL_CAP - totalConcessional),
-      nonConcessionalRemaining: Math.max(0, NON_CONCESSIONAL_CAP - totalNonConcessional),
+      concessionalCap,
+      nonConcessionalCap,
+      concessionalRemaining: Math.max(0, concessionalCap - totalConcessional),
+      nonConcessionalRemaining: Math.max(0, nonConcessionalCap - totalNonConcessional),
+      baseConcessionalCap: capConfig.concessionalCap,
+      baseNonConcessionalCap: capConfig.nonConcessionalCap,
+      carryForwardAvailable: carryForward.available,
+      carryForwardEligible: carryForward.eligible,
+      carryForwardReason: carryForward.reason,
+      bringForwardYearsAvailable: bringForward.yearsAvailable,
+      bringForwardEligible: bringForward.eligible,
+      bringForwardReason: bringForward.reason,
+      superGuaranteeRate: capConfig.superGuaranteeRate,
+      totalSuperBalanceForCapTests: totalSuperBalance,
+      transferBalanceCap: capConfig.generalTransferBalanceCap,
     };
   },
 }));

@@ -353,15 +353,10 @@ export function buildTWRPeriodsFromSnapshots(
       const dateKey = tx.date.toISOString().split("T")[0];
       const existingCashflow = cashflowMap.get(dateKey) || 0;
 
-      let cashflow = 0;
+      const cashflow = 0;
       switch (tx.type) {
-        case "buy":
-          cashflow = tx.totalAmount; // External deposit
-          break;
-        case "sell":
-          cashflow = -tx.totalAmount; // External withdrawal
-          break;
-        // Dividends and distributions are internal, not external cashflows
+        // Investment transactions are internal and should not be treated as external cashflows.
+        // External cashflows (deposits/withdrawals) are not represented by InvestmentTransaction.
       }
 
       if (cashflow !== 0) {
