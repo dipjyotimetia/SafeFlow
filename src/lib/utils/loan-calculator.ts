@@ -301,6 +301,16 @@ export function calculateBalanceAfterMonths(
 
   const piMonthsElapsed = monthsElapsed - interestOnlyMonths;
   const piTotalMonths = loanTermMonths - interestOnlyMonths;
+  if (piTotalMonths <= 0) {
+    return loanAmount;
+  }
+  if (annualRate === 0) {
+    const monthlyPrincipal = new Decimal(loanAmount).dividedBy(piTotalMonths);
+    const remaining = new Decimal(loanAmount).minus(
+      monthlyPrincipal.times(piMonthsElapsed)
+    );
+    return Decimal.max(0, remaining.round()).toNumber();
+  }
   const monthlyRate = getMonthlyRate(annualRate);
 
   // Calculate remaining balance using formula
@@ -344,6 +354,31 @@ export function calculateExtraPaymentImpact(
     loanTermMonths
   );
 
+  if (annualRate === 0) {
+    const baseMonthlyPayment = calculatePrincipalInterestRepayment(
+      loanAmount,
+      annualRate,
+      loanTermMonths,
+      "monthly"
+    );
+    const newMonthlyPayment = baseMonthlyPayment + extraMonthlyPayment;
+    if (newMonthlyPayment <= 0) {
+      return {
+        originalTotalInterest: originalInterest,
+        newTotalInterest: originalInterest,
+        interestSaved: 0,
+        monthsSaved: 0,
+      };
+    }
+    const newTermMonths = Math.ceil(loanAmount / newMonthlyPayment);
+    return {
+      originalTotalInterest: originalInterest,
+      newTotalInterest: 0,
+      interestSaved: originalInterest,
+      monthsSaved: loanTermMonths - newTermMonths,
+    };
+  }
+
   // Calculate new loan term with extra payments
   const monthlyRate = getMonthlyRate(annualRate);
   const baseMonthlyPayment = calculatePrincipalInterestRepayment(
@@ -359,6 +394,14 @@ export function calculateExtraPaymentImpact(
   const innerValue = new Decimal(1).minus(
     principal.times(monthlyRate).dividedBy(newMonthlyPayment)
   );
+  if (innerValue.lte(0)) {
+    return {
+      originalTotalInterest: originalInterest,
+      newTotalInterest: originalInterest,
+      interestSaved: 0,
+      monthsSaved: 0,
+    };
+  }
   const onePlusR = monthlyRate.plus(1);
   const newTermMonths = Math.ceil(
     innerValue.ln().negated().dividedBy(onePlusR.ln()).toNumber()

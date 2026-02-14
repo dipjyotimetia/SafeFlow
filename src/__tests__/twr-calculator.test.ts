@@ -5,6 +5,7 @@ import {
   calculateModifiedDietz,
   validateTWRPeriods,
   validateSnapshots,
+  buildTWRPeriodsFromSnapshots,
   type TWRPeriod,
   type PortfolioSnapshot,
 } from '@/lib/utils/twr-calculator';
@@ -179,6 +180,25 @@ describe('TWR Calculator', () => {
 
       // TWR should still be ~10.25% because external cashflows don't affect it
       expect(result.periodReturns).toHaveLength(2);
+    });
+  });
+
+  describe('buildTWRPeriodsFromSnapshots', () => {
+    it('should ignore buy/sell transactions as external cashflows', () => {
+      const snapshots = [
+        { date: new Date('2024-01-01'), totalValue: 1000000 },
+        { date: new Date('2024-06-30'), totalValue: 1100000 },
+      ];
+      const transactions = [
+        { date: new Date('2024-01-01'), type: 'buy' as const, totalAmount: 500000 },
+        { date: new Date('2024-01-01'), type: 'sell' as const, totalAmount: 200000 },
+      ];
+
+      const periods = buildTWRPeriodsFromSnapshots(snapshots, transactions);
+
+      expect(periods).toHaveLength(1);
+      expect(periods[0].startValue).toBe(1000000);
+      expect(periods[0].externalCashflow).toBeUndefined();
     });
   });
 

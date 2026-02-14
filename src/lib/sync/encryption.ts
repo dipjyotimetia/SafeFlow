@@ -59,7 +59,12 @@ function generateIV(): Uint8Array {
  * Convert Uint8Array to base64 string
  */
 function arrayToBase64(array: Uint8Array): string {
-  return btoa(String.fromCharCode(...array));
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < array.length; i += chunkSize) {
+    binary += String.fromCharCode(...array.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
 }
 
 /**

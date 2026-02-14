@@ -90,6 +90,11 @@ export function calculateFutureValue(
       return valueAfterContributions;
     }
 
+    if (monthlyContributionCents <= 0) {
+      // Avoid divide-by-zero or negative payoff scenarios
+      return valueAfterContributions;
+    }
+
     // Find when we cross zero, then apply compound growth from there
     const monthsToZero = Math.ceil(Math.abs(presentValueCents) / monthlyContributionCents);
     const remainingMonths = months - monthsToZero;
