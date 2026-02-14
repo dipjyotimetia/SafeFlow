@@ -118,6 +118,10 @@ function reviveIsoDates(value: unknown): unknown {
 
   if (value && typeof value === 'object') {
     const revivedEntries = Object.entries(value).map(([key, nestedValue]) => {
+      // Keep envelope metadata as string to match schema contract.
+      if (key === 'exportedAt') {
+        return [key, nestedValue];
+      }
       if (typeof nestedValue === 'string' && ISO_DATE_REGEX.test(nestedValue)) {
         return [key, new Date(nestedValue)];
       }
