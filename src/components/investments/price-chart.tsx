@@ -73,7 +73,7 @@ export function PriceSparkline({ data }: { data: PriceHistoryEntry[] }) {
   return (
     <div className="w-16 h-6">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+        <AreaChart accessibilityLayer data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={strokeColor} stopOpacity={0.3} />
@@ -126,7 +126,7 @@ export function PriceChart({ data, height = 200, showAxis = true, showTooltip = 
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+      <AreaChart accessibilityLayer data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
         <defs>
           <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={strokeColor} stopOpacity={0.3} />

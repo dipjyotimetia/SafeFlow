@@ -155,7 +155,7 @@ export function PortfolioAllocation() {
               height={200}
               {...accessibilityProps}
             >
-              <PieChart>
+              <PieChart accessibilityLayer>
                 <Pie
                   data={chartData}
                   cx="50%"

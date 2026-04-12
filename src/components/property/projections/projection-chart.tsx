@@ -67,7 +67,7 @@ function EquityChart({
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+      <AreaChart accessibilityLayer data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
         {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
         <XAxis
           dataKey="year"
@@ -128,7 +128,7 @@ function ValueChart({
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+      <LineChart accessibilityLayer data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
         {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
         <XAxis
           dataKey="year"
@@ -199,7 +199,7 @@ function CashflowChart({
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+      <LineChart accessibilityLayer data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
         {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
         <XAxis
           dataKey="year"
@@ -272,7 +272,7 @@ function CombinedChart({
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+      <LineChart accessibilityLayer data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
         {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
         <XAxis
           dataKey="year"

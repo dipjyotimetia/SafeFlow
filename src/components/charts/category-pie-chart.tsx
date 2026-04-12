@@ -140,7 +140,7 @@ export function CategoryPieChart({
           minHeight={160}
           {...accessibilityProps}
         >
-          <PieChart>
+          <PieChart accessibilityLayer>
             <Pie
               data={chartData}
               cx="50%"

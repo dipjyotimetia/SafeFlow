@@ -76,8 +76,12 @@ export const CHART_DEFAULTS = {
   grid: {
     strokeDasharray: "3 3",
     className: "stroke-muted",
+    vertical: false,
   },
   axis: {
+    axisLine: false,
+    tickLine: false,
+    tickMargin: 8,
     tick: {
       fontSize: 11,
       fill: "hsl(var(--muted-foreground))",

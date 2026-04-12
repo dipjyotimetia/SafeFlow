@@ -119,7 +119,7 @@ export function CashflowChart({
       minHeight={200}
       {...accessibilityProps}
     >
-      <ComposedChart data={chartData} margin={CHART_DEFAULTS.margin}>
+      <ComposedChart accessibilityLayer data={chartData} margin={CHART_DEFAULTS.margin}>
         <defs>
           <linearGradient id={gradients.income.id} x1="0" y1="0" x2="0" y2="1">
             {gradients.income.stops.map((stop) => (
@@ -155,11 +155,11 @@ export function CashflowChart({
         <CartesianGrid {...CHART_DEFAULTS.grid} />
         <XAxis
           dataKey="label"
-          tick={CHART_DEFAULTS.axis.tick}
+          {...CHART_DEFAULTS.axis}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={CHART_DEFAULTS.axis.tick}
+          {...CHART_DEFAULTS.axis}
           tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
         />
         <Tooltip content={<CustomTooltip />} />

@@ -188,6 +188,7 @@ export function PortfolioPerformance() {
         {hasData ? (
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart
+              accessibilityLayer
               data={chartData}
               margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
             >
