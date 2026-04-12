@@ -186,7 +186,7 @@ export function PortfolioPerformance() {
 
         {/* Chart */}
         {hasData ? (
-          <ResponsiveContainer width="100%" height={180}>
+          <ResponsiveContainer width="100%" height={180} minWidth={0} minHeight={180}>
             <AreaChart
               accessibilityLayer
               data={chartData}

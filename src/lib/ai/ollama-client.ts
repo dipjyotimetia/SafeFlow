@@ -86,8 +86,6 @@ class OllamaClient {
       // Check if Ollama is running by listing models
       const response = await this.client!.list();
       const availableModels = response.models.map((m) => m.name);
-      console.log("[Ollama] Available models:", availableModels);
-      console.log("[Ollama] Target model:", this.config.model);
 
       // Check if our target model is available
       const modelReady = availableModels.some(
