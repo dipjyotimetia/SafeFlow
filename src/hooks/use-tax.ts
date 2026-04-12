@@ -4,22 +4,87 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { getFinancialYearDates } from '@/lib/utils/financial-year';
 
+type AccountVisibilityInfo = {
+  id: string;
+  memberId?: string;
+  visibility?: 'private' | 'shared';
+};
+
+function isAccountVisibleToMember(account: AccountVisibilityInfo | undefined, memberId?: string): boolean {
+  if (!memberId) {
+    return true;
+  }
+
+  if (!account) {
+    return false;
+  }
+
+  if (account.memberId === memberId) {
+    return true;
+  }
+
+  if (account.visibility === 'shared' || !account.memberId) {
+    return true;
+  }
+
+  return false;
+}
+
+function isTransactionVisibleToMember(
+  transaction: { accountId: string; memberId?: string },
+  accountMap: Map<string, AccountVisibilityInfo>,
+  memberId?: string
+): boolean {
+  if (!memberId) {
+    return true;
+  }
+
+  if (transaction.memberId === memberId) {
+    return true;
+  }
+
+  return isAccountVisibleToMember(accountMap.get(transaction.accountId), memberId);
+}
+
+function getVisibleHoldingIdsForMember(
+  holdings: Array<{ id: string; accountId: string }>,
+  accountMap: Map<string, AccountVisibilityInfo>,
+  memberId?: string
+): Set<string> {
+  if (!memberId) {
+    return new Set(holdings.map((h) => h.id));
+  }
+
+  return new Set(
+    holdings
+      .filter((holding) => isAccountVisibleToMember(accountMap.get(holding.accountId), memberId))
+      .map((holding) => holding.id)
+  );
+}
+
 /**
  * Get deductible transactions for a financial year
  * Optimized to use indexed date query instead of loading all transactions
  */
-export function useDeductibleTransactions(financialYear: string) {
+export function useDeductibleTransactions(financialYear: string, memberId?: string) {
   const { start, end } = getFinancialYearDates(financialYear);
 
   const transactions = useLiveQuery(async () => {
-    // Use indexed date query for better performance
-    const fyTransactions = await db.transactions
-      .where('date')
-      .between(start, end, true, true)
-      .toArray();
+    const [fyTransactions, accounts] = await Promise.all([
+      db.transactions.where('date').between(start, end, true, true).toArray(),
+      memberId ? db.accounts.toArray() : Promise.resolve([]),
+    ]);
 
-    return fyTransactions.filter((t) => t.isDeductible === true);
-  }, [financialYear]);
+    const accountMap = new Map<string, AccountVisibilityInfo>(
+      accounts.map((a) => [a.id, { id: a.id, memberId: a.memberId, visibility: a.visibility }])
+    );
+
+    return fyTransactions.filter(
+      (t) =>
+        t.isDeductible === true &&
+        isTransactionVisibleToMember(t, accountMap, memberId)
+    );
+  }, [financialYear, memberId]);
 
   return {
     transactions: transactions || [],
@@ -31,18 +96,26 @@ export function useDeductibleTransactions(financialYear: string) {
  * Get deductions summary by ATO category for a financial year
  * Optimized to use indexed date query
  */
-export function useDeductionsSummary(financialYear: string) {
+export function useDeductionsSummary(financialYear: string, memberId?: string) {
   const { start, end } = getFinancialYearDates(financialYear);
 
   const summary = useLiveQuery(async () => {
-    // Use indexed date query for better performance
-    const [fyTransactions, categories] = await Promise.all([
+    const [fyTransactions, categories, accounts] = await Promise.all([
       db.transactions.where('date').between(start, end, true, true).toArray(),
       db.categories.toArray(),
+      memberId ? db.accounts.toArray() : Promise.resolve([]),
     ]);
 
+    const accountMap = new Map<string, AccountVisibilityInfo>(
+      accounts.map((a) => [a.id, { id: a.id, memberId: a.memberId, visibility: a.visibility }])
+    );
+
     // Filter to deductible transactions
-    const deductible = fyTransactions.filter((t) => t.isDeductible === true);
+    const deductible = fyTransactions.filter(
+      (t) =>
+        t.isDeductible === true &&
+        isTransactionVisibleToMember(t, accountMap, memberId)
+    );
 
     // Group by ATO category
     const byCategory = new Map<string, { amount: number; gst: number; count: number; name: string }>();
@@ -77,7 +150,7 @@ export function useDeductionsSummary(financialYear: string) {
         }))
         .sort((a, b) => b.amount - a.amount),
     };
-  }, [financialYear]);
+  }, [financialYear, memberId]);
 
   return {
     summary: summary || {
@@ -94,15 +167,24 @@ export function useDeductionsSummary(financialYear: string) {
  * Get capital gains/losses for a financial year
  * Optimized to use indexed date query
  */
-export function useCapitalGains(financialYear: string) {
+export function useCapitalGains(financialYear: string, memberId?: string) {
   const { start, end } = getFinancialYearDates(financialYear);
 
   const data = useLiveQuery(async () => {
-    // Use indexed date query for better performance
-    const fyTransactions = await db.investmentTransactions
-      .where('date')
-      .between(start, end, true, true)
-      .toArray();
+    const [investmentTransactions, holdings, accounts] = await Promise.all([
+      db.investmentTransactions.where('date').between(start, end, true, true).toArray(),
+      memberId ? db.holdings.toArray() : Promise.resolve([]),
+      memberId ? db.accounts.toArray() : Promise.resolve([]),
+    ]);
+
+    const accountMap = new Map<string, AccountVisibilityInfo>(
+      accounts.map((a) => [a.id, { id: a.id, memberId: a.memberId, visibility: a.visibility }])
+    );
+
+    const visibleHoldingIds = getVisibleHoldingIdsForMember(holdings, accountMap, memberId);
+    const fyTransactions = memberId
+      ? investmentTransactions.filter((t) => visibleHoldingIds.has(t.holdingId))
+      : investmentTransactions;
 
     // Filter to sell transactions
     const sells = fyTransactions.filter((t) => t.type === 'sell');
@@ -156,7 +238,7 @@ export function useCapitalGains(financialYear: string) {
       netCapitalGain,
       transactions: sells,
     };
-  }, [financialYear]);
+  }, [financialYear, memberId]);
 
   return {
     data: data || {
@@ -177,21 +259,33 @@ export function useCapitalGains(financialYear: string) {
  * Includes franking credit data for dividends
  * Optimized to use indexed date queries with parallel fetching
  */
-export function useIncomeSummary(financialYear: string) {
+export function useIncomeSummary(financialYear: string, memberId?: string) {
   const { start, end } = getFinancialYearDates(financialYear);
 
   const summary = useLiveQuery(async () => {
-    // Fetch transactions and investment transactions in parallel with indexed queries
-    const [fyTransactions, fyInvestmentTrans] = await Promise.all([
+    const [fyTransactions, fyInvestmentTrans, accounts, holdings] = await Promise.all([
       db.transactions.where('date').between(start, end, true, true).toArray(),
       db.investmentTransactions.where('date').between(start, end, true, true).toArray(),
+      memberId ? db.accounts.toArray() : Promise.resolve([]),
+      memberId ? db.holdings.toArray() : Promise.resolve([]),
     ]);
 
+    const accountMap = new Map<string, AccountVisibilityInfo>(
+      accounts.map((a) => [a.id, { id: a.id, memberId: a.memberId, visibility: a.visibility }])
+    );
+    const visibleHoldingIds = getVisibleHoldingIdsForMember(holdings, accountMap, memberId);
+    const memberTransactions = fyTransactions.filter((t) =>
+      isTransactionVisibleToMember(t, accountMap, memberId)
+    );
+    const memberInvestmentTransactions = memberId
+      ? fyInvestmentTrans.filter((t) => visibleHoldingIds.has(t.holdingId))
+      : fyInvestmentTrans;
+
     // Filter income transactions
-    const income = fyTransactions.filter((t) => t.type === 'income');
+    const income = memberTransactions.filter((t) => t.type === 'income');
 
     // Filter dividends and distributions
-    const dividends = fyInvestmentTrans.filter(
+    const dividends = memberInvestmentTransactions.filter(
       (t) => t.type === 'dividend' || t.type === 'distribution'
     );
 
@@ -218,7 +312,7 @@ export function useIncomeSummary(financialYear: string) {
       incomeCount: income.length,
       dividendCount: dividends.length,
     };
-  }, [financialYear]);
+  }, [financialYear, memberId]);
 
   return {
     summary: summary || {
@@ -238,18 +332,26 @@ export function useIncomeSummary(financialYear: string) {
  * Get franking credit summary for a financial year
  * Shows breakdown by holding for tax reporting
  */
-export function useFrankingSummary(financialYear: string) {
+export function useFrankingSummary(financialYear: string, memberId?: string) {
   const { start, end } = getFinancialYearDates(financialYear);
 
   const summary = useLiveQuery(async () => {
-    const [fyInvestmentTrans, holdings] = await Promise.all([
+    const [fyInvestmentTrans, holdings, accounts] = await Promise.all([
       db.investmentTransactions.where('date').between(start, end, true, true).toArray(),
       db.holdings.toArray(),
+      memberId ? db.accounts.toArray() : Promise.resolve([]),
     ]);
+
+    const accountMap = new Map<string, AccountVisibilityInfo>(
+      accounts.map((a) => [a.id, { id: a.id, memberId: a.memberId, visibility: a.visibility }])
+    );
+    const visibleHoldingIds = getVisibleHoldingIdsForMember(holdings, accountMap, memberId);
 
     // Filter to dividends and distributions
     const dividends = fyInvestmentTrans.filter(
-      (t) => t.type === 'dividend' || t.type === 'distribution'
+      (t) =>
+        (t.type === 'dividend' || t.type === 'distribution') &&
+        (!memberId || visibleHoldingIds.has(t.holdingId))
     );
 
     const holdingMap = new Map(holdings.map((h) => [h.id, h]));
@@ -305,7 +407,7 @@ export function useFrankingSummary(financialYear: string) {
       totalGrossedUpDividends,
       byHolding: Array.from(byHolding.values()).sort((a, b) => b.dividends - a.dividends),
     };
-  }, [financialYear]);
+  }, [financialYear, memberId]);
 
   return {
     summary: summary || {
@@ -323,13 +425,46 @@ export function useFrankingSummary(financialYear: string) {
  * Get list of available financial years based on transaction data
  * This still needs to scan transactions but is called infrequently
  */
-export function useAvailableFinancialYears() {
+export function useAvailableFinancialYears(memberId?: string) {
   const years = useLiveQuery(async () => {
-    // Get the date range of all transactions efficiently
-    const oldestTx = await db.transactions.orderBy('date').first();
-    const newestTx = await db.transactions.orderBy('date').last();
+    if (!memberId) {
+      // Use indexed lookups when no member scoping is required
+      const oldestTx = await db.transactions.orderBy('date').first();
+      const newestTx = await db.transactions.orderBy('date').last();
 
-    if (!oldestTx || !newestTx) {
+      if (!oldestTx || !newestTx) {
+        const now = new Date();
+        const currentFY =
+          now.getMonth() >= 6
+            ? `${now.getFullYear()}-${(now.getFullYear() + 1).toString().slice(-2)}`
+            : `${now.getFullYear() - 1}-${now.getFullYear().toString().slice(-2)}`;
+        return [currentFY];
+      }
+
+      const fySet = new Set<string>();
+      const oldestDate = oldestTx.date instanceof Date ? oldestTx.date : new Date(oldestTx.date);
+      const newestDate = newestTx.date instanceof Date ? newestTx.date : new Date(newestTx.date);
+      let currentYear = oldestDate.getMonth() >= 6 ? oldestDate.getFullYear() : oldestDate.getFullYear() - 1;
+      const endYear = newestDate.getMonth() >= 6 ? newestDate.getFullYear() : newestDate.getFullYear() - 1;
+
+      while (currentYear <= endYear) {
+        fySet.add(`${currentYear}-${(currentYear + 1).toString().slice(-2)}`);
+        currentYear++;
+      }
+
+      return Array.from(fySet).sort().reverse();
+    }
+
+    let transactions = await db.transactions.toArray();
+    const accounts = await db.accounts.toArray();
+    const accountMap = new Map<string, AccountVisibilityInfo>(
+      accounts.map((a) => [a.id, { id: a.id, memberId: a.memberId, visibility: a.visibility }])
+    );
+    transactions = transactions.filter((t) =>
+      isTransactionVisibleToMember(t, accountMap, memberId)
+    );
+
+    if (transactions.length === 0) {
       // Return current FY
       const now = new Date();
       const currentFY =
@@ -338,6 +473,14 @@ export function useAvailableFinancialYears() {
           : `${now.getFullYear() - 1}-${now.getFullYear().toString().slice(-2)}`;
       return [currentFY];
     }
+
+    transactions.sort((a, b) => {
+      const aDate = a.date instanceof Date ? a.date : new Date(a.date);
+      const bDate = b.date instanceof Date ? b.date : new Date(b.date);
+      return aDate.getTime() - bDate.getTime();
+    });
+    const oldestTx = transactions[0];
+    const newestTx = transactions[transactions.length - 1];
 
     // Generate FY range from oldest to newest transaction
     const fySet = new Set<string>();
@@ -355,7 +498,7 @@ export function useAvailableFinancialYears() {
     }
 
     return Array.from(fySet).sort().reverse();
-  }, []);
+  }, [memberId]);
 
   return {
     years: years || [],

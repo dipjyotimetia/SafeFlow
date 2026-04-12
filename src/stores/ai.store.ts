@@ -2,6 +2,7 @@ import { buildContextString } from "@/lib/ai/context-builder";
 import { ollamaClient, type OllamaMessage } from "@/lib/ai/ollama-client";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts";
 import { db } from "@/lib/db";
+import { useFamilyStore } from "@/stores/family.store";
 import type { AIConnectionStatus, AISettings, ChatMessage } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { create } from "zustand";
@@ -191,7 +192,8 @@ export const useAIStore = create<AIStore>()(
 
         try {
           // Build context from user's financial data
-          const context = await buildContextString();
+          const { selectedMemberId } = useFamilyStore.getState();
+          const context = await buildContextString(selectedMemberId ?? undefined);
 
           // Prepare messages for Ollama
           const ollamaMessages: OllamaMessage[] = messages

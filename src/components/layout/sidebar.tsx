@@ -18,6 +18,7 @@ import {
   Users,
   Building2,
   Lock,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ const navSections = [
     items: [
       { title: 'Transactions', href: '/transactions', icon: ArrowRightLeft },
       { title: 'Accounts', href: '/accounts', icon: Wallet },
+      { title: 'Cash Flow', href: '/cashflow', icon: Activity },
       { title: 'Budgets', href: '/budgets', icon: PiggyBank },
       { title: 'Import', href: '/import', icon: FileUp },
     ],

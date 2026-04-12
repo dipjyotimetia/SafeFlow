@@ -12,10 +12,70 @@ function formatDollars(cents: number): string {
   return `$${(cents / 100).toLocaleString("en-AU", { minimumFractionDigits: 2 })}`;
 }
 
+type AccountVisibilityInfo = {
+  id: string;
+  memberId?: string;
+  visibility?: "private" | "shared";
+};
+
+function isAccountVisibleToMember(
+  account: AccountVisibilityInfo | undefined,
+  memberId?: string
+): boolean {
+  if (!memberId) {
+    return true;
+  }
+
+  if (!account) {
+    return false;
+  }
+
+  if (account.memberId === memberId) {
+    return true;
+  }
+
+  if (account.visibility === "shared" || !account.memberId) {
+    return true;
+  }
+
+  return false;
+}
+
+function isTransactionVisibleToMember(
+  transaction: { accountId: string; memberId?: string },
+  accountMap: Map<string, AccountVisibilityInfo>,
+  memberId?: string
+): boolean {
+  if (!memberId) {
+    return true;
+  }
+
+  if (transaction.memberId === memberId) {
+    return true;
+  }
+
+  return isAccountVisibleToMember(accountMap.get(transaction.accountId), memberId);
+}
+
+function buildAccountVisibilityMap(
+  accounts: Array<{ id: string; memberId?: string; visibility?: "private" | "shared" }>
+): Map<string, AccountVisibilityInfo> {
+  return new Map(
+    accounts.map((account) => [
+      account.id,
+      {
+        id: account.id,
+        memberId: account.memberId,
+        visibility: account.visibility,
+      },
+    ])
+  );
+}
+
 /**
  * Build a comprehensive financial context for AI prompts
  */
-export async function buildFinancialContext(): Promise<FinancialContext> {
+export async function buildFinancialContext(memberId?: string): Promise<FinancialContext> {
   const [
     accountsSummary,
     recentSpending,
@@ -25,13 +85,13 @@ export async function buildFinancialContext(): Promise<FinancialContext> {
     recentTransactions,
     merchantPatterns,
   ] = await Promise.all([
-    buildAccountsSummary(),
-    buildRecentSpending(),
-    buildTopCategories(),
-    buildPortfolioSummary(),
-    buildTaxSummary(),
-    buildRecentTransactionsList(),
-    buildMerchantPatterns(),
+    buildAccountsSummary(memberId),
+    buildRecentSpending(memberId),
+    buildTopCategories(memberId),
+    buildPortfolioSummary(memberId),
+    buildTaxSummary(memberId),
+    buildRecentTransactionsList(memberId),
+    buildMerchantPatterns(memberId),
   ]);
 
   return {
@@ -48,10 +108,15 @@ export async function buildFinancialContext(): Promise<FinancialContext> {
 /**
  * Build a concise context string from the financial context
  */
-export async function buildContextString(): Promise<string> {
-  const context = await buildFinancialContext();
+export async function buildContextString(memberId?: string): Promise<string> {
+  const context = await buildFinancialContext(memberId);
 
   const parts: string[] = [];
+
+  if (memberId) {
+    const member = await db.familyMembers.get(memberId);
+    parts.push(`SCOPE:\nFamily member view: ${member?.name || "selected member"}`);
+  }
 
   if (context.accountsSummary) {
     parts.push(`ACCOUNTS:\n${context.accountsSummary}`);
@@ -87,8 +152,17 @@ export async function buildContextString(): Promise<string> {
 /**
  * Build accounts summary
  */
-async function buildAccountsSummary(): Promise<string> {
-  const accounts = await db.accounts.filter((a) => a.isActive).toArray();
+async function buildAccountsSummary(memberId?: string): Promise<string> {
+  let accounts = await db.accounts.filter((a) => a.isActive).toArray();
+
+  if (memberId) {
+    accounts = accounts.filter((account) =>
+      isAccountVisibleToMember(
+        { id: account.id, memberId: account.memberId, visibility: account.visibility },
+        memberId
+      )
+    );
+  }
 
   if (accounts.length === 0) {
     return "No accounts set up yet.";
@@ -132,14 +206,19 @@ async function buildAccountsSummary(): Promise<string> {
 /**
  * Build recent spending summary (last 30 days)
  */
-async function buildRecentSpending(): Promise<string> {
+async function buildRecentSpending(memberId?: string): Promise<string> {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const transactions = await db.transactions
-    .where("date")
-    .above(thirtyDaysAgo)
-    .toArray();
+  const [allTransactions, accounts] = await Promise.all([
+    db.transactions.where("date").above(thirtyDaysAgo).toArray(),
+    memberId ? db.accounts.toArray() : Promise.resolve([]),
+  ]);
+  const accountMap = buildAccountVisibilityMap(accounts);
+
+  const transactions = allTransactions.filter((transaction) =>
+    isTransactionVisibleToMember(transaction, accountMap, memberId)
+  );
 
   if (transactions.length === 0) {
     return "No transactions in the last 30 days.";
@@ -179,12 +258,18 @@ async function buildRecentSpending(): Promise<string> {
 /**
  * Build recent transactions list (last 20 transactions)
  */
-async function buildRecentTransactionsList(): Promise<string | undefined> {
-  const transactions = await db.transactions
-    .orderBy("date")
-    .reverse()
-    .limit(20)
-    .toArray();
+async function buildRecentTransactionsList(memberId?: string): Promise<string | undefined> {
+  let transactions = await db.transactions.orderBy("date").reverse().toArray();
+  const accounts = await db.accounts.toArray();
+  const accountVisibilityMap = buildAccountVisibilityMap(accounts);
+
+  if (memberId) {
+    transactions = transactions.filter((transaction) =>
+      isTransactionVisibleToMember(transaction, accountVisibilityMap, memberId)
+    );
+  }
+
+  transactions = transactions.slice(0, 20);
 
   if (transactions.length === 0) {
     return undefined;
@@ -194,8 +279,6 @@ async function buildRecentTransactionsList(): Promise<string | undefined> {
   const categories = await db.categories.toArray();
   const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
 
-  // Get accounts for lookup
-  const accounts = await db.accounts.toArray();
   const accountMap = new Map(accounts.map((a) => [a.id, a.name]));
 
   const lines: string[] = ["Last 20 transactions:"];
@@ -236,15 +319,22 @@ function normalizeMerchantName(name: string): string {
 /**
  * Build merchant spending patterns (last 60 days)
  */
-async function buildMerchantPatterns(): Promise<string | undefined> {
+async function buildMerchantPatterns(memberId?: string): Promise<string | undefined> {
   const sixtyDaysAgo = new Date();
   sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-  const transactions = await db.transactions
-    .where("date")
-    .above(sixtyDaysAgo)
-    .filter((t) => t.type === "expense")
-    .toArray();
+  const [allTransactions, accounts] = await Promise.all([
+    db.transactions
+      .where("date")
+      .above(sixtyDaysAgo)
+      .filter((t) => t.type === "expense")
+      .toArray(),
+    memberId ? db.accounts.toArray() : Promise.resolve([]),
+  ]);
+  const accountMap = buildAccountVisibilityMap(accounts);
+  const transactions = allTransactions.filter((transaction) =>
+    isTransactionVisibleToMember(transaction, accountMap, memberId)
+  );
 
   if (transactions.length === 0) {
     return undefined;
@@ -295,15 +385,23 @@ async function buildMerchantPatterns(): Promise<string | undefined> {
 /**
  * Build top spending categories
  */
-async function buildTopCategories(): Promise<string> {
+async function buildTopCategories(memberId?: string): Promise<string> {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const transactions = await db.transactions
-    .where("date")
-    .above(thirtyDaysAgo)
-    .filter((t) => t.type === "expense" && t.categoryId != null)
-    .toArray();
+  const [allTransactions, accounts] = await Promise.all([
+    db.transactions
+      .where("date")
+      .above(thirtyDaysAgo)
+      .filter((t) => t.type === "expense" && t.categoryId != null)
+      .toArray(),
+    memberId ? db.accounts.toArray() : Promise.resolve([]),
+  ]);
+  const accountMap = buildAccountVisibilityMap(accounts);
+
+  const transactions = allTransactions.filter((transaction) =>
+    isTransactionVisibleToMember(transaction, accountMap, memberId)
+  );
 
   if (transactions.length === 0) {
     return "No categorized expenses in the last 30 days.";
@@ -339,8 +437,16 @@ async function buildTopCategories(): Promise<string> {
 /**
  * Build investment portfolio summary
  */
-async function buildPortfolioSummary(): Promise<string | undefined> {
-  const holdings = await db.holdings.toArray();
+async function buildPortfolioSummary(memberId?: string): Promise<string | undefined> {
+  let holdings = await db.holdings.toArray();
+
+  if (memberId) {
+    const accounts = await db.accounts.toArray();
+    const accountMap = buildAccountVisibilityMap(accounts);
+    holdings = holdings.filter((holding) =>
+      isAccountVisibleToMember(accountMap.get(holding.accountId), memberId)
+    );
+  }
 
   if (holdings.length === 0) {
     return undefined;
@@ -385,16 +491,23 @@ async function buildPortfolioSummary(): Promise<string | undefined> {
 /**
  * Build tax summary for current financial year
  */
-async function buildTaxSummary(): Promise<string | undefined> {
+async function buildTaxSummary(memberId?: string): Promise<string | undefined> {
   const fy = getCurrentFinancialYear();
   const { start, end } = getFinancialYearDates(fy);
 
-  // Get deductible transactions using indexed date query for better performance
-  const transactions = await db.transactions
-    .where("date")
-    .between(start, end, true, true)
-    .filter((t) => t.isDeductible === true)
-    .toArray();
+  const [allTransactions, accounts] = await Promise.all([
+    db.transactions
+      .where("date")
+      .between(start, end, true, true)
+      .filter((t) => t.isDeductible === true)
+      .toArray(),
+    memberId ? db.accounts.toArray() : Promise.resolve([]),
+  ]);
+
+  const accountMap = buildAccountVisibilityMap(accounts);
+  const transactions = allTransactions.filter((transaction) =>
+    isTransactionVisibleToMember(transaction, accountMap, memberId)
+  );
 
   if (transactions.length === 0) {
     return undefined;

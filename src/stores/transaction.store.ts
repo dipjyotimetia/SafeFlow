@@ -5,7 +5,12 @@ import {
   transactionCreateSchema,
   transactionUpdateSchema,
 } from "@/lib/schemas";
-import type { FilterOptions, Transaction, TransactionType } from "@/types";
+import type {
+  FilterOptions,
+  Transaction,
+  TransactionType,
+  TransferDirection,
+} from "@/types";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
@@ -17,6 +22,7 @@ type BulkImportDedupInput = {
   amount: number;
   description: string;
   date: Date;
+  transferDirection?: TransferDirection;
 };
 
 export function buildBulkImportDedupKey(input: BulkImportDedupInput): string {
@@ -28,6 +34,7 @@ export function buildBulkImportDedupKey(input: BulkImportDedupInput): string {
   return [
     input.accountId,
     input.type,
+    input.transferDirection || "",
     input.date.toISOString().split("T")[0],
     input.amount,
     normalizedDescription,
@@ -36,7 +43,7 @@ export function buildBulkImportDedupKey(input: BulkImportDedupInput): string {
 
 type TransactionBalanceFields = Pick<
   Transaction,
-  "type" | "amount" | "accountId" | "transferToAccountId"
+  "type" | "amount" | "accountId" | "transferToAccountId" | "transferDirection"
 >;
 
 function addAccountDelta(deltas: Map<string, number>, accountId: string, delta: number): void {
@@ -56,6 +63,15 @@ function applyTransactionBalanceDelta(
   if (tx.type === "transfer" && tx.transferToAccountId) {
     addAccountDelta(deltas, tx.accountId, -tx.amount * direction);
     addAccountDelta(deltas, tx.transferToAccountId, tx.amount * direction);
+    return;
+  }
+
+  if (tx.type === "transfer" && tx.transferDirection) {
+    const sourceDelta =
+      tx.transferDirection === "in"
+        ? tx.amount * direction
+        : -tx.amount * direction;
+    addAccountDelta(deltas, tx.accountId, sourceDelta);
     return;
   }
 
@@ -104,6 +120,8 @@ interface TransactionStore {
     gstAmount?: number;
     atoCategory?: string;
     transferToAccountId?: string;
+    transferDirection?: TransferDirection;
+    memberId?: string;
   }) => Promise<string>;
 
   updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>;
@@ -123,6 +141,9 @@ interface TransactionStore {
       categoryId?: string;
       merchantName?: string;
       originalDescription?: string;
+      transferToAccountId?: string;
+      transferDirection?: TransferDirection;
+      memberId?: string;
     }>,
     batchId: string,
     importSource: string
@@ -140,6 +161,9 @@ interface TransactionStore {
       description: string;
       date: string;
       notes?: string;
+      transferToAccountId?: string;
+      transferDirection?: TransferDirection;
+      memberId?: string;
     }>,
     memberId?: string
   ) => Promise<{ imported: number; skipped: number }>;
@@ -210,27 +234,32 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
 
       // Transfer-specific validations
       if (validData.type === "transfer") {
-        if (!validData.transferToAccountId) {
+        if (!validData.transferToAccountId && !validData.transferDirection) {
           throw new SafeFlowError(
-            "Transfer transactions require a destination account (transferToAccountId)",
+            "Transfer transactions require a destination account or transfer direction",
             ErrorCode.VALIDATION_FAILED
           );
         }
 
-        if (validData.transferToAccountId === validData.accountId) {
+        if (
+          validData.transferToAccountId &&
+          validData.transferToAccountId === validData.accountId
+        ) {
           throw new SafeFlowError(
             "Cannot transfer to the same account",
             ErrorCode.VALIDATION_FAILED
           );
         }
 
-        // Validate destination account exists
-        const destAccount = await db.accounts.get(validData.transferToAccountId);
-        if (!destAccount) {
-          throw new SafeFlowError(
-            `Destination account not found: ${validData.transferToAccountId}`,
-            ErrorCode.VALIDATION_FAILED
-          );
+        // Validate destination account exists when provided
+        if (validData.transferToAccountId) {
+          const destAccount = await db.accounts.get(validData.transferToAccountId);
+          if (!destAccount) {
+            throw new SafeFlowError(
+              `Destination account not found: ${validData.transferToAccountId}`,
+              ErrorCode.VALIDATION_FAILED
+            );
+          }
         }
       }
 
@@ -241,6 +270,7 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
           type: validData.type,
           amount: validData.amount,
           transferToAccountId: validData.transferToAccountId,
+          transferDirection: validData.transferDirection,
         };
 
         await db.transactions.add({
@@ -257,6 +287,8 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
           gstAmount: validData.gstAmount,
           atoCategory: validData.atoCategory,
           transferToAccountId: validData.transferToAccountId,
+          transferDirection: validData.transferDirection,
+          memberId: validData.memberId,
           importSource: "manual",
           isReconciled: false,
           createdAt: now,
@@ -348,26 +380,31 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
         }
 
         if (merged.type === "transfer") {
-          if (!merged.transferToAccountId) {
+          if (!merged.transferToAccountId && !merged.transferDirection) {
             throw new SafeFlowError(
-              "Transfer transactions require a destination account (transferToAccountId)",
+              "Transfer transactions require a destination account or transfer direction",
               ErrorCode.VALIDATION_FAILED
             );
           }
 
-          if (merged.transferToAccountId === merged.accountId) {
+          if (
+            merged.transferToAccountId &&
+            merged.transferToAccountId === merged.accountId
+          ) {
             throw new SafeFlowError(
               "Cannot transfer to the same account",
               ErrorCode.VALIDATION_FAILED
             );
           }
 
-          const destination = await db.accounts.get(merged.transferToAccountId);
-          if (!destination) {
-            throw new SafeFlowError(
-              `Destination account not found: ${merged.transferToAccountId}`,
-              ErrorCode.VALIDATION_FAILED
-            );
+          if (merged.transferToAccountId) {
+            const destination = await db.accounts.get(merged.transferToAccountId);
+            if (!destination) {
+              throw new SafeFlowError(
+                `Destination account not found: ${merged.transferToAccountId}`,
+                ErrorCode.VALIDATION_FAILED
+              );
+            }
           }
         }
 
@@ -450,6 +487,9 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
       merchantName: t.merchantName,
       date: t.date,
       originalDescription: t.originalDescription,
+      transferToAccountId: t.transferToAccountId,
+      transferDirection: t.transferDirection,
+      memberId: t.memberId,
       importSource: importSource as Transaction["importSource"],
       importBatchId: batchId,
       importedAt: now,
@@ -531,6 +571,7 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
         amount: t.amount,
         description: t.description,
         date,
+        transferDirection: t.transferDirection,
       });
       existingKeyCounts.set(key, (existingKeyCounts.get(key) ?? 0) + 1);
     }
@@ -546,6 +587,7 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
         amount: t.amount,
         description: t.description,
         date,
+        transferDirection: t.transferDirection,
       });
 
       const seenInIncoming = incomingKeyCounts.get(key) ?? 0;
@@ -567,7 +609,9 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
         description: t.description,
         date,
         notes: t.notes,
-        memberId,
+        memberId: memberId ?? t.memberId,
+        transferToAccountId: t.transferToAccountId,
+        transferDirection: t.transferDirection,
         importSource: "pdf",
         importBatchId: batchId,
         importedAt: now,
@@ -599,22 +643,10 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
           // Update account balances
           const accountUpdates = new Map<string, number>();
           for (const t of recordsToAdd) {
-            const change = t.type === "income" ? t.amount : -t.amount;
-            accountUpdates.set(
-              t.accountId,
-              (accountUpdates.get(t.accountId) || 0) + change
-            );
+            applyTransactionBalanceDelta(t, accountUpdates, 1);
           }
 
-          for (const [accountId, change] of accountUpdates) {
-            const account = await db.accounts.get(accountId);
-            if (account) {
-              await db.accounts.update(accountId, {
-                balance: account.balance + change,
-                updatedAt: now,
-              });
-            }
-          }
+          await applyAccountDeltas(accountUpdates, now);
         }
       );
 

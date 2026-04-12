@@ -29,7 +29,7 @@ describe("Tax Service", () => {
     it("has correct top marginal rate", () => {
       const topBracket = TAX_BRACKETS_2024_25[TAX_BRACKETS_2024_25.length - 1];
       expect(topBracket.rate).toBe(45);
-      expect(topBracket.min).toBe(190000);
+      expect(topBracket.min).toBe(190001);
     });
   });
 
@@ -418,7 +418,7 @@ describe("Tax Service", () => {
       expect(MLS_THRESHOLDS[0].max).toBe(101000);
       expect(MLS_THRESHOLDS[0].rate).toBe(0);
 
-      expect(MLS_THRESHOLDS[1].min).toBe(101001);
+      expect(MLS_THRESHOLDS[1].min).toBe(101000);
       expect(MLS_THRESHOLDS[1].rate).toBe(1);
 
       expect(MLS_THRESHOLDS[2].rate).toBe(1.25);
@@ -432,7 +432,7 @@ describe("Tax Service", () => {
       });
 
       expect(thresholds[0].max).toBe(205000);
-      expect(thresholds[1].min).toBe(205001);
+      expect(thresholds[1].min).toBe(205000);
       expect(thresholds[1].max).toBe(239000);
     });
   });

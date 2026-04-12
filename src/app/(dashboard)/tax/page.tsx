@@ -32,16 +32,19 @@ import {
 } from '@/hooks';
 import { formatAUD } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
+import { useFamilyStore } from '@/stores/family.store';
 import { toast } from 'sonner';
 
 export default function TaxPage() {
   const [selectedFY, setSelectedFY] = useState(getCurrentFinancialYear());
+  const { selectedMemberId } = useFamilyStore();
+  const memberId = selectedMemberId ?? undefined;
 
-  const { years, isLoading: yearsLoading } = useAvailableFinancialYears();
-  const { summary: deductionsSummary, isLoading: deductionsLoading } = useDeductionsSummary(selectedFY);
-  const { data: capitalGainsData, isLoading: cgtLoading } = useCapitalGains(selectedFY);
-  const { summary: incomeSummary, isLoading: incomeLoading } = useIncomeSummary(selectedFY);
-  const { summary: frankingSummary, isLoading: frankingLoading } = useFrankingSummary(selectedFY);
+  const { years, isLoading: yearsLoading } = useAvailableFinancialYears(memberId);
+  const { summary: deductionsSummary, isLoading: deductionsLoading } = useDeductionsSummary(selectedFY, memberId);
+  const { data: capitalGainsData, isLoading: cgtLoading } = useCapitalGains(selectedFY, memberId);
+  const { summary: incomeSummary, isLoading: incomeLoading } = useIncomeSummary(selectedFY, memberId);
+  const { summary: frankingSummary, isLoading: frankingLoading } = useFrankingSummary(selectedFY, memberId);
   const { summary: contributionSummary, isLoading: superLoading } = useContributionSummary(selectedFY);
 
   const isLoading =

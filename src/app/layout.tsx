@@ -40,6 +40,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* S-1: Content Security Policy — mitigate XSS in this local-data app */}
+        <meta
+          httpEquiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self' http://127.0.0.1:* http://localhost:* ws://localhost:* wss://localhost:* https://apis.google.com https://*.googleapis.com https://*.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://accounts.google.com;"
+        />
+      </head>
       <body
         className={`${plusJakartaSans.variable} ${geistMono.variable} ${soraDisplay.variable} antialiased`}
       >

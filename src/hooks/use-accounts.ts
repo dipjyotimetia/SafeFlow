@@ -7,10 +7,30 @@ import type { AccountType } from '@/types';
 interface UseAccountsOptions {
   type?: AccountType;
   activeOnly?: boolean;
+  memberId?: string;
+}
+
+function isAccountVisibleToMember(
+  account: { memberId?: string; visibility?: 'private' | 'shared' },
+  memberId?: string
+): boolean {
+  if (!memberId) {
+    return true;
+  }
+
+  if (account.memberId === memberId) {
+    return true;
+  }
+
+  if (account.visibility === 'shared' || !account.memberId) {
+    return true;
+  }
+
+  return false;
 }
 
 export function useAccounts(options: UseAccountsOptions = {}) {
-  const { type, activeOnly = true } = options;
+  const { type, activeOnly = true, memberId } = options;
 
   const accounts = useLiveQuery(async () => {
     let query = db.accounts.toCollection();
@@ -23,8 +43,12 @@ export function useAccounts(options: UseAccountsOptions = {}) {
       query = query.filter((a) => a.type === type);
     }
 
+    if (memberId) {
+      query = query.filter((a) => isAccountVisibleToMember(a, memberId));
+    }
+
     return query.sortBy('name');
-  }, [type, activeOnly]);
+  }, [type, activeOnly, memberId]);
 
   return {
     accounts: accounts ?? [],
@@ -47,9 +71,13 @@ export function useAccount(id: string | null) {
   };
 }
 
-export function useAccountsSummary() {
+export function useAccountsSummary(memberId?: string) {
   const summary = useLiveQuery(async () => {
-    const accounts = await db.accounts.filter((a) => a.isActive).toArray();
+    let accounts = await db.accounts.filter((a) => a.isActive).toArray();
+
+    if (memberId) {
+      accounts = accounts.filter((a) => isAccountVisibleToMember(a, memberId));
+    }
 
     const totalAssets = accounts
       .filter((a) => ['bank', 'cash', 'investment', 'crypto', 'asset'].includes(a.type))
@@ -76,7 +104,7 @@ export function useAccountsSummary() {
       byType,
       accountCount: accounts.length,
     };
-  }, []);
+  }, [memberId]);
 
   return {
     summary: summary ?? {

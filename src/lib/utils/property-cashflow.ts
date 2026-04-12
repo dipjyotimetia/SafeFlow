@@ -63,12 +63,14 @@ export interface CashflowBreakdown {
 export function calculateManagementFee(
   annualRent: number,
   managementPercent: number,
-  _includesGst: boolean = true
+  includesGst: boolean = true
 ): number {
   const fee = Math.round((annualRent * managementPercent) / 100);
-  // If rate includes GST and we need GST-exclusive, divide by 1.1
-  // For property expenses, we typically track GST-inclusive amounts
-  // Note: _includesGst parameter reserved for future GST-exclusive calculations
+  // If the quoted rate includes GST but we need the GST-exclusive component
+  // (e.g., for tax deduction purposes), divide by 1.1
+  if (!includesGst) {
+    return Math.round(fee / 1.1);
+  }
   return fee;
 }
 

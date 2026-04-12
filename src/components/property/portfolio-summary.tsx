@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePropertyPortfolioSummary, useRentalIncomeSummary } from "@/hooks";
-import { formatAUD, formatPercent } from "@/lib/utils/currency";
+import { formatAUD, formatPercent, formatPercentValue } from "@/lib/utils/currency";
 import {
   Building2,
   TrendingUp,
@@ -39,14 +39,14 @@ export function PortfolioSummary() {
     {
       title: "Total Equity",
       value: formatAUD(summary.totalEquity),
-      subtitle: `${formatPercent(100 - summary.averageLVR)} equity ratio`,
+      subtitle: `${formatPercentValue(100 - summary.averageLVR)} equity ratio`,
       icon: TrendingUp,
       color: "text-success",
     },
     {
       title: "Total Debt",
       value: formatAUD(summary.totalDebt),
-      subtitle: `${formatPercent(summary.averageLVR)} avg LVR`,
+      subtitle: `${formatPercentValue(summary.averageLVR)} avg LVR`,
       icon: Landmark,
       color: "text-warning",
     },

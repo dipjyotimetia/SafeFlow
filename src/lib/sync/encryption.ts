@@ -179,20 +179,47 @@ export async function hashPassword(password: string, salt?: string): Promise<{ h
 }
 
 /**
+ * S-2: Constant-time string comparison to prevent timing side-channel attacks.
+ * Even though IndexedDB is local, this is good security hygiene.
+ */
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+/**
  * Verify a password against a stored hash
  */
 export async function verifyPassword(password: string, storedHash: string, salt: string): Promise<boolean> {
   const { hash } = await hashPassword(password, salt);
-  return hash === storedHash;
+  return constantTimeEqual(hash, storedHash);
 }
 
 /**
- * Generate a random encryption key (for use as a passphrase)
+ * Generate a random encryption key (for use as a passphrase).
+ * S-4: Uses rejection sampling to eliminate modulo bias.
  */
 export function generateRandomKey(length: number = 32): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const bytes = crypto.getRandomValues(new Uint8Array(length));
-  return Array.from(bytes)
-    .map((b) => chars[b % chars.length])
-    .join('');
+  const charsLen = chars.length; // 62
+  // Largest multiple of charsLen that fits in a byte (252 = 62 * 4)
+  const maxValid = Math.floor(256 / charsLen) * charsLen;
+  const result: string[] = [];
+
+  while (result.length < length) {
+    const bytes = crypto.getRandomValues(new Uint8Array(length * 2)); // over-provision
+    for (const b of bytes) {
+      if (result.length >= length) break;
+      if (b < maxValid) {
+        result.push(chars[b % charsLen]);
+      }
+      // else: reject this byte (eliminates bias)
+    }
+  }
+
+  return result.join('');
 }

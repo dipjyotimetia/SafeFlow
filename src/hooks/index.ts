@@ -105,3 +105,5 @@ export {
   useStandaloneModels,
   usePropertyTaxSummary,
 } from "./use-property";
+
+export { useCashflowAnalysis } from "./use-cashflow-analysis";

@@ -9,6 +9,32 @@ import { differenceInMonths, addMonths } from "date-fns";
 interface UseGoalsOptions {
   status?: GoalStatus;
   type?: GoalType;
+  memberId?: string;
+}
+
+function isGoalVisibleToMember(goalMemberId: string | undefined, memberId?: string): boolean {
+  if (!memberId) return true;
+  if (!goalMemberId || goalMemberId === "household") return true;
+  return goalMemberId === memberId;
+}
+
+function isAccountVisibleToGoal(
+  account: { memberId?: string; visibility?: "private" | "shared" },
+  goalMemberId?: string
+): boolean {
+  if (!goalMemberId || goalMemberId === "household") {
+    return true;
+  }
+
+  if (account.memberId === goalMemberId) {
+    return true;
+  }
+
+  if (account.visibility === "shared" || !account.memberId) {
+    return true;
+  }
+
+  return false;
 }
 
 function getGoalStatus(goal: {
@@ -26,7 +52,7 @@ function getGoalStatus(goal: {
  * Get all goals with optional filtering
  */
 export function useGoals(options: UseGoalsOptions = {}) {
-  const { status, type } = options;
+  const { status, type, memberId } = options;
 
   const goals = useLiveQuery(async () => {
     let results = await db.goals.toArray();
@@ -39,10 +65,14 @@ export function useGoals(options: UseGoalsOptions = {}) {
       results = results.filter((g) => g.type === type);
     }
 
+    if (memberId) {
+      results = results.filter((g) => isGoalVisibleToMember(g.memberId, memberId));
+    }
+
     return results.sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
     );
-  }, [status, type]);
+  }, [status, type, memberId]);
 
   return {
     goals: goals ?? [],
@@ -75,25 +105,39 @@ export function useGoalProgress(goalId: string | null) {
     const goal = await db.goals.get(goalId);
     if (!goal) return null;
 
+    const [accounts, holdings, superAccounts] = await Promise.all([
+      db.accounts.filter((a) => a.isActive).toArray(),
+      db.holdings.toArray(),
+      db.superannuationAccounts.toArray(),
+    ]);
+
+    const visibleAccounts = accounts.filter((a) =>
+      isAccountVisibleToGoal(a, goal.memberId)
+    );
+    const visibleAccountMap = new Map(visibleAccounts.map((a) => [a.id, a]));
+    const visibleAccountIds = new Set(visibleAccounts.map((a) => a.id));
+    const visibleHoldings = holdings.filter((h) => visibleAccountIds.has(h.accountId));
+    const visibleHoldingMap = new Map(visibleHoldings.map((h) => [h.id, h]));
+
     // Calculate current amount based on linked accounts/holdings
     let currentAmount = 0;
 
     if (goal.linkedAccountIds && goal.linkedAccountIds.length > 0) {
-      const accounts = await db.accounts.bulkGet(goal.linkedAccountIds);
-      currentAmount += accounts.reduce((sum, a) => sum + (a?.balance || 0), 0);
+      currentAmount += goal.linkedAccountIds.reduce((sum, id) => {
+        const account = visibleAccountMap.get(id);
+        return sum + (account?.balance || 0);
+      }, 0);
     }
 
     if (goal.linkedHoldingIds && goal.linkedHoldingIds.length > 0) {
-      const holdings = await db.holdings.bulkGet(goal.linkedHoldingIds);
-      currentAmount += holdings.reduce(
-        (sum, h) => sum + (h?.currentValue || 0),
-        0,
-      );
+      currentAmount += goal.linkedHoldingIds.reduce((sum, id) => {
+        const holding = visibleHoldingMap.get(id);
+        return sum + (holding?.currentValue || 0);
+      }, 0);
     }
 
     // For retirement goals, include super
     if (goal.includeSuperannuation) {
-      const superAccounts = await db.superannuationAccounts.toArray();
       currentAmount += superAccounts.reduce(
         (sum, s) => sum + s.totalBalance,
         0,
@@ -106,8 +150,7 @@ export function useGoalProgress(goalId: string | null) {
       !goal.linkedHoldingIds?.length &&
       !goal.includeSuperannuation
     ) {
-      const accounts = await db.accounts.filter((a) => a.isActive).toArray();
-      currentAmount = accounts
+      currentAmount = visibleAccounts
         .filter((a) =>
           ["bank", "cash", "investment", "crypto", "asset"].includes(a.type),
         )
@@ -167,9 +210,14 @@ export function useGoalProgress(goalId: string | null) {
 /**
  * Get progress for all active goals
  */
-export function useAllGoalProgress() {
+export function useAllGoalProgress(memberId?: string) {
   const allProgress = useLiveQuery(async () => {
-    const goals = await db.goals.filter((g) => g.isActive).toArray();
+    let goals = await db.goals.filter((g) => g.isActive).toArray();
+
+    if (memberId) {
+      goals = goals.filter((g) => isGoalVisibleToMember(g.memberId, memberId));
+    }
+
     const progressList: GoalProgress[] = [];
 
     // Get all accounts, holdings, and super for calculations
@@ -189,17 +237,26 @@ export function useAllGoalProgress() {
     for (const goal of goals) {
       let currentAmount = 0;
 
+      const visibleAccounts = accounts.filter((a) =>
+        isAccountVisibleToGoal(a, goal.memberId)
+      );
+      const visibleAccountIds = new Set(visibleAccounts.map((a) => a.id));
+
       if (goal.linkedAccountIds && goal.linkedAccountIds.length > 0) {
         for (const id of goal.linkedAccountIds) {
           const account = accountMap.get(id);
-          if (account) currentAmount += account.balance || 0;
+          if (account && visibleAccountIds.has(account.id)) {
+            currentAmount += account.balance || 0;
+          }
         }
       }
 
       if (goal.linkedHoldingIds && goal.linkedHoldingIds.length > 0) {
         for (const id of goal.linkedHoldingIds) {
           const holding = holdingMap.get(id);
-          if (holding) currentAmount += holding.currentValue || 0;
+          if (holding && visibleAccountIds.has(holding.accountId)) {
+            currentAmount += holding.currentValue || 0;
+          }
         }
       }
 
@@ -213,7 +270,7 @@ export function useAllGoalProgress() {
         !goal.linkedHoldingIds?.length &&
         !goal.includeSuperannuation
       ) {
-        currentAmount = accounts
+        currentAmount = visibleAccounts
           .filter((a) =>
             ["bank", "cash", "investment", "crypto", "asset"].includes(a.type),
           )
@@ -261,7 +318,7 @@ export function useAllGoalProgress() {
     }
 
     return progressList;
-  }, []);
+  }, [memberId]);
 
   return {
     progress: allProgress ?? [],

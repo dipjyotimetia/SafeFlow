@@ -38,7 +38,7 @@ import type { ParsedTransaction } from "@/lib/parsers/types";
 import { useAccountStore } from "@/stores/account.store";
 import { useSuperannuationStore } from "@/stores/superannuation.store";
 import { useTransactionStore } from "@/stores/transaction.store";
-import type { SuperTransactionType, TransactionType } from "@/types";
+import type { SuperTransactionType, TransactionType, TransferDirection } from "@/types";
 import {
   AlertCircle,
   CheckCircle2,
@@ -132,33 +132,21 @@ export default function ImportPage() {
 
     setIsImporting(true);
     try {
-      // Convert parsed transactions to app transaction format.
-      // For parsed transfers, preserve direction without changing DB shape:
-      // transfer-in => income, transfer-out => expense, plus audit annotation in notes.
       const transactionsToImport = selectedTransactions.map((t) => {
-        const transferDirection =
-          t.type === "transfer" ? (t.amount >= 0 ? "in" : "out") : null;
-        const mappedType =
-          t.type === "transfer"
-            ? transferDirection === "in"
-              ? "income"
-              : "expense"
-            : t.type;
-        const transferAuditNote =
-          transferDirection
-            ? `[Transfer annotation] originalType=transfer; direction=${transferDirection}; signedAmountCents=${t.amount}`
-            : null;
-        const combinedNotes = [t.reference, transferAuditNote]
-          .filter(Boolean)
-          .join(" | ");
+        const parsedType = t.type ?? (t.amount >= 0 ? "income" : "expense");
+        const transferDirection: TransferDirection | undefined =
+          parsedType === "transfer"
+            ? (t.amount >= 0 ? "in" : "out")
+            : undefined;
 
         return {
           accountId: targetAccountId,
-          type: mappedType as TransactionType,
+          type: parsedType as TransactionType,
           amount: Math.abs(t.amount),
           description: t.description,
           date: t.date.toISOString(),
-          notes: combinedNotes || undefined,
+          notes: t.reference || undefined,
+          transferDirection,
         };
       });
 

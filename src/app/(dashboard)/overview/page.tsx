@@ -45,6 +45,7 @@ import {
 } from "@/hooks";
 import { formatAUD } from "@/lib/utils/currency";
 import { cn } from "@/lib/utils";
+import { useFamilyStore } from "@/stores/family.store";
 
 const PERIOD_OPTIONS = [
   { value: "3", label: "3 months" },
@@ -57,18 +58,21 @@ const PERIOD_OPTIONS = [
 export default function DashboardPage() {
   const [cashflowMonths, setCashflowMonths] = useState(6);
   const [categoryMonths, setCategoryMonths] = useState(3);
+  const { selectedMemberId } = useFamilyStore();
+  const memberId = selectedMemberId ?? undefined;
 
-  const { summary } = useAccountsSummary();
-  const { totals } = useMonthlyTotals();
-  const { cashflow, isLoading: cashflowLoading } = useCashflow(cashflowMonths);
+  const { summary } = useAccountsSummary(memberId);
+  const { totals } = useMonthlyTotals(memberId);
+  const { cashflow, isLoading: cashflowLoading } = useCashflow(cashflowMonths, memberId);
   const { breakdown, isLoading: breakdownLoading } = useCategoryBreakdown(
     "expense",
     categoryMonths,
+    memberId,
   );
   const { transactions: recentTransactions, isLoading: transactionsLoading } =
-    useRecentTransactions(5);
+    useRecentTransactions(5, memberId);
   const { categories } = useCategories();
-  const { accounts } = useAccounts();
+  const { accounts } = useAccounts({ memberId });
 
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
   const accountMap = new Map(accounts.map((a) => [a.id, a]));

@@ -117,24 +117,27 @@ export function CategorizationStatusCard({
         {!isCollapsed && (
           <CardContent className="space-y-4">
             {/* Transaction counts */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-center p-3 rounded-lg bg-muted/50">
-                <div className="text-2xl font-semibold">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center p-4 rounded-xl glass border border-border/50 shadow-sm relative overflow-hidden group">
+                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative text-2xl font-semibold text-primary">
                   {transactionCounts.total}
                 </div>
-                <div className="text-xs text-muted-foreground">Total</div>
+                <div className="relative text-[11px] uppercase tracking-wider text-muted-foreground font-medium mt-1">Total</div>
               </div>
-              <div className="text-center p-3 rounded-lg bg-muted/50">
-                <div className="text-2xl font-semibold text-success">
+              <div className="text-center p-4 rounded-xl glass border border-success/20 shadow-sm relative overflow-hidden group">
+                <div className="absolute inset-0 bg-success/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative text-2xl font-semibold text-success">
                   {transactionCounts.categorized}
                 </div>
-                <div className="text-xs text-muted-foreground">Categorized</div>
+                <div className="relative text-[11px] uppercase tracking-wider text-muted-foreground font-medium mt-1">Categorized</div>
               </div>
-              <div className="text-center p-3 rounded-lg bg-muted/50">
-                <div className="text-2xl font-semibold text-warning">
+              <div className="text-center p-4 rounded-xl glass border border-warning/20 shadow-sm relative overflow-hidden group">
+                <div className="absolute inset-0 bg-warning/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative text-2xl font-semibold text-warning">
                   {transactionCounts.uncategorized}
                 </div>
-                <div className="text-xs text-muted-foreground">Uncategorized</div>
+                <div className="relative text-[11px] uppercase tracking-wider text-muted-foreground font-medium mt-1">Uncategorized</div>
               </div>
             </div>
 

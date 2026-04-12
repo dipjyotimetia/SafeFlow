@@ -37,7 +37,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTransactionStore } from '@/stores/transaction.store';
-import { useAccounts, useCategories } from '@/hooks';
+import { useAccounts, useCategories, useFamilyMembers } from '@/hooks';
+import { useFamilyStore } from '@/stores/family.store';
 import { parseAUD } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 import type { Transaction } from '@/types';
@@ -56,16 +57,18 @@ const formSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   categoryId: z.string().optional(),
   transferToAccountId: z.string().optional(),
+  transferDirection: z.enum(['in', 'out']).optional(),
+  memberId: z.string().optional(),
   date: z.date(),
   notes: z.string().optional(),
   isDeductible: z.boolean().optional(),
 }).superRefine((values, ctx) => {
   if (values.type === 'transfer') {
-    if (!values.transferToAccountId) {
+    if (!values.transferToAccountId && !values.transferDirection) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['transferToAccountId'],
-        message: 'Destination account is required for transfers',
+        path: ['transferDirection'],
+        message: 'Select a destination account or transfer direction',
       });
     }
 
@@ -96,8 +99,8 @@ export function TransactionFormDialog({
 }: TransactionFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { createTransaction, updateTransaction } = useTransactionStore();
-  const { accounts } = useAccounts();
-  const { categories } = useCategories();
+  const { selectedMemberId } = useFamilyStore();
+  const { members } = useFamilyMembers({ activeOnly: true });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -108,6 +111,8 @@ export function TransactionFormDialog({
       description: transaction?.description ?? '',
       categoryId: transaction?.categoryId ?? '',
       transferToAccountId: transaction?.transferToAccountId ?? '',
+      transferDirection: transaction?.transferDirection ?? undefined,
+      memberId: transaction?.memberId ?? selectedMemberId ?? 'shared',
       date: transaction?.date ? new Date(transaction.date) : new Date(),
       notes: transaction?.notes ?? '',
       isDeductible: transaction?.isDeductible ?? false,
@@ -116,6 +121,15 @@ export function TransactionFormDialog({
 
   const selectedType = form.watch('type');
   const selectedAccountId = form.watch('accountId');
+  const selectedTransferToAccountId = form.watch('transferToAccountId');
+  const selectedTransferDirection = form.watch('transferDirection');
+  const selectedFormMemberId = form.watch('memberId');
+  const scopedMemberId =
+    selectedFormMemberId && selectedFormMemberId !== 'shared'
+      ? selectedFormMemberId
+      : undefined;
+  const { accounts } = useAccounts({ memberId: scopedMemberId });
+  const { categories } = useCategories();
 
   // Filter categories based on transaction type
   const filteredCategories = categories.filter((c) => {
@@ -133,23 +147,45 @@ export function TransactionFormDialog({
         description: transaction?.description ?? '',
         categoryId: transaction?.categoryId ?? '',
         transferToAccountId: transaction?.transferToAccountId ?? '',
+        transferDirection: transaction?.transferDirection ?? undefined,
+        memberId: transaction?.memberId ?? selectedMemberId ?? 'shared',
         date: transaction?.date ? new Date(transaction.date) : new Date(),
         notes: transaction?.notes ?? '',
         isDeductible: transaction?.isDeductible ?? false,
       });
     }
-  }, [open, transaction, defaultAccountId, form]);
+  }, [open, transaction, defaultAccountId, form, selectedMemberId]);
 
   useEffect(() => {
     if (selectedType !== 'transfer') {
       form.setValue('transferToAccountId', '');
+      form.setValue('transferDirection', undefined);
     }
   }, [selectedType, form]);
+
+  useEffect(() => {
+    if (selectedTransferToAccountId) {
+      form.setValue('transferDirection', undefined);
+    }
+  }, [selectedTransferToAccountId, form]);
+
+  useEffect(() => {
+    if (selectedTransferDirection) {
+      form.setValue('transferToAccountId', '');
+    }
+  }, [selectedTransferDirection, form]);
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
       const amount = parseAUD(values.amount) ?? 0;
+      const memberId = values.memberId && values.memberId !== 'shared' ? values.memberId : undefined;
+      const transferToAccountId =
+        values.type === 'transfer' ? values.transferToAccountId || undefined : undefined;
+      const transferDirection =
+        values.type === 'transfer' && !transferToAccountId
+          ? values.transferDirection
+          : undefined;
 
       if (transaction) {
         await updateTransaction(transaction.id, {
@@ -158,10 +194,9 @@ export function TransactionFormDialog({
           amount,
           description: values.description,
           categoryId: values.categoryId || undefined,
-          transferToAccountId:
-            values.type === 'transfer'
-              ? values.transferToAccountId || undefined
-              : undefined,
+          transferToAccountId,
+          transferDirection,
+          memberId,
           date: values.date,
           notes: values.notes || undefined,
           isDeductible: values.isDeductible,
@@ -175,10 +210,9 @@ export function TransactionFormDialog({
           description: values.description,
           date: values.date,
           categoryId: values.categoryId || undefined,
-          transferToAccountId:
-            values.type === 'transfer'
-              ? values.transferToAccountId || undefined
-              : undefined,
+          transferToAccountId,
+          transferDirection,
+          memberId,
           notes: values.notes || undefined,
           isDeductible: values.isDeductible,
         });
@@ -245,30 +279,58 @@ export function TransactionFormDialog({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="accountId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select account" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {accounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="accountId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select account" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {accounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="memberId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Member</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || 'shared'}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Shared" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="shared">Shared</SelectItem>
+                        {members.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
@@ -347,32 +409,61 @@ export function TransactionFormDialog({
             </div>
 
             {selectedType === 'transfer' && (
-              <FormField
-                control={form.control}
-                name="transferToAccountId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Destination Account</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select destination account" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {accounts
-                          .filter((account) => account.id !== selectedAccountId)
-                          .map((account) => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="transferToAccountId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Destination Account</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="External transfer" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {accounts
+                            .filter((account) => account.id !== selectedAccountId)
+                            .map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Select for internal transfers</p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="transferDirection"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>External Direction</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(value as 'in' | 'out')}
+                        value={field.value || ''}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select direction" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="in">Incoming transfer</SelectItem>
+                          <SelectItem value="out">Outgoing transfer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Use when no destination account exists</p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             )}
 
             <FormField

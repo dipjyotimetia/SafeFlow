@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,8 +31,10 @@ import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Button } from '@/components/ui/button';
 import { useAccountStore } from '@/stores/account.store';
+import { useFamilyStore } from '@/stores/family.store';
+import { useFamilyMembers } from '@/hooks';
 import { parseAUD } from '@/lib/utils/currency';
-import type { Account, AccountType } from '@/types';
+import type { Account, AccountType, AccountVisibility } from '@/types';
 import { toast } from 'sonner';
 
 const accountTypes: { value: AccountType; label: string }[] = [
@@ -50,6 +52,8 @@ const formSchema = z.object({
   type: z.enum(['bank', 'credit', 'cash', 'investment', 'crypto', 'asset', 'liability']),
   institution: z.string().optional(),
   balance: z.string().optional(),
+  memberId: z.string().optional(),
+  visibility: z.enum(['private', 'shared']),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -63,6 +67,8 @@ interface AccountFormDialogProps {
 export function AccountFormDialog({ open, onOpenChange, account }: AccountFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { createAccount, updateAccount } = useAccountStore();
+  const { selectedMemberId } = useFamilyStore();
+  const { members } = useFamilyMembers({ activeOnly: true });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -71,13 +77,32 @@ export function AccountFormDialog({ open, onOpenChange, account }: AccountFormDi
       type: account?.type ?? 'bank',
       institution: account?.institution ?? '',
       balance: account ? (account.balance / 100).toFixed(2) : '',
+      memberId: account?.memberId ?? selectedMemberId ?? 'shared',
+      visibility: account?.visibility ?? 'shared',
     },
   });
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    form.reset({
+      name: account?.name ?? '',
+      type: account?.type ?? 'bank',
+      institution: account?.institution ?? '',
+      balance: account ? (account.balance / 100).toFixed(2) : '',
+      memberId: account?.memberId ?? selectedMemberId ?? 'shared',
+      visibility: account?.visibility ?? (selectedMemberId ? 'private' : 'shared'),
+    });
+  }, [open, account, selectedMemberId, form]);
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
       const balance = values.balance ? (parseAUD(values.balance) ?? 0) : 0;
+      const memberId = values.memberId && values.memberId !== 'shared' ? values.memberId : undefined;
+      const visibility: AccountVisibility = memberId ? values.visibility : 'shared';
 
       if (account) {
         await updateAccount(account.id, {
@@ -85,6 +110,8 @@ export function AccountFormDialog({ open, onOpenChange, account }: AccountFormDi
           type: values.type,
           institution: values.institution || undefined,
           balance,
+          memberId,
+          visibility,
         });
         toast.success('Account updated');
       } else {
@@ -93,6 +120,8 @@ export function AccountFormDialog({ open, onOpenChange, account }: AccountFormDi
           type: values.type,
           institution: values.institution || undefined,
           balance,
+          memberId,
+          visibility,
         });
         toast.success('Account created');
       }
@@ -139,7 +168,7 @@ export function AccountFormDialog({ open, onOpenChange, account }: AccountFormDi
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Account Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select account type" />
@@ -171,6 +200,70 @@ export function AccountFormDialog({ open, onOpenChange, account }: AccountFormDi
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="memberId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Owner</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        if (value === 'shared') {
+                          form.setValue('visibility', 'shared');
+                        } else if (form.getValues('visibility') === 'shared') {
+                          form.setValue('visibility', 'private');
+                        }
+                      }}
+                      value={field.value || 'shared'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Shared account" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="shared">Shared account</SelectItem>
+                        {members.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="visibility"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Visibility</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={form.watch('memberId') === 'shared' ? 'shared' : field.value}
+                      disabled={form.watch('memberId') === 'shared'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="private">Private</SelectItem>
+                        <SelectItem value="shared">Shared</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

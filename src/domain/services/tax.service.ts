@@ -17,10 +17,10 @@ import type { Transaction, InvestmentTransaction } from "@/types";
  */
 export const TAX_BRACKETS_2024_25: TaxBracket[] = [
   { min: 0, max: 18200, rate: 0, baseTax: 0 },
-  { min: 18200, max: 45000, rate: 16, baseTax: 0 },
-  { min: 45000, max: 135000, rate: 30, baseTax: 4288 },
-  { min: 135000, max: 190000, rate: 37, baseTax: 31288 },
-  { min: 190000, max: Infinity, rate: 45, baseTax: 51638 },
+  { min: 18201, max: 45000, rate: 16, baseTax: 0 },
+  { min: 45001, max: 135000, rate: 30, baseTax: 4288 },
+  { min: 135001, max: 190000, rate: 37, baseTax: 31288 },
+  { min: 190001, max: Infinity, rate: 45, baseTax: 51638 },
 ];
 
 export const TAX_BRACKETS_2025_26: TaxBracket[] = [...TAX_BRACKETS_2024_25];
@@ -31,10 +31,10 @@ export const TAX_BRACKETS_2025_26: TaxBracket[] = [...TAX_BRACKETS_2024_25];
  */
 export const TAX_BRACKETS_2026_27: TaxBracket[] = [
   { min: 0, max: 18200, rate: 0, baseTax: 0 },
-  { min: 18200, max: 45000, rate: 15, baseTax: 0 },
-  { min: 45000, max: 135000, rate: 29, baseTax: 4020 },
-  { min: 135000, max: 190000, rate: 37, baseTax: 30120 },
-  { min: 190000, max: Infinity, rate: 45, baseTax: 50470 },
+  { min: 18201, max: 45000, rate: 15, baseTax: 0 },
+  { min: 45001, max: 135000, rate: 29, baseTax: 4020 },
+  { min: 135001, max: 190000, rate: 37, baseTax: 30120 },
+  { min: 190001, max: Infinity, rate: 45, baseTax: 50470 },
 ];
 
 /**
@@ -48,16 +48,16 @@ export const MEDICARE_LEVY_RATE = 2;
  */
 export const MLS_THRESHOLDS_2024_25_SINGLE: MLSThreshold[] = [
   { min: 0, max: 93000, rate: 0 },
-  { min: 93001, max: 108000, rate: 1 },
-  { min: 108001, max: 144000, rate: 1.25 },
-  { min: 144001, max: Infinity, rate: 1.5 },
+  { min: 93000, max: 108000, rate: 1 },
+  { min: 108000, max: 144000, rate: 1.25 },
+  { min: 144000, max: Infinity, rate: 1.5 },
 ];
 
 export const MLS_THRESHOLDS_2025_26_SINGLE: MLSThreshold[] = [
   { min: 0, max: 101000, rate: 0 },
-  { min: 101001, max: 118000, rate: 1 },
-  { min: 118001, max: 158000, rate: 1.25 },
-  { min: 158001, max: Infinity, rate: 1.5 },
+  { min: 101000, max: 118000, rate: 1 },
+  { min: 118000, max: 158000, rate: 1.25 },
+  { min: 158000, max: Infinity, rate: 1.5 },
 ];
 
 /**
@@ -165,13 +165,13 @@ function getMLSThresholdsAdjusted(
 
   return [
     { min: 0, max: base + dependentAdjustment, rate: 0 },
-    { min: base + dependentAdjustment + 1, max: tier1 + dependentAdjustment, rate: 1 },
+    { min: base + dependentAdjustment, max: tier1 + dependentAdjustment, rate: 1 },
     {
-      min: tier1 + dependentAdjustment + 1,
+      min: tier1 + dependentAdjustment,
       max: tier2 + dependentAdjustment,
       rate: 1.25,
     },
-    { min: tier2 + dependentAdjustment + 1, max: Infinity, rate: 1.5 },
+    { min: tier2 + dependentAdjustment, max: Infinity, rate: 1.5 },
   ];
 }
 
@@ -224,7 +224,8 @@ export function calculateIncomeTax(
 
   if (bracket) {
     const excess = Math.max(0, taxableIncome - bracket.min);
-    incomeTax = bracket.baseTax + (excess * bracket.rate) / 100;
+    // F-3: Round to avoid floating-point drift in intermediate dollar calculations
+    incomeTax = Math.round((bracket.baseTax + (excess * bracket.rate) / 100) * 100) / 100;
   }
 
   const medicareLevy = calculateMedicareLevy(
@@ -261,6 +262,9 @@ export function getMarginalTaxRate(
       return bracket.rate;
     }
   }
+
+  // Fallback: check if income exceeds all defined brackets (e.g. Infinity max)
+  // already handled by the loop, but guard defensively
 
   return config.brackets[config.brackets.length - 1].rate;
 }

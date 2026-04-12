@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCategories } from '@/hooks/use-categories';
+import { useFamilyMembers } from '@/hooks/use-family';
 import { useBudgetStore } from '@/stores/budget.store';
 import type { Budget, BudgetPeriod } from '@/types';
 import { toast } from 'sonner';
@@ -28,10 +29,12 @@ interface BudgetFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   budget?: Budget | null;
+  defaultMemberId?: string | null;
 }
 
-export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialogProps) {
+export function BudgetFormDialog({ open, onOpenChange, budget, defaultMemberId }: BudgetFormDialogProps) {
   const { categories } = useCategories({ type: 'expense' });
+  const { members } = useFamilyMembers({ activeOnly: true });
   const { createBudget, updateBudget } = useBudgetStore();
 
   const [name, setName] = useState('');
@@ -39,6 +42,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
   const [amountDisplay, setAmountDisplay] = useState('');
   const [amountCents, setAmountCents] = useState(0);
   const [period, setPeriod] = useState<BudgetPeriod>('monthly');
+  const [memberId, setMemberId] = useState<string>('household');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -48,14 +52,16 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
       setAmountDisplay((budget.amount / 100).toFixed(2));
       setAmountCents(budget.amount);
       setPeriod(budget.period);
+      setMemberId(budget.memberId ?? 'household');
     } else {
       setName('');
       setCategoryId('all');
       setAmountDisplay('');
       setAmountCents(0);
       setPeriod('monthly');
+      setMemberId(defaultMemberId ?? 'household');
     }
-  }, [budget, open]);
+  }, [budget, open, defaultMemberId]);
 
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -89,6 +95,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
           categoryId: categoryId === 'all' ? undefined : categoryId,
           amount: amountCents,
           period,
+          memberId: memberId === 'household' ? undefined : memberId,
         });
         toast.success('Budget updated');
       } else {
@@ -97,6 +104,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
           categoryId: categoryId === 'all' ? undefined : categoryId,
           amount: amountCents,
           period,
+          memberId: memberId === 'household' ? undefined : memberId,
         });
         toast.success('Budget created');
       }
@@ -179,6 +187,25 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
                 </SelectContent>
               </Select>
             </div>
+
+            {members.length > 0 && (
+              <div className="grid gap-2">
+                <Label htmlFor="member">Budget Scope</Label>
+                <Select value={memberId} onValueChange={setMemberId}>
+                  <SelectTrigger id="member">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="household">Household (shared)</SelectItem>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

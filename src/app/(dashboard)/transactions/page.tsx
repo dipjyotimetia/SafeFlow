@@ -62,8 +62,8 @@ export default function TransactionsPage() {
     accountId: accountFilter !== "all" ? accountFilter : undefined,
     memberId: effectiveMemberId,
   });
-  const { accounts } = useAccounts();
-  const { totals } = useMonthlyTotals();
+  const { accounts } = useAccounts({ memberId: effectiveMemberId });
+  const { totals } = useMonthlyTotals(effectiveMemberId);
   const { deleteTransaction } = useTransactionStore();
 
   const handleEdit = (transaction: Transaction) => {

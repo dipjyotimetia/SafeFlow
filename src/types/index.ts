@@ -69,6 +69,7 @@ export interface Category extends Versionable {
 
 // Transaction types
 export type TransactionType = "income" | "expense" | "transfer";
+export type TransferDirection = "in" | "out";
 export type ImportSource =
   | "manual"
   | "pdf"
@@ -99,6 +100,7 @@ export interface Transaction extends Versionable {
 
   // Transfer-specific
   transferToAccountId?: string;
+  transferDirection?: TransferDirection; // For external transfers without destination account
 
   // Import metadata
   importSource?: ImportSource;

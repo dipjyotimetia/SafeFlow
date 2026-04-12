@@ -14,6 +14,7 @@ import {
 
 // Transaction types
 export const transactionTypeSchema = z.enum(['income', 'expense', 'transfer']);
+export const transferDirectionSchema = z.enum(['in', 'out']);
 
 // Import sources
 export const importSourceSchema = z.enum([
@@ -48,6 +49,7 @@ export const transactionSchema = z.object({
 
   // Transfer-specific
   transferToAccountId: uuidSchema.optional(),
+  transferDirection: transferDirectionSchema.optional(),
 
   // Import metadata
   importSource: importSourceSchema.optional(),
@@ -59,6 +61,9 @@ export const transactionSchema = z.object({
   isDeductible: z.boolean().optional(),
   gstAmount: positiveMoneySchema.optional(),
   atoCategory: optionalStringSchema,
+
+  // Family fields
+  memberId: uuidSchema.optional(),
 
   // Metadata
   notes: optionalStringSchema,
@@ -75,10 +80,12 @@ const transactionBaseWriteSchema = z.object({
   categoryId: uuidSchema.optional(),
   merchantName: optionalStringSchema,
   transferToAccountId: uuidSchema.optional(),
+  transferDirection: transferDirectionSchema.optional(),
   notes: optionalStringSchema,
   isDeductible: z.boolean().optional(),
   gstAmount: positiveMoneySchema.optional(),
   atoCategory: optionalStringSchema,
+  memberId: uuidSchema.optional(),
 });
 
 // Schema for creating a new transaction
@@ -87,11 +94,11 @@ export const transactionCreateSchema = transactionBaseWriteSchema.superRefine((v
     return;
   }
 
-  if (!value.transferToAccountId) {
+  if (!value.transferToAccountId && !value.transferDirection) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['transferToAccountId'],
-      message: 'Transfer transactions require transferToAccountId',
+      message: 'Transfer transactions require a destination account or transfer direction',
     });
     return;
   }
@@ -119,6 +126,9 @@ export const transactionImportSchema = z.object({
   merchantName: optionalStringSchema,
   originalDescription: optionalStringSchema,
   notes: optionalStringSchema,
+  transferToAccountId: uuidSchema.optional(),
+  transferDirection: transferDirectionSchema.optional(),
+  memberId: uuidSchema.optional(),
 });
 
 // Array schema for bulk import

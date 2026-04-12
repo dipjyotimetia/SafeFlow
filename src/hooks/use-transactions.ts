@@ -11,6 +11,51 @@ interface UseTransactionsOptions extends FilterOptions {
   offset?: number;
 }
 
+type AccountVisibilityInfo = {
+  memberId?: string;
+  visibility?: "private" | "shared";
+};
+
+function isAccountVisibleToMember(
+  account: AccountVisibilityInfo | undefined,
+  memberId?: string
+): boolean {
+  if (!memberId) {
+    return true;
+  }
+
+  if (!account) {
+    return false;
+  }
+
+  if (account.memberId === memberId) {
+    return true;
+  }
+
+  if (account.visibility === "shared" || !account.memberId) {
+    return true;
+  }
+
+  return false;
+}
+
+function isTransactionVisibleToMember(
+  transaction: Transaction,
+  accountMap: Map<string, AccountVisibilityInfo>,
+  memberId?: string
+): boolean {
+  if (!memberId) {
+    return true;
+  }
+
+  if (transaction.memberId === memberId) {
+    return true;
+  }
+
+  const account = accountMap.get(transaction.accountId);
+  return isAccountVisibleToMember(account, memberId);
+}
+
 export function useTransactions(options: UseTransactionsOptions = {}) {
   const {
     accountId,
@@ -63,18 +108,6 @@ export function useTransactions(options: UseTransactionsOptions = {}) {
         .between([type, dateRange.from], [type, dateRange.to], true, true)
         .reverse()
         .toArray();
-    } else if (memberId && dateRange) {
-      // Use compound index [memberId+date]
-      results = await db.transactions
-        .where("[memberId+date]")
-        .between(
-          [memberId, dateRange.from],
-          [memberId, dateRange.to],
-          true,
-          true
-        )
-        .reverse()
-        .toArray();
     } else if (dateRange) {
       // Use date index
       results = await db.transactions
@@ -112,7 +145,6 @@ export function useTransactions(options: UseTransactionsOptions = {}) {
     const usedAccountIdIndex = accountId && dateRange;
     const usedCategoryIdIndex = categoryId && dateRange && !accountId;
     const usedTypeIndex = type && dateRange && !accountId && !categoryId;
-    const usedMemberIdIndex = memberId && dateRange && !accountId && !categoryId && !type;
     const usedSingleAccountId = accountId && !dateRange && !categoryId && !type;
     const usedSingleCategoryId = categoryId && !dateRange && !accountId && !type;
     const usedSingleType = type && !dateRange && !accountId && !categoryId;
@@ -139,28 +171,14 @@ export function useTransactions(options: UseTransactionsOptions = {}) {
 
     // Apply memberId filter - show transactions belonging to member OR from shared accounts
     // This is complex because it also checks account visibility
-    if (memberId && !usedMemberIdIndex) {
+    if (memberId) {
       // Get accounts to check visibility
       const accounts = await db.accounts.toArray();
       const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
-      results = results.filter((t) => {
-        // Transaction explicitly belongs to this member
-        if (t.memberId === memberId) return true;
-
-        // Transaction belongs to a shared account (no member assigned)
-        const account = accountMap.get(t.accountId);
-        if (account && !account.memberId && account.visibility !== "private") {
-          return true;
-        }
-
-        // Transaction has no member and account has no member (legacy data)
-        if (!t.memberId && account && !account.memberId) {
-          return true;
-        }
-
-        return false;
-      });
+      results = results.filter((t) =>
+        isTransactionVisibleToMember(t, accountMap, memberId)
+      );
     }
 
     // Search query filter (can't be indexed - text search)
@@ -213,15 +231,8 @@ export function useTransaction(id: string | null) {
   };
 }
 
-export function useRecentTransactions(limit: number = 10) {
-  const transactions = useLiveQuery(async () => {
-    return db.transactions.orderBy("date").reverse().limit(limit).toArray();
-  }, [limit]);
-
-  return {
-    transactions: transactions ?? [],
-    isLoading: transactions === undefined,
-  };
+export function useRecentTransactions(limit: number = 10, memberId?: string) {
+  return useTransactions({ limit, memberId });
 }
 
 // Helper to extract year-month as a single number for comparison
@@ -245,7 +256,7 @@ const parseTransactionDate = (date: Date | string | unknown): Date => {
   return new Date(0); // Return epoch as fallback
 };
 
-export function useCashflow(months: number = 6) {
+export function useCashflow(months: number = 6, memberId?: string) {
   const cashflow = useLiveQuery(async () => {
     const now = new Date();
     const monthsData = [];
@@ -256,10 +267,18 @@ export function useCashflow(months: number = 6) {
     startDate.setHours(0, 0, 0, 0);
 
     // Use indexed date query instead of loading all transactions
-    const relevantTransactions = await db.transactions
+    let relevantTransactions = await db.transactions
       .where("date")
       .aboveOrEqual(startDate)
       .toArray();
+
+    if (memberId) {
+      const accounts = await db.accounts.toArray();
+      const accountMap = new Map(accounts.map((a) => [a.id, a]));
+      relevantTransactions = relevantTransactions.filter((t) =>
+        isTransactionVisibleToMember(t, accountMap, memberId)
+      );
+    }
 
     for (let i = months - 1; i >= 0; i--) {
       const monthDate = subMonths(now, i);
@@ -291,7 +310,7 @@ export function useCashflow(months: number = 6) {
     }
 
     return monthsData;
-  }, [months]);
+  }, [months, memberId]);
 
   return {
     cashflow: cashflow ?? [],
@@ -299,7 +318,7 @@ export function useCashflow(months: number = 6) {
   };
 }
 
-export function useMonthlyTotals() {
+export function useMonthlyTotals(memberId?: string) {
   const totals = useLiveQuery(async () => {
     const now = new Date();
     const currentYearMonth = getYearMonth(now);
@@ -309,10 +328,18 @@ export function useMonthlyTotals() {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
     // Use indexed date query instead of loading all transactions
-    const monthTransactions = await db.transactions
+    let monthTransactions = await db.transactions
       .where("date")
       .between(startOfMonth, endOfMonth, true, true)
       .toArray();
+
+    if (memberId) {
+      const accounts = await db.accounts.toArray();
+      const accountMap = new Map(accounts.map((a) => [a.id, a]));
+      monthTransactions = monthTransactions.filter((t) =>
+        isTransactionVisibleToMember(t, accountMap, memberId)
+      );
+    }
 
     // Filter for valid dates (handles format inconsistencies)
     const transactions = monthTransactions.filter((t) => {
@@ -335,7 +362,7 @@ export function useMonthlyTotals() {
       net: income - expenses,
       transactionCount: transactions.length,
     };
-  }, []);
+  }, [memberId]);
 
   return {
     totals: totals ?? { income: 0, expenses: 0, net: 0, transactionCount: 0 },
@@ -345,7 +372,8 @@ export function useMonthlyTotals() {
 
 export function useCategoryBreakdown(
   type: TransactionType = "expense",
-  months: number = 1
+  months: number = 1,
+  memberId?: string
 ) {
   const breakdown = useLiveQuery(async () => {
     const now = new Date();
@@ -359,10 +387,18 @@ export function useCategoryBreakdown(
     startDate.setHours(0, 0, 0, 0);
 
     // Use compound index [type+date] for optimal performance
-    const typeTransactions = await db.transactions
+    let typeTransactions = await db.transactions
       .where("[type+date]")
       .between([type, startDate], [type, now], true, true)
       .toArray();
+
+    if (memberId) {
+      const accounts = await db.accounts.toArray();
+      const accountMap = new Map(accounts.map((a) => [a.id, a]));
+      typeTransactions = typeTransactions.filter((t) =>
+        isTransactionVisibleToMember(t, accountMap, memberId)
+      );
+    }
 
     // Filter for valid dates (handles format inconsistencies)
     const transactions = typeTransactions.filter((t) => {
@@ -396,7 +432,7 @@ export function useCategoryBreakdown(
         };
       })
       .sort((a, b) => b.amount - a.amount);
-  }, [type, months]);
+  }, [type, months, memberId]);
 
   return {
     breakdown: breakdown ?? [],

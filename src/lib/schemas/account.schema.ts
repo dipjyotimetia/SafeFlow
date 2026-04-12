@@ -21,6 +21,7 @@ export const accountTypeSchema = z.enum([
   'asset',
   'liability',
 ]);
+export const accountVisibilitySchema = z.enum(["private", "shared"]);
 
 // Full Account schema (for database records)
 export const accountSchema = z.object({
@@ -31,6 +32,8 @@ export const accountSchema = z.object({
   balance: moneyInCentsSchema,
   currency: currencySchema,
   isActive: z.boolean(),
+  memberId: uuidSchema.optional(),
+  visibility: accountVisibilitySchema.optional(),
   metadata: metadataSchema,
 }).merge(timestampFieldsSchema);
 
@@ -41,6 +44,8 @@ export const accountCreateSchema = z.object({
   institution: optionalStringSchema,
   balance: moneyInCentsSchema.default(0),
   isActive: z.boolean().default(true),
+  memberId: uuidSchema.optional(),
+  visibility: accountVisibilitySchema.optional(),
   metadata: metadataSchema,
 });
 

@@ -18,6 +18,7 @@ import { Plus, Wallet } from 'lucide-react';
 import { AccountFormDialog, AccountCard } from '@/components/accounts';
 import { useAccounts, useAccountsSummary } from '@/hooks';
 import { useAccountStore } from '@/stores/account.store';
+import { useFamilyStore } from '@/stores/family.store';
 import { formatAUD } from '@/lib/utils/currency';
 import type { Account } from '@/types';
 import { toast } from 'sonner';
@@ -28,9 +29,11 @@ export default function AccountsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
+  const { selectedMemberId } = useFamilyStore();
+  const memberId = selectedMemberId ?? undefined;
 
-  const { accounts, isLoading } = useAccounts();
-  const { summary } = useAccountsSummary();
+  const { accounts, isLoading } = useAccounts({ memberId });
+  const { summary } = useAccountsSummary(memberId);
   const { deleteAccount } = useAccountStore();
 
   const handleEdit = (account: Account) => {

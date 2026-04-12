@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,8 @@ import { CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useGoalStore } from '@/stores/goal.store';
+import { useFamilyStore } from '@/stores/family.store';
+import { useFamilyMembers } from '@/hooks';
 import type { Goal, GoalType } from '@/types';
 import { toast } from 'sonner';
 
@@ -62,26 +64,54 @@ const goalTypes: { value: GoalType; label: string; description: string }[] = [
 
 export function GoalFormDialog({ open, onOpenChange, goal }: GoalFormDialogProps) {
   const { createGoal, updateGoal } = useGoalStore();
+  const { selectedMemberId } = useFamilyStore();
+  const { members } = useFamilyMembers({ activeOnly: true });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state
-  const [name, setName] = useState(goal?.name || '');
-  const [type, setType] = useState<GoalType>(goal?.type || 'savings');
+  const [name, setName] = useState('');
+  const [type, setType] = useState<GoalType>('savings');
+  const [memberId, setMemberId] = useState('household');
   const [targetAmount, setTargetAmount] = useState(
-    goal?.targetAmount ? (goal.targetAmount / 100).toFixed(2) : ''
+    ''
   );
-  const [targetDate, setTargetDate] = useState<Date | undefined>(goal?.targetDate);
+  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   const [monthlyContribution, setMonthlyContribution] = useState(
-    goal?.monthlyContribution ? (goal.monthlyContribution / 100).toFixed(2) : ''
+    ''
   );
   const [expectedReturnRate, setExpectedReturnRate] = useState(
-    goal?.expectedReturnRate ? (goal.expectedReturnRate * 100).toFixed(1) : '7'
+    '7'
   );
-  const [includeSuperannuation, setIncludeSuperannuation] = useState(
-    goal?.includeSuperannuation || false
-  );
+  const [includeSuperannuation, setIncludeSuperannuation] = useState(false);
 
   const isEditing = !!goal;
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    if (goal) {
+      setName(goal.name);
+      setType(goal.type);
+      setMemberId(goal.memberId ?? 'household');
+      setTargetAmount(goal.targetAmount ? (goal.targetAmount / 100).toFixed(2) : '');
+      setTargetDate(goal.targetDate);
+      setMonthlyContribution(goal.monthlyContribution ? (goal.monthlyContribution / 100).toFixed(2) : '');
+      setExpectedReturnRate(goal.expectedReturnRate ? (goal.expectedReturnRate * 100).toFixed(1) : '7');
+      setIncludeSuperannuation(goal.includeSuperannuation || false);
+      return;
+    }
+
+    setName('');
+    setType('savings');
+    setMemberId(selectedMemberId ?? 'household');
+    setTargetAmount('');
+    setTargetDate(undefined);
+    setMonthlyContribution('');
+    setExpectedReturnRate('7');
+    setIncludeSuperannuation(false);
+  }, [open, goal, selectedMemberId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +131,7 @@ export function GoalFormDialog({ open, onOpenChange, goal }: GoalFormDialogProps
 
     try {
       const data = {
+        memberId,
         name: name.trim(),
         type,
         targetAmount: targetAmountCents,
@@ -134,6 +165,7 @@ export function GoalFormDialog({ open, onOpenChange, goal }: GoalFormDialogProps
       if (!isEditing) {
         setName('');
         setType('savings');
+        setMemberId(selectedMemberId ?? 'household');
         setTargetAmount('');
         setTargetDate(undefined);
         setMonthlyContribution('');
@@ -189,6 +221,25 @@ export function GoalFormDialog({ open, onOpenChange, goal }: GoalFormDialogProps
               </SelectContent>
             </Select>
           </div>
+
+          {members.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="member">Goal Owner</Label>
+              <Select value={memberId} onValueChange={setMemberId}>
+                <SelectTrigger id="member">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="household">Household (shared)</SelectItem>
+                  {members.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="targetAmount">Target Amount ($)</Label>

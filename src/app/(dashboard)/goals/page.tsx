@@ -20,6 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAllGoalProgress } from "@/hooks";
+import { useFamilyStore } from "@/stores/family.store";
 import {
   GoalCard,
   GoalFormDialog,
@@ -33,8 +34,9 @@ export default function GoalsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [activeTab, setActiveTab] = useState("goals");
+  const { selectedMemberId } = useFamilyStore();
 
-  const { progress, isLoading } = useAllGoalProgress();
+  const { progress, isLoading } = useAllGoalProgress(selectedMemberId ?? undefined);
 
   const handleEdit = (goal: Goal) => {
     setEditingGoal(goal);

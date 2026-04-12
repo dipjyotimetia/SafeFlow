@@ -8,6 +8,7 @@ import { BudgetCard } from './BudgetCard';
 import { BudgetFormDialog } from './BudgetFormDialog';
 import { useAllBudgetProgress } from '@/hooks/use-budgets';
 import { useBudgetStore } from '@/stores/budget.store';
+import { useFamilyStore } from '@/stores/family.store';
 import type { Budget } from '@/types';
 import { toast } from 'sonner';
 import {
@@ -24,7 +25,8 @@ import { MetricCard } from '@/components/ui/metric-card';
 import { SkeletonCard, SkeletonMetricCards } from '@/components/ui/skeleton';
 
 export function BudgetOverview() {
-  const { progress, isLoading } = useAllBudgetProgress();
+  const { selectedMemberId } = useFamilyStore();
+  const { progress, isLoading } = useAllBudgetProgress(selectedMemberId ?? undefined);
   const { deleteBudget } = useBudgetStore();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -160,6 +162,7 @@ export function BudgetOverview() {
         open={dialogOpen}
         onOpenChange={handleDialogClose}
         budget={editingBudget}
+        defaultMemberId={selectedMemberId}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

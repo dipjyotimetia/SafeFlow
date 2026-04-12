@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { initializeDatabase } from '@/lib/db';
 
@@ -16,6 +17,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isDbReady, setIsDbReady] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     initializeDatabase()
@@ -47,7 +49,9 @@ export default function DashboardLayout({
       <Sidebar />
 
       <main className="min-h-screen md:pl-72">
-        <div className="relative">{children}</div>
+        <div key={pathname} className="relative animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {children}
+        </div>
       </main>
 
       <FloatingChatWidget />

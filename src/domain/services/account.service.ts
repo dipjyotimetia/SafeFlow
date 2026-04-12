@@ -185,7 +185,8 @@ export function calculateSavingsRate(
 ): number | null {
   if (totalIncome <= 0) return null;
   const savings = totalIncome - totalExpenses;
-  return Math.round((savings / totalIncome) * 100);
+  // F-7: Standardized to 1 decimal place (consistent with transaction.service.ts)
+  return Math.round((savings / totalIncome) * 1000) / 10;
 }
 
 // ============ Account Type Helpers ============
