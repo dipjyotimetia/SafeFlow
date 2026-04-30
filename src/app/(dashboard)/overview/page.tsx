@@ -162,7 +162,7 @@ export default function DashboardPage() {
       <div className="pb-12">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:px-8">
           {/* HERO — Net Worth */}
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="scan-line" aria-hidden />
 
             <div className="grid gap-6 p-6 md:grid-cols-12 md:p-8">
@@ -175,7 +175,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
 
-                <div className="mt-4 flex items-baseline gap-1">
+                <div className="mt-5 flex items-baseline gap-1">
                   <span
                     className={cn(
                       "display-number animate-wipe-in tabular-nums text-[clamp(48px,7.4vw,86px)]",
@@ -195,7 +195,7 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[--text-subtle]">
                   <span>
                     AS OF · {format(new Date(), "d MMM").toUpperCase()}
                   </span>
@@ -209,10 +209,10 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="md:col-span-5 md:border-l md:border-border md:pl-8 flex flex-col justify-between gap-4">
+              <div className="flex flex-col justify-between gap-4 md:col-span-5 md:border-l md:border-border md:pl-8">
                 <div>
                   <span className="eyebrow">Trend · {cashflowMonths}M</span>
-                  <div className="mt-3">
+                  <div className="mt-4 rounded-lg border border-border/70 bg-background/28 p-4">
                     <HeroSparkline data={sparkData} positive={netPositive} />
                   </div>
                 </div>
@@ -236,7 +236,7 @@ export default function DashboardPage() {
           </section>
 
           {/* METRIC ROW — divided strip */}
-          <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+          <section className="fintech-panel grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
             <StatCell
               label="Monthly Income"
               value={formatAUD(totals.income)}
@@ -318,10 +318,10 @@ export default function DashboardPage() {
 
           {/* ACTIVITY LEDGER */}
           <section
-            className="animate-enter overflow-hidden rounded-md border border-border bg-card"
+            className="fintech-panel animate-enter overflow-hidden rounded-lg border border-border/80"
             style={{ animationDelay: "0.35s" }}
           >
-            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+            <div className="flex items-center justify-between border-b border-border/80 px-5 py-3">
               <div className="flex items-center gap-3">
                 <span className="eyebrow">Activity</span>
                 <span className="hairline-v h-3" aria-hidden />
@@ -371,7 +371,7 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={transaction.id}
-                      className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 px-5 py-3 transition-colors duration-150 hover:bg-muted/40 sm:grid-cols-[80px_minmax(0,1fr)_auto_auto]"
+                      className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 px-5 py-3 transition-colors duration-150 hover:bg-muted/45 sm:grid-cols-[80px_minmax(0,1fr)_auto_auto]"
                       style={{ animationDelay: `${0.4 + index * 0.04}s` }}
                     >
                       <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-[--text-subtle]">
@@ -433,7 +433,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="px-5 py-16 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-muted/40">
                   <ArrowRightLeft
                     className="h-5 w-5 text-[--text-subtle]"
                     strokeWidth={1.5}
@@ -492,10 +492,10 @@ function ChartPanel({
 }) {
   return (
     <div
-      className="card-trace overflow-hidden rounded-md border border-border bg-card animate-enter-fast"
+      className="card-trace fintech-panel overflow-hidden rounded-lg border border-border/80 animate-enter-fast"
       style={{ animationDelay: `${delay}s` }}
     >
-      <div className="flex items-center justify-between border-b border-border px-5 py-3">
+      <div className="flex items-center justify-between border-b border-border/80 px-5 py-3">
         <div className="flex items-center gap-3">
           <span className="eyebrow">{title}</span>
           <span className="hairline-v h-3" aria-hidden />
@@ -504,7 +504,7 @@ function ChartPanel({
           </span>
         </div>
         <Select value={periodValue} onValueChange={onPeriodChange}>
-          <SelectTrigger className="h-7 w-[68px] rounded-sm border border-border bg-transparent font-mono text-[10px] uppercase tracking-[0.14em] shadow-none">
+          <SelectTrigger className="h-8 w-[72px] rounded-md border border-border/80 bg-card/70 font-mono text-[10px] uppercase tracking-[0.12em] shadow-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -532,7 +532,7 @@ function EmptyChart({
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/40">
         <Icon className="h-4 w-4 text-[--text-subtle]" strokeWidth={1.5} />
       </div>
       <p className="font-display text-base tracking-tight text-foreground">

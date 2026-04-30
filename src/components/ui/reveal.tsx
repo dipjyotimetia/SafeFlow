@@ -14,17 +14,26 @@ export function Reveal({
   className,
   delayMs = 0,
 }: RevealProps) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
+    setIsVisible(false);
+
+    if (!("IntersectionObserver" in window)) {
+      setIsVisible(true);
+      return;
+    }
+
+    const fallback = window.setTimeout(() => setIsVisible(true), 250);
 
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
         if (entry?.isIntersecting) {
+          window.clearTimeout(fallback);
           setIsVisible(true);
           observer.disconnect();
         }
@@ -37,7 +46,10 @@ export function Reveal({
 
     observer.observe(node);
 
-    return () => observer.disconnect();
+    return () => {
+      window.clearTimeout(fallback);
+      observer.disconnect();
+    };
   }, []);
 
   return (

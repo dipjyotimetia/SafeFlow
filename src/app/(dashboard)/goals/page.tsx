@@ -57,7 +57,7 @@ export default function GoalsPage() {
       <div className="pb-12">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
           {/* Hero */}
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="p-6 md:p-8">
               <span className="eyebrow">// Goals &amp; projections</span>
               <h1 className="mt-3 font-display text-3xl tracking-tight md:text-4xl">
@@ -117,8 +117,8 @@ export default function GoalsPage() {
                   />
                 </div>
               ) : progress.length === 0 ? (
-                <div className="rounded-md border border-border bg-card px-5 py-16 text-center">
-                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+                <div className="rounded-lg border border-border/80 fintech-panel px-5 py-16 text-center">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-muted/40">
                     <Target
                       className="h-5 w-5 text-[--text-subtle]"
                       strokeWidth={1.5}
@@ -220,7 +220,7 @@ export default function GoalsPage() {
             </TabsContent>
 
             <TabsContent value="retirement" className="mt-5 space-y-5">
-              <section className="card-trace overflow-hidden rounded-md border border-border bg-card">
+              <section className="card-trace overflow-hidden rounded-lg border border-border/80 fintech-panel">
                 <div className="border-b border-border px-5 py-3">
                   <span className="eyebrow">Australian Retirement Planning</span>
                 </div>
@@ -234,7 +234,7 @@ export default function GoalsPage() {
             </TabsContent>
 
             <TabsContent value="calculator" className="mt-5 space-y-5">
-              <section className="card-trace overflow-hidden rounded-md border border-border bg-card">
+              <section className="card-trace overflow-hidden rounded-lg border border-border/80 fintech-panel">
                 <div className="border-b border-border px-5 py-3">
                   <span className="eyebrow">Compound Interest Calculator</span>
                 </div>

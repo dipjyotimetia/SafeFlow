@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   PiggyBank,
+  Target,
   Users,
   Building2,
   Lock,
@@ -50,6 +51,7 @@ const navSections = [
   {
     title: 'Insights',
     items: [
+      { title: 'Goals', href: '/goals', icon: Target },
       { title: 'Tax', href: '/tax', icon: Calculator },
       { title: 'Family', href: '/family', icon: Users },
     ],
@@ -92,44 +94,44 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 h-screen w-[240px] border-r border-border bg-sidebar transition-transform duration-300',
+          'fixed left-0 top-0 z-40 h-screen w-[252px] border-r border-sidebar-border bg-sidebar/92 shadow-premium backdrop-blur-xl transition-transform duration-300',
           'md:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
         <div className="flex h-full flex-col">
           {/* Brand */}
-          <div className="border-b border-border px-5 py-5">
+          <div className="border-b border-sidebar-border px-5 py-5">
             <Link
               href="/overview"
               className="group flex items-center gap-3"
               onClick={() => setIsOpen(false)}
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-[2px] border border-primary bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
-                <span className="font-mono text-[10.5px] font-semibold tracking-[0.06em]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/30 bg-primary/14 text-primary shadow-[0_10px_24px_color-mix(in_oklab,var(--primary)_18%,transparent)] transition-colors group-hover:bg-primary/20">
+                <span className="font-mono text-[11px] font-bold tracking-[0.06em]">
                   SF
                 </span>
               </div>
               <div className="leading-none">
-                <div className="font-display text-[19px] tracking-tight text-foreground">
+                <div className="font-display text-[21px] tracking-tight text-foreground">
                   SafeFlow
                 </div>
-                <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.22em] text-[--text-subtle]">
-                  AU · Finance OS
+                <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                  Private Wealth OS
                 </div>
               </div>
             </Link>
           </div>
 
           {/* Status row */}
-          <div className="flex items-center justify-between border-b border-border px-5 py-2">
+          <div className="flex items-center justify-between border-b border-sidebar-border px-5 py-3">
             <div className="flex items-center gap-2">
               <span className="live-dot" />
-              <span className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-[--text-subtle]">
-                Live
+              <span className="font-mono text-[9.5px] uppercase tracking-[0.15em] text-[--text-subtle]">
+                Local vault
               </span>
             </div>
-            <span className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-[--text-subtle]">
+            <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-primary">
               v0.1
             </span>
           </div>
@@ -155,21 +157,21 @@ export function Sidebar() {
                         href={item.href}
                         onClick={() => setIsOpen(false)}
                         className={cn(
-                          'group relative flex items-center gap-3 px-3 py-[7px] text-[13px] transition-colors duration-150',
+                          'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-all duration-150',
                           isActive
-                            ? 'text-primary'
-                            : 'text-foreground/75 hover:bg-muted/40 hover:text-foreground',
+                            ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+                            : 'text-sidebar-foreground/72 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground',
                         )}
                       >
                         {isActive && (
                           <span
                             aria-hidden
-                            className="absolute left-0 top-1 bottom-1 w-[2px] bg-primary animate-rail"
+                            className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-primary animate-rail"
                           />
                         )}
                         <span
                           className={cn(
-                            'absolute left-0 top-1 bottom-1 w-[2px] bg-foreground/30 opacity-0 transition-opacity duration-150',
+                            'absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-foreground/30 opacity-0 transition-opacity duration-150',
                             !isActive && 'group-hover:opacity-100',
                           )}
                           aria-hidden
@@ -196,15 +198,17 @@ export function Sidebar() {
           </nav>
 
           {/* Footer */}
-          <div className="border-t border-border px-5 py-4">
-            <div className="flex items-center gap-2 font-mono text-[9.5px] uppercase tracking-[0.2em] text-[--text-subtle]">
+          <div className="border-t border-sidebar-border px-5 py-4">
+            <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/45 p-3">
+              <div className="flex items-center gap-2 font-mono text-[9.5px] uppercase tracking-[0.14em] text-[--text-subtle]">
               <Lock className="h-3 w-3" strokeWidth={1.5} />
               <span>Local · Encrypted</span>
+              </div>
+              <div className="hairline mt-3" />
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                Finance data stays on this device.
+              </p>
             </div>
-            <div className="hairline mt-3" />
-            <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-              Your data never leaves this device.
-            </p>
           </div>
         </div>
       </aside>

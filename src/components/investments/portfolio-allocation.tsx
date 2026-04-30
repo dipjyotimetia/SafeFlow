@@ -47,7 +47,7 @@ function CustomTooltip({
   if (active && payload && payload.length) {
     const item = payload[0].payload;
     return (
-      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-xl min-w-40">
+      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-lg p-4 shadow-premium-lg min-w-40">
         <div className="flex items-center gap-2 mb-2">
           <span
             className="h-3 w-3 rounded-full"

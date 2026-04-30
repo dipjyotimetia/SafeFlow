@@ -70,7 +70,7 @@ export function BudgetOverview() {
   if (isLoading) {
     return (
       <div className="space-y-5">
-        <div className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+        <div className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-[110px]" />
           ))}
@@ -87,7 +87,7 @@ export function BudgetOverview() {
   return (
     <div className="space-y-5">
       {/* Metric strip */}
-      <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+      <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
         <StatCell
           label="Budgeted"
           value={formatAUD(totalBudgeted)}
@@ -134,8 +134,8 @@ export function BudgetOverview() {
       </section>
 
       {progress.length === 0 ? (
-        <div className="rounded-md border border-border bg-card px-5 py-16 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+        <div className="rounded-lg border border-border/80 fintech-panel px-5 py-16 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-muted/40">
             <Wallet
               className="h-5 w-5 text-[--text-subtle]"
               strokeWidth={1.5}

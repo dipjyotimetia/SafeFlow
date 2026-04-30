@@ -219,7 +219,7 @@ export default function InvestmentsPage() {
       <div className="pb-12">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
           {/* Hero */}
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
               <div>
                 <span className="eyebrow">// Investment portfolio</span>
@@ -259,7 +259,7 @@ export default function InvestmentsPage() {
           </section>
 
           {/* Metric strip */}
-          <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
+          <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
             <StatCell
               label="Total Value"
               value={formatAUD(summary.totalValue)}
@@ -352,7 +352,7 @@ export default function InvestmentsPage() {
               }
             >
               <SelectTrigger
-                className="h-8 w-[130px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none"
+                className="h-8 w-[130px] rounded-md border border-border/80 bg-card/70 font-mono text-[11px] uppercase tracking-[0.1em] shadow-sm"
                 aria-label="Select table density"
               >
                 <SelectValue />
@@ -370,7 +370,7 @@ export default function InvestmentsPage() {
                   {Array.from({ length: 7 }).map((_, index) => (
                     <div
                       key={index}
-                      className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 p-3"
+                      className="flex items-center gap-3 rounded-lg border border-border/70 bg-card/75 p-3"
                     >
                       <div className="h-8 w-8 animate-pulse rounded-lg bg-muted" />
                       <div className="flex-1 space-y-2">
@@ -539,7 +539,7 @@ export default function InvestmentsPage() {
               </Table>
             ) : (
               <div className="px-5 py-16 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-muted/40">
                   <TrendingUp
                     className="h-5 w-5 text-[--text-subtle]"
                     strokeWidth={1.5}

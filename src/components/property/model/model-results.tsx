@@ -63,7 +63,7 @@ export function ModelResults({
   return (
     <div className="space-y-4">
       {/* Investment Summary Card */}
-      <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+      <Card className="border-primary/20 bg-primary/10">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Calculator className="h-4 w-4" />

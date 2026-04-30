@@ -66,7 +66,7 @@ export default function PropertyPage() {
       <div className="pb-12">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
           {/* Hero */}
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
               <div>
                 <span className="eyebrow">// Property portfolio</span>
@@ -130,7 +130,7 @@ export default function PropertyPage() {
                 setStatusFilter(v as PropertyStatus | "all")
               }
             >
-              <SelectTrigger className="h-8 w-[140px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+              <SelectTrigger className="h-8 w-[140px] rounded-md border border-border/80 bg-card/70 font-mono text-[11px] uppercase tracking-[0.1em] shadow-sm">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -147,7 +147,7 @@ export default function PropertyPage() {
                 setStateFilter(v as AustralianState | "all")
               }
             >
-              <SelectTrigger className="h-8 w-[140px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+              <SelectTrigger className="h-8 w-[140px] rounded-md border border-border/80 bg-card/70 font-mono text-[11px] uppercase tracking-[0.1em] shadow-sm">
                 <SelectValue placeholder="State" />
               </SelectTrigger>
               <SelectContent>
@@ -172,8 +172,8 @@ export default function PropertyPage() {
               ))}
             </div>
           ) : properties.length === 0 ? (
-            <div className="rounded-md border border-border bg-card px-5 py-16 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+            <div className="rounded-lg border border-border/80 fintech-panel px-5 py-16 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-muted/40">
                 <Building2
                   className="h-5 w-5 text-[--text-subtle]"
                   strokeWidth={1.5}

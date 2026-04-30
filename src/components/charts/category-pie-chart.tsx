@@ -46,7 +46,7 @@ function CustomTooltip({
   if (active && payload && payload.length) {
     const item = payload[0].payload;
     return (
-      <div className="bg-popover border border-border rounded-sm p-3 min-w-[180px] animate-scale-in">
+      <div className="bg-popover border border-border/80 rounded-lg p-3 min-w-[180px] animate-scale-in shadow-premium-lg">
         <div className="flex items-center gap-2 mb-2.5">
           <span
             className="h-1.5 w-1.5 rounded-[1px]"
@@ -135,6 +135,7 @@ export function CategoryPieChart({
         <ResponsiveContainer
           width="100%"
           height="100%"
+          minWidth={180}
           minHeight={160}
           {...accessibilityProps}
         >

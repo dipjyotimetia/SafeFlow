@@ -155,7 +155,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm",
           isUser
             ? "bg-primary text-primary-foreground"
-            : "bg-gradient-to-br from-success to-primary text-primary-foreground"
+            : "bg-accent text-accent-foreground"
         )}
       >
         {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}

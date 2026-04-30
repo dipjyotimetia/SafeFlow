@@ -29,7 +29,7 @@ export default function DashboardLayout({
     return (
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-fade-bottom opacity-30" />
-        <div className="animate-enter relative w-full max-w-sm rounded-md border border-border bg-card p-8 text-center">
+        <div className="animate-enter fintech-surface relative w-full max-w-sm rounded-lg border border-border/80 p-8 text-center">
           <div className="eyebrow mb-4">// initializing</div>
           <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border border-border border-t-primary" />
           <p className="font-display text-xl tracking-tight">
@@ -45,11 +45,11 @@ export default function DashboardLayout({
 
   return (
     <div className="relative min-h-screen">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-grid-fade-bottom opacity-25" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-grid-fade-bottom opacity-20" />
 
       <Sidebar />
 
-      <main className="min-h-screen md:pl-[240px]">
+      <main className="min-h-screen md:pl-[252px]">
         <div key={pathname} className="relative animate-route-in">
           {children}
         </div>

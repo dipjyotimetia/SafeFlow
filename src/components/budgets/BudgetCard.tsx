@@ -31,7 +31,7 @@ export function BudgetCard({ progress, onEdit, onDelete }: BudgetCardProps) {
         : 'bg-primary';
 
   return (
-    <div className="card-trace group relative flex flex-col rounded-md border border-border bg-card p-5 transition-colors hover:border-border-strong">
+    <div className="card-trace group relative flex flex-col rounded-lg border border-border/80 fintech-panel p-5 transition-colors hover:border-border-strong">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <span className="eyebrow">{budget.period}</span>

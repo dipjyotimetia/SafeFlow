@@ -4,15 +4,14 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "text-card-foreground flex flex-col gap-6 rounded-md border py-6 transition-colors duration-200",
+  "text-card-foreground card-trace flex flex-col gap-6 rounded-lg border py-6 transition-all duration-200",
   {
     variants: {
       variant: {
-        default: "bg-card border-border",
-        surface: "bg-surface-2 border-border",
-        outline: "bg-transparent border-border",
-        // `premium` retained — settings page and a few others still use it.
-        premium: "bg-card border-border",
+        default: "fintech-panel border-border/80",
+        surface: "bg-surface-2/85 border-border/80 shadow-premium",
+        outline: "bg-transparent border-border/80",
+        premium: "fintech-surface border-border/80",
       },
     },
     defaultVariants: {

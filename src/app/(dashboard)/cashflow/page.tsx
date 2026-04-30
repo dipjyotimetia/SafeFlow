@@ -105,7 +105,7 @@ export default function CashflowPage() {
       <div className="pb-12">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
           {/* Hero */}
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
               <div>
                 <span className="eyebrow">// Cash flow analysis</span>
@@ -124,7 +124,7 @@ export default function CashflowPage() {
                   value={String(months)}
                   onValueChange={(v) => setMonths(Number(v))}
                 >
-                  <SelectTrigger className="h-8 w-[88px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+                  <SelectTrigger className="h-8 w-[88px] rounded-md border border-border/80 bg-card/70 font-mono text-[11px] uppercase tracking-[0.1em] shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -141,7 +141,7 @@ export default function CashflowPage() {
 
           {/* Metric strip */}
           {isLoading ? (
-            <section className="grid grid-cols-1 gap-0 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+            <section className="grid grid-cols-1 gap-0 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
               {[...Array(4)].map((_, i) => (
                 <Skeleton
                   key={i}
@@ -150,7 +150,7 @@ export default function CashflowPage() {
               ))}
             </section>
           ) : (
-            <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+            <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
               <StatCell
                 label="Avg Income"
                 value={formatAUD(trend.averageIncome)}
@@ -184,7 +184,7 @@ export default function CashflowPage() {
 
           {/* Cashflow Chart */}
           <section
-            className="card-trace overflow-hidden rounded-md border border-border bg-card animate-enter-fast"
+            className="card-trace overflow-hidden rounded-lg border border-border/80 fintech-panel animate-enter-fast"
             style={{ animationDelay: "0.25s" }}
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -207,7 +207,7 @@ export default function CashflowPage() {
                 <CashflowChart data={chartData} />
               ) : (
                 <div className="flex h-full flex-col items-center justify-center text-center">
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/40">
                     <BarChart3
                       className="h-4 w-4 text-[--text-subtle]"
                       strokeWidth={1.5}
@@ -225,7 +225,7 @@ export default function CashflowPage() {
           {/* Forecast + Category Breakdown */}
           <section className="grid gap-5 lg:grid-cols-2">
             <div
-              className="card-trace overflow-hidden rounded-md border border-border bg-card animate-enter-fast"
+              className="card-trace overflow-hidden rounded-lg border border-border/80 fintech-panel animate-enter-fast"
               style={{ animationDelay: "0.3s" }}
             >
               <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -292,7 +292,7 @@ export default function CashflowPage() {
             </div>
 
             <div
-              className="card-trace overflow-hidden rounded-md border border-border bg-card animate-enter-fast"
+              className="card-trace overflow-hidden rounded-lg border border-border/80 fintech-panel animate-enter-fast"
               style={{ animationDelay: "0.35s" }}
             >
               <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -329,7 +329,7 @@ export default function CashflowPage() {
                           </div>
                           <div className="mt-1.5 h-[3px] bg-muted overflow-hidden rounded-[1px]">
                             <div
-                              className="h-full bg-primary/80 transition-all"
+                              className="h-full bg-primary/100 transition-all"
                               style={{
                                 width: `${Math.min(100, cat.percentage)}%`,
                               }}
@@ -369,7 +369,7 @@ export default function CashflowPage() {
           {/* Recurring Patterns */}
           {!isLoading && recurring.length > 0 && (
             <section
-              className="card-trace overflow-hidden rounded-md border border-border bg-card animate-enter-fast"
+              className="card-trace overflow-hidden rounded-lg border border-border/80 fintech-panel animate-enter-fast"
               style={{ animationDelay: "0.4s" }}
             >
               <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -431,9 +431,9 @@ export default function CashflowPage() {
 
           {/* Best/Worst */}
           {!isLoading && trend.bestMonth && trend.worstMonth && (
-            <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x">
+            <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-2 sm:divide-y-0 sm:divide-x">
               <div className="card-trace flex items-center gap-4 p-5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-[2px] border border-success/40 bg-success/10">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-success/40 bg-success/10">
                   <ArrowUpRight
                     className="h-4 w-4 text-success"
                     strokeWidth={1.5}
@@ -450,7 +450,7 @@ export default function CashflowPage() {
                 </div>
               </div>
               <div className="card-trace flex items-center gap-4 p-5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-[2px] border border-destructive/40 bg-destructive/10">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-destructive/40 bg-destructive/10">
                   <ArrowDownRight
                     className="h-4 w-4 text-destructive"
                     strokeWidth={1.5}

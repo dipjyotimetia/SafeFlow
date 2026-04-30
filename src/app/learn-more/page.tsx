@@ -155,17 +155,17 @@ export default function LearnMorePage() {
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-10 sm:px-6 lg:px-8">
         <header className="flex items-center justify-between">
           <Link href="/" className="group flex items-center gap-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-[2px] border border-primary bg-primary/10 text-primary">
-              <span className="font-mono text-[10.5px] font-semibold tracking-[0.06em]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/30 bg-primary/14 text-primary shadow-[0_10px_24px_color-mix(in_oklab,var(--primary)_18%,transparent)]">
+              <span className="font-mono text-[11px] font-bold tracking-[0.06em]">
                 SF
               </span>
             </div>
             <div className="leading-none">
-              <div className="font-display text-[19px] tracking-tight">
+              <div className="font-display text-[21px] tracking-tight">
                 SafeFlow
               </div>
-              <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.22em] text-[--text-subtle]">
-                AU · Finance OS
+              <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                Private Wealth OS
               </div>
             </div>
           </Link>
@@ -177,13 +177,13 @@ export default function LearnMorePage() {
         </header>
 
         <Reveal>
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="scan-line" aria-hidden />
             <div className="p-8 md:p-10">
-              <span className="eyebrow">// SafeFlow guide</span>
+              <span className="eyebrow">SafeFlow guide</span>
               <h1 className="mt-4 max-w-3xl font-display text-[clamp(36px,5.4vw,60px)] tracking-tight leading-[0.95] text-balance">
                 How to use SafeFlow,{' '}
-                <span className="italic text-primary">end to end.</span>
+                <span className="text-primary">end to end.</span>
               </h1>
               <p className="mt-6 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
                 Click any card below to open a detailed walkthrough. Includes
@@ -219,7 +219,7 @@ export default function LearnMorePage() {
               {guideCards.length} guides
             </span>
           </div>
-          <div className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-3 lg:divide-x">
+          <div className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-3 lg:divide-x">
             {guideCards.map((step, i) => (
               <button
                 key={step.id}
@@ -246,7 +246,7 @@ export default function LearnMorePage() {
                   {step.description}
                 </p>
                 <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-primary">
-                  // Open details →
+                  Open details →
                 </p>
               </button>
             ))}
@@ -254,7 +254,7 @@ export default function LearnMorePage() {
         </Reveal>
 
         <Reveal delayMs={90}>
-          <section className="card-trace overflow-hidden rounded-md border border-border bg-card">
+          <section className="card-trace overflow-hidden rounded-lg border border-border/80 fintech-panel">
             <div className="flex items-center gap-3 border-b border-border px-5 py-3">
               <Shield
                 className="h-3.5 w-3.5 text-primary"
@@ -264,16 +264,16 @@ export default function LearnMorePage() {
             </div>
             <div className="p-5 space-y-2.5 text-[13px] text-muted-foreground">
               <p>
-                <span className="text-primary">// </span>
+                <span className="text-primary">DATA · </span>
                 Export backups regularly from Settings before major changes.
               </p>
               <p>
-                <span className="text-primary">// </span>
+                <span className="text-primary">SYNC · </span>
                 If using cloud sync, set a strong encryption password and store
                 it safely.
               </p>
               <p>
-                <span className="text-primary">// </span>
+                <span className="text-primary">IMPORT · </span>
                 Review imported transactions before saving to maintain clean
                 data quality.
               </p>
@@ -289,7 +289,7 @@ export default function LearnMorePage() {
             <DialogDescription>{activeGuide?.description}</DialogDescription>
           </DialogHeader>
 
-          <div className="divide-y divide-border rounded-[2px] border border-border">
+          <div className="divide-y divide-border rounded-lg border border-border/80 bg-card/60">
             {activeGuide?.details.map((detail, index) => (
               <div
                 key={`${activeGuide.id}-${index}`}

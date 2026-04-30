@@ -31,10 +31,10 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-fit items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-border/70 bg-card/65 px-3 py-2 text-sm shadow-sm outline-none transition-all duration-200",
+        "flex w-fit items-center justify-between gap-2 whitespace-nowrap rounded-lg border border-border/70 bg-card/72 px-3 py-2 text-sm shadow-sm outline-none transition-all duration-200 backdrop-blur",
         "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground",
         "focus-visible:border-primary/45 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/20",
-        "hover:border-border hover:bg-card/80",
+        "hover:border-border hover:bg-card/90",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
         "data-[size=default]:h-9 data-[size=sm]:h-8",
@@ -64,7 +64,7 @@ function SelectContent({
       <SelectPrimitive.Content
         data-slot="select-content"
         className={cn(
-          "text-popover-foreground z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-xl border border-border/70 bg-popover/96 p-1 shadow-premium-lg backdrop-blur-xl",
+          "text-popover-foreground z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-lg border border-border/70 bg-popover/96 p-1 shadow-premium-lg backdrop-blur-xl",
           "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
@@ -115,7 +115,7 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-default items-center gap-2 rounded-lg py-1.5 pl-2 pr-8 text-sm outline-hidden select-none",
+        "relative flex w-full cursor-default items-center gap-2 rounded-md py-1.5 pl-2 pr-8 text-sm outline-hidden select-none",
         "focus:bg-accent/70 focus:text-accent-foreground",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

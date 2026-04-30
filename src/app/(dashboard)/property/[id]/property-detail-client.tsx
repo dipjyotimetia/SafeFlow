@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -90,9 +91,10 @@ export default function PropertyDetailClient() {
       : 0;
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
+    <>
+      <Header title="Property Detail" />
+      <div className="flex flex-col gap-6 p-6">
+      <div className="card-trace fintech-surface flex items-start justify-between rounded-lg border border-border/80 p-6">
         <div className="flex items-start gap-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/property">
@@ -101,7 +103,9 @@ export default function PropertyDetailClient() {
           </Button>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold">{property.address}</h1>
+              <h1 className="font-display text-3xl tracking-tight">
+                {property.address}
+              </h1>
               <Badge
                 variant="secondary"
                 className={
@@ -547,14 +551,15 @@ export default function PropertyDetailClient() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   );
 }
 
 function PropertyDetailSkeleton() {
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-start gap-4">
+      <div className="card-trace fintech-surface flex items-start gap-4 rounded-lg border border-border/80 p-6">
         <Skeleton className="h-10 w-10" />
         <div className="space-y-2">
           <Skeleton className="h-8 w-64" />

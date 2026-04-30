@@ -95,7 +95,7 @@ export default function TransactionsPage() {
       <div className="pb-12">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
           {/* Hero */}
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
               <div>
                 <span className="eyebrow">// All transactions</span>
@@ -116,7 +116,7 @@ export default function TransactionsPage() {
           </section>
 
           {/* Metric strip */}
-          <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
+          <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
             <StatCell
               label="Income · MTD"
               value={formatAUD(totals.income)}
@@ -138,7 +138,7 @@ export default function TransactionsPage() {
           </section>
 
           {/* Filters bar */}
-          <section className="rounded-md border border-border bg-card">
+          <section className="rounded-lg border border-border/80 fintech-panel">
             <div className="flex items-center gap-3 border-b border-border px-5 py-2.5">
               <span className="eyebrow">Filters</span>
               <span className="hairline-v h-3" aria-hidden />
@@ -148,7 +148,7 @@ export default function TransactionsPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2 p-4">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="h-8 w-[140px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+                <SelectTrigger className="h-8 w-[140px] rounded-md border border-border/80 bg-card/70 font-mono text-[11px] uppercase tracking-[0.1em] shadow-sm">
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -160,7 +160,7 @@ export default function TransactionsPage() {
               </Select>
 
               <Select value={accountFilter} onValueChange={setAccountFilter}>
-                <SelectTrigger className="h-8 w-[180px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+                <SelectTrigger className="h-8 w-[180px] rounded-md border border-border/80 bg-card/70 font-mono text-[11px] uppercase tracking-[0.1em] shadow-sm">
                   <SelectValue placeholder="All Accounts" />
                 </SelectTrigger>
                 <SelectContent>
@@ -175,7 +175,7 @@ export default function TransactionsPage() {
 
               {members.length > 0 && (
                 <Select value={memberFilter} onValueChange={setMemberFilter}>
-                  <SelectTrigger className="h-8 w-[160px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+                  <SelectTrigger className="h-8 w-[160px] rounded-md border border-border/80 bg-card/70 font-mono text-[11px] uppercase tracking-[0.1em] shadow-sm">
                     <SelectValue>
                       {memberFilter === "all" ? (
                         <div className="flex items-center gap-2">
@@ -231,7 +231,7 @@ export default function TransactionsPage() {
                 }
               >
                 <SelectTrigger
-                  className="h-8 w-[140px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none"
+                  className="h-8 w-[140px] rounded-md border border-border/80 bg-card/70 font-mono text-[11px] uppercase tracking-[0.1em] shadow-sm"
                   aria-label="Select table density"
                 >
                   <SelectValue />
@@ -245,7 +245,7 @@ export default function TransactionsPage() {
           </section>
 
           {/* Ledger */}
-          <section className="overflow-hidden rounded-md border border-border bg-card">
+          <section className="overflow-hidden rounded-lg border border-border/80 fintech-panel">
             <div className="flex items-center justify-between border-b border-border px-5 py-2.5">
               <div className="flex items-center gap-3">
                 <span className="eyebrow">Ledger</span>
@@ -269,7 +269,7 @@ export default function TransactionsPage() {
               />
             ) : (
               <div className="px-5 py-16 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-muted/40">
                   <ArrowRightLeft
                     className="h-5 w-5 text-[--text-subtle]"
                     strokeWidth={1.5}

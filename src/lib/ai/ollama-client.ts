@@ -106,7 +106,7 @@ class OllamaClient {
         availableModels,
       };
     } catch (error) {
-      console.error("[Ollama] Health check failed:", error);
+      console.warn("[Ollama] Health check failed:", error);
       // Update internal state
       this._isConnected = false;
       this._isModelReady = false;

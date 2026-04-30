@@ -60,8 +60,8 @@ export function FloatingChatWidget() {
         onClick={toggleWidget}
         className={cn(
           'fixed bottom-6 right-6 z-50',
-          'flex h-11 items-center gap-2 rounded-sm border border-border bg-card px-3',
-          'transition-colors hover:border-border-strong hover:bg-muted/40',
+          'flex h-11 items-center gap-2 rounded-lg border border-border/80 bg-card/88 px-3 shadow-premium backdrop-blur-xl',
+          'transition-all hover:-translate-y-px hover:border-border-strong hover:bg-card',
         )}
         aria-label="Open SafeFlow AI"
       >
@@ -85,8 +85,8 @@ export function FloatingChatWidget() {
         onClick={toggleWidget}
         className={cn(
           'fixed bottom-6 right-6 z-50',
-          'flex items-center gap-2 rounded-sm border border-border bg-card px-3 py-2',
-          'cursor-pointer transition-colors hover:border-border-strong hover:bg-muted/40',
+          'flex items-center gap-2 rounded-lg border border-border/80 bg-card/88 px-3 py-2 shadow-premium backdrop-blur-xl',
+          'cursor-pointer transition-all hover:-translate-y-px hover:border-border-strong hover:bg-card',
         )}
         aria-label="Restore SafeFlow AI"
       >
@@ -108,14 +108,14 @@ export function FloatingChatWidget() {
       className={cn(
         'fixed bottom-6 right-6 z-50',
         'h-[600px] max-h-[80vh] w-[400px]',
-        'flex flex-col overflow-hidden rounded-md border border-border bg-card',
+        'flex flex-col overflow-hidden rounded-lg border border-border/80 fintech-panel',
         'animate-in slide-in-from-bottom-2 fade-in duration-200',
       )}
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border bg-surface-2 px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-[2px] border border-primary/40 bg-primary/10">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-primary/40 bg-primary/10">
             <Bot className="h-3.5 w-3.5 text-primary" strokeWidth={1.5} />
           </div>
           <div>
@@ -185,7 +185,7 @@ export function FloatingChatWidget() {
       >
         {messages.length === 0 ? (
           <div className="flex min-h-full flex-col items-center justify-center p-6 text-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-primary/40 bg-primary/10">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-primary/40 bg-primary/10">
               <Sparkles
                 className="h-5 w-5 text-primary"
                 strokeWidth={1.5}
@@ -199,13 +199,13 @@ export function FloatingChatWidget() {
               taxes, or investments.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <span className="rounded-[2px] border border-border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
+              <span className="rounded-lg border border-border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
                 Spending
               </span>
-              <span className="rounded-[2px] border border-border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
+              <span className="rounded-lg border border-border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
                 Budgets
               </span>
-              <span className="rounded-[2px] border border-border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
+              <span className="rounded-lg border border-border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
                 Tax tips
               </span>
             </div>

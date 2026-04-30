@@ -45,7 +45,7 @@ function PerformanceTooltip({
   if (active && payload && payload.length) {
     const item = payload[0].payload;
     return (
-      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-lg p-3 shadow-xl">
+      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-lg p-3 shadow-premium-lg">
         <p className="text-xs text-muted-foreground mb-1">{item.dateLabel}</p>
         <p className="text-lg font-bold tabular-nums">
           {formatAUD(item.valueCents)}

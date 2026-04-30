@@ -64,7 +64,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const split = splitAUD(Math.abs(account.balance));
 
   return (
-    <div className="card-trace group relative flex flex-col rounded-md border border-border bg-card p-5 transition-colors hover:border-border-strong">
+    <div className="card-trace group relative flex flex-col rounded-lg border border-border/80 fintech-panel p-5 transition-colors hover:border-border-strong">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           {hasInstitutionIcon ? (
@@ -72,7 +72,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
           ) : (
             <div
               className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-[2px] border border-border bg-muted/40',
+                'flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted/40',
                 tone,
               )}
             >
@@ -129,7 +129,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
         </p>
         <div className="mt-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[--text-subtle]">
           {isNegative && account.balance !== 0 ? (
-            <span className="rounded-[2px] border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-destructive">
+            <span className="rounded-lg border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-destructive">
               Owed
             </span>
           ) : null}

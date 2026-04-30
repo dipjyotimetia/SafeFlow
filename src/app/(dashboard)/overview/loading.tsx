@@ -26,7 +26,7 @@ export default function OverviewLoading() {
       </div>
 
       {/* Recent transactions */}
-      <div className="rounded-xl border bg-card p-6 space-y-4">
+      <div className="fintech-panel rounded-lg border border-border/80 p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <Skeleton className="h-5 w-40" />

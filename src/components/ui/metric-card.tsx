@@ -10,13 +10,13 @@ import {
 import { cn } from "@/lib/utils";
 
 const metricCardVariants = cva(
-  "card-trace group relative flex flex-col rounded-md border p-5 transition-colors duration-200 hover:border-border-strong",
+  "card-trace group relative flex flex-col rounded-lg border p-5 transition-all duration-200 hover:-translate-y-px hover:border-border-strong",
   {
     variants: {
       variant: {
-        default: "border-border bg-card",
-        positive: "border-border bg-card",
-        negative: "border-border bg-card",
+        default: "fintech-panel border-border/80",
+        positive: "fintech-panel border-border/80",
+        negative: "fintech-panel border-border/80",
       },
     },
     defaultVariants: {
@@ -96,7 +96,7 @@ function MetricCard({
             {trend && (
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-[2px] border px-1.5 py-0.5 text-[10px] font-mono font-medium uppercase tracking-[0.1em]",
+                  "inline-flex items-center gap-1 rounded-lg border px-1.5 py-0.5 text-[10px] font-mono font-medium uppercase tracking-[0.1em]",
                   trend === "up" &&
                     "border-success/40 bg-success/10 text-success",
                   trend === "down" &&

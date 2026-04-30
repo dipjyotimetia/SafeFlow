@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { PropertyForm } from "@/components/property/property-form";
 import { useProperty } from "@/hooks";
@@ -32,30 +33,38 @@ export default function EditPropertyClient() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/property/${propertyId}`}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Edit Property</h1>
-          <p className="text-muted-foreground">{property.address}</p>
+    <>
+      <Header title="Edit Property" />
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="card-trace fintech-surface rounded-lg border border-border/80 p-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href={`/property/${propertyId}`}>
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            <div>
+              <span className="eyebrow">Property portfolio</span>
+              <h1 className="mt-2 font-display text-3xl tracking-tight">
+                Edit Property
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {property.address}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Form */}
-      <PropertyForm property={property} mode="edit" />
-    </div>
+        <PropertyForm property={property} mode="edit" />
+      </div>
+    </>
   );
 }
 
 function EditPropertySkeleton() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4">
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
+      <div className="card-trace fintech-surface flex items-center gap-4 rounded-lg border border-border/80 p-6">
         <Skeleton className="h-10 w-10" />
         <div className="space-y-2">
           <Skeleton className="h-8 w-48" />

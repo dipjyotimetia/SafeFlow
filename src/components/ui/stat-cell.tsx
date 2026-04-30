@@ -49,7 +49,7 @@ export function StatCell({
   return (
     <div
       className={cn(
-        'card-trace relative p-5 animate-enter-fast transition-colors hover:bg-muted/30',
+        'card-trace relative p-5 animate-enter-fast transition-colors hover:bg-muted/35',
         className,
       )}
       style={delay ? { animationDelay: `${delay}s` } : undefined}

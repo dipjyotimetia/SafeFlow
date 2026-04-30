@@ -63,7 +63,7 @@ export default function AccountsPage() {
       <div className="pb-12">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
           {/* Hero */}
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
               <div>
                 <span className="eyebrow">// Your accounts</span>
@@ -83,7 +83,7 @@ export default function AccountsPage() {
           </section>
 
           {/* Metric strip */}
-          <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
+          <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
             <StatCell
               label="Total Assets"
               value={formatAUD(summary.totalAssets)}
@@ -139,8 +139,8 @@ export default function AccountsPage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-md border border-border bg-card px-5 py-16 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+            <div className="rounded-lg border border-border/80 fintech-panel px-5 py-16 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-muted/40">
                 <Wallet
                   className="h-5 w-5 text-[--text-subtle]"
                   strokeWidth={1.5}

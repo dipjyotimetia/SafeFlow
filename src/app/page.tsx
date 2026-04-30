@@ -4,8 +4,9 @@ import {
   Smartphone,
   ChevronRight,
   Database,
-  Wallet,
   ArrowUpRight,
+  ShieldCheck,
+  TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/ui/reveal';
@@ -24,10 +25,10 @@ const features = [
       'Fast offline performance, encrypted at rest in your browser.',
   },
   {
-    icon: Wallet,
-    title: 'AU-Ready Toolkit',
+    icon: TrendingUp,
+    title: 'Wealth Clarity',
     description:
-      'Built for Australian tax years, categories, and family planning.',
+      'One view for cashflow, investments, property, tax, and family goals.',
   },
   {
     icon: Smartphone,
@@ -46,23 +47,23 @@ const ledgerRows = [
 export default function LandingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-fade-bottom opacity-25" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-fade-bottom opacity-20" />
 
-      <main className="relative mx-auto flex w-full max-w-[1180px] flex-col gap-14 px-5 pb-16 pt-8 sm:px-6 lg:pt-12">
+      <main className="relative mx-auto flex w-full max-w-[1180px] flex-col gap-14 px-5 pb-16 pt-6 sm:px-6 lg:pt-10">
         {/* Top bar */}
         <header className="flex items-center justify-between">
           <Link href="/" className="group flex items-center gap-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-[2px] border border-primary bg-primary/10 text-primary">
-              <span className="font-mono text-[10.5px] font-semibold tracking-[0.06em]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/30 bg-primary/14 text-primary shadow-[0_10px_24px_color-mix(in_oklab,var(--primary)_18%,transparent)]">
+              <span className="font-mono text-[11px] font-bold tracking-[0.06em]">
                 SF
               </span>
             </div>
             <div className="leading-none">
-              <div className="font-display text-[19px] tracking-tight">
+              <div className="font-display text-[21px] tracking-tight">
                 SafeFlow
               </div>
-              <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.22em] text-[--text-subtle]">
-                AU · Finance OS
+              <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                Private Wealth OS
               </div>
             </div>
           </Link>
@@ -70,7 +71,7 @@ export default function LandingPage() {
             <span className="hidden items-center gap-2 sm:flex">
               <span className="live-dot" />
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[--text-subtle]">
-                Local · Online
+                Local vault
               </span>
             </span>
             <Link href="/overview">
@@ -86,19 +87,19 @@ export default function LandingPage() {
         </header>
 
         {/* Hero */}
-        <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+        <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
           <div className="scan-line" aria-hidden />
 
-          <div className="grid gap-8 p-8 md:grid-cols-12 md:p-10 lg:p-14">
+          <div className="grid gap-8 p-6 md:grid-cols-12 md:p-10 lg:p-14">
             <div className="md:col-span-7">
-              <span className="eyebrow">// Privacy-first · Family finance</span>
+              <span className="eyebrow">Privacy-first · Family finance</span>
 
-              <h1 className="mt-5 max-w-[14ch] font-display text-[clamp(40px,6.4vw,76px)] tracking-tight leading-[0.95] text-balance">
-                Beautiful personal finance,{' '}
-                <span className="italic text-primary">fully on your device.</span>
+              <h1 className="mt-5 max-w-[15ch] font-display text-[clamp(42px,6.2vw,78px)] tracking-tight leading-[0.94] text-balance">
+                Modern money control,{' '}
+                <span className="text-primary">fully private.</span>
               </h1>
 
-              <p className="mt-6 max-w-[52ch] text-[15px] leading-relaxed text-muted-foreground">
+              <p className="mt-6 max-w-[54ch] text-[15px] leading-relaxed text-muted-foreground">
                 Plan budgets, manage accounts, and track investments with a
                 modern, local-first experience built for Australian households.
                 Your data never leaves this device.
@@ -116,7 +117,8 @@ export default function LandingPage() {
                 </Link>
                 <Link href="/learn-more">
                   <Button size="lg" variant="outline">
-                    Learn More
+                    <ShieldCheck className="h-4 w-4" strokeWidth={1.5} />
+                    Privacy Model
                   </Button>
                 </Link>
               </div>
@@ -132,14 +134,14 @@ export default function LandingPage() {
             </div>
 
             <div className="md:col-span-5 md:border-l md:border-border md:pl-8">
-              <span className="eyebrow">// Manifest</span>
+              <span className="eyebrow">Control Plane</span>
               <div className="mt-4 hairline" />
 
               <ul className="divide-y divide-border">
                 {ledgerRows.map((row, i) => (
                   <li
                     key={row.ticker}
-                    className="flex items-center justify-between gap-4 py-2.5 animate-enter-fast"
+                    className="flex items-center justify-between gap-4 py-3 animate-enter-fast"
                     style={{ animationDelay: `${0.1 + i * 0.06}s` }}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -166,9 +168,9 @@ export default function LandingPage() {
               <div className="hairline mt-2" />
 
               <p className="mt-5 font-mono text-[11px] leading-relaxed text-[--text-subtle]">
-                <span className="text-primary">// </span>
-                Your data. Your rules. No cloud lock-in. Export and control
-                everything.
+                <span className="text-primary">SECURE BY DEFAULT · </span>
+                Your data, rules, exports, and sync choices remain under your
+                control.
               </p>
             </div>
           </div>
@@ -185,7 +187,7 @@ export default function LandingPage() {
           </div>
 
           <Reveal
-            className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4"
+            className="fintech-panel grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4"
             delayMs={80}
           >
             {features.map((feature, index) => (
@@ -238,7 +240,7 @@ function FeatureCell({
   const Icon = feature.icon;
   return (
     <div
-      className="card-trace relative p-6 transition-colors hover:bg-muted/30 animate-enter-fast"
+      className="card-trace relative p-6 transition-colors hover:bg-muted/35 animate-enter-fast"
       style={{ animationDelay: `${0.06 + index * 0.05}s` }}
     >
       <div className="flex items-center justify-between">
@@ -250,7 +252,7 @@ function FeatureCell({
           0{index + 1}
         </span>
       </div>
-      <h3 className="mt-5 font-display text-xl tracking-tight">
+      <h3 className="mt-5 font-display text-lg tracking-tight">
         {feature.title}
       </h3>
       <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">

@@ -20,7 +20,7 @@ function Skeleton({
     <div
       data-slot="skeleton"
       className={cn(
-        "rounded-sm",
+        "rounded-md",
         shimmer
           ? "bg-linear-to-r from-muted via-muted/40 to-muted animate-shimmer bg-size-[400%_100%]"
           : "bg-muted animate-pulse",
@@ -35,18 +35,18 @@ function SkeletonCard({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "rounded-md border border-border bg-card p-6 space-y-4",
+        "fintech-panel rounded-lg border border-border/80 p-6 space-y-4",
         className,
       )}
       {...props}
     >
       <div className="flex items-center justify-between">
         <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-4 w-4 rounded-sm" />
+        <Skeleton className="h-4 w-4 rounded-md" />
       </div>
       <Skeleton className="h-9 w-36" />
       <div className="flex items-center gap-2">
-        <Skeleton className="h-4 w-12 rounded-[2px]" />
+        <Skeleton className="h-4 w-12 rounded-lg" />
         <Skeleton className="h-3 w-20" />
       </div>
     </div>
@@ -57,7 +57,7 @@ function SkeletonChart({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "rounded-md border border-border bg-card p-6 space-y-4",
+        "fintech-panel rounded-lg border border-border/80 p-6 space-y-4",
         className,
       )}
       {...props}
@@ -67,15 +67,15 @@ function SkeletonChart({ className, ...props }: React.ComponentProps<"div">) {
           <Skeleton className="h-4 w-36" />
           <Skeleton className="h-3 w-48" />
         </div>
-        <Skeleton className="h-9 w-28 rounded-sm" />
+        <Skeleton className="h-9 w-28 rounded-md" />
       </div>
       <div className="relative h-[300px] w-full">
-        <Skeleton className="absolute inset-0 rounded-sm" />
+        <Skeleton className="absolute inset-0 rounded-md" />
         <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-2 h-[200px]">
           {[0.4, 0.7, 0.5, 0.8, 0.6, 0.9, 0.5].map((height, i) => (
             <Skeleton
               key={i}
-              className="flex-1 rounded-t-[2px]"
+              className="flex-1 rounded-t-md"
               style={{
                 height: `${height * 100}%`,
                 animationDelay: `${i * 0.1}s`,
@@ -96,23 +96,23 @@ function SkeletonTable({
   return (
     <div
       className={cn(
-        "rounded-md border border-border bg-card p-6 space-y-4",
+        "fintech-panel rounded-lg border border-border/80 p-6 space-y-4",
         className,
       )}
       {...props}
     >
       <div className="flex items-center justify-between">
         <Skeleton className="h-4 w-40" />
-        <Skeleton className="h-9 w-24 rounded-sm" />
+        <Skeleton className="h-9 w-24 rounded-md" />
       </div>
       <div className="space-y-1">
         {Array.from({ length: rows }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center gap-4 py-3 px-2 rounded-sm"
+            className="flex items-center gap-4 py-3 px-2 rounded-md"
             style={{ animationDelay: `${i * 0.05}s` }}
           >
-            <Skeleton className="h-9 w-9 rounded-sm" />
+            <Skeleton className="h-9 w-9 rounded-md" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-3 w-48" />
               <Skeleton className="h-2.5 w-32" />
@@ -131,17 +131,17 @@ function SkeletonTransaction({
 }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("flex items-center gap-4 py-3 px-2 rounded-sm", className)}
+      className={cn("flex items-center gap-4 py-3 px-2 rounded-md", className)}
       {...props}
     >
-      <Skeleton className="h-9 w-9 rounded-sm" />
+      <Skeleton className="h-9 w-9 rounded-md" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-3 w-44" />
         <Skeleton className="h-2.5 w-28" />
       </div>
       <div className="text-right space-y-2">
         <Skeleton className="h-4 w-24 ml-auto" />
-        <Skeleton className="h-4 w-16 ml-auto rounded-[2px]" />
+        <Skeleton className="h-4 w-16 ml-auto rounded-md" />
       </div>
     </div>
   );

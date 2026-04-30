@@ -175,7 +175,7 @@ export default function SuperannuationPage() {
       <div className="pb-12">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
           {/* Hero */}
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
               <div>
                 <span className="eyebrow">// Super overview</span>
@@ -190,7 +190,7 @@ export default function SuperannuationPage() {
               </div>
               <div className="flex gap-2">
                 <Select value={selectedFY} onValueChange={setSelectedFY}>
-                  <SelectTrigger className="h-8 w-[130px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+                  <SelectTrigger className="h-8 w-[130px] rounded-md border border-border/80 bg-card/70 font-mono text-[11px] uppercase tracking-[0.1em] shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -226,7 +226,7 @@ export default function SuperannuationPage() {
 
             <TabsContent value="overview" className="mt-5 space-y-5">
               {/* Metric strip */}
-              <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+              <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
                 <div className="card-trace relative p-5 transition-colors hover:bg-muted/30">
                   <span className="eyebrow">Total Balance</span>
                   <p className="mt-3 metric-value tabular-nums text-[26px] sm:text-[30px] text-positive">

@@ -9,7 +9,7 @@ export default function FamilyPage() {
       <Header title="Family" />
       <div className="pb-12">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="p-6 md:p-8">
               <span className="eyebrow">// Family members</span>
               <h1 className="mt-3 font-display text-3xl tracking-tight md:text-4xl">

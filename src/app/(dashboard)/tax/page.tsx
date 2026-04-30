@@ -54,7 +54,7 @@ function SectionShell({
 }) {
   return (
     <section
-      className="card-trace overflow-hidden rounded-md border border-border bg-card animate-enter-fast"
+      className="card-trace overflow-hidden rounded-lg border border-border/80 fintech-panel animate-enter-fast"
       style={{ animationDelay: `${delay}s` }}
     >
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -225,7 +225,7 @@ export default function TaxPage() {
       <div className="pb-12">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
           {/* Hero */}
-          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <section className="card-trace fintech-surface relative overflow-hidden rounded-lg border border-border/80 animate-enter">
             <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
               <div>
                 <span className="eyebrow">// Tax overview</span>
@@ -238,7 +238,7 @@ export default function TaxPage() {
               </div>
               <div className="flex gap-2">
                 <Select value={selectedFY} onValueChange={setSelectedFY}>
-                  <SelectTrigger className="h-8 w-[130px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+                  <SelectTrigger className="h-8 w-[130px] rounded-md border border-border/80 bg-card/70 font-mono text-[11px] uppercase tracking-[0.1em] shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -267,7 +267,7 @@ export default function TaxPage() {
           ) : (
             <>
               {/* Summary metric strip */}
-              <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+              <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-lg border border-border/80 fintech-panel sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
                 <StatCell
                   label="Total Income"
                   value={formatAUD(incomeSummary.combinedIncome)}
@@ -393,7 +393,7 @@ export default function TaxPage() {
                         border
                       />
                     </div>
-                    <div className="rounded-[2px] border border-success/40 bg-success/10 p-4">
+                    <div className="rounded-lg border border-success/40 bg-success/10 p-4">
                       <span className="eyebrow text-success">
                         Tax Offset Available
                       </span>
@@ -409,7 +409,7 @@ export default function TaxPage() {
                   {frankingSummary.byHolding.length > 0 && (
                     <div className="mt-6">
                       <p className="eyebrow mb-3">// By holding</p>
-                      <div className="divide-y divide-border rounded-[2px] border border-border">
+                      <div className="divide-y divide-border rounded-lg border border-border">
                         {frankingSummary.byHolding.map((h) => (
                           <div
                             key={h.holdingId}
@@ -440,7 +440,7 @@ export default function TaxPage() {
                     </div>
                   )}
 
-                  <div className="mt-4 flex items-start gap-3 rounded-[2px] border border-primary/30 bg-primary/5 p-3">
+                  <div className="mt-4 flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
                     <Badge variant="accent">ATO</Badge>
                     <p className="text-[12px] leading-relaxed">
                       Report grossed-up dividend amount (
@@ -587,7 +587,7 @@ export default function TaxPage() {
                   </div>
 
                   {contributionSummary.personalConcessional > 0 && (
-                    <div className="mt-5 flex items-start gap-3 rounded-[2px] border border-primary/30 bg-primary/5 p-3">
+                    <div className="mt-5 flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
                       <Badge variant="accent">Tip</Badge>
                       <p className="text-[12px] leading-relaxed">
                         Your{' '}
@@ -619,7 +619,7 @@ export default function TaxPage() {
                         <div
                           key={code}
                           className={cn(
-                            'flex items-start gap-3 rounded-[2px] border p-3 transition-colors',
+                            'flex items-start gap-3 rounded-lg border p-3 transition-colors',
                             active
                               ? 'border-primary/40 bg-primary/5'
                               : 'border-border bg-muted/20',
@@ -627,7 +627,7 @@ export default function TaxPage() {
                         >
                           <div
                             className={cn(
-                              'flex h-7 w-9 items-center justify-center rounded-[2px] font-mono text-[11px] font-semibold',
+                              'flex h-7 w-9 items-center justify-center rounded-lg font-mono text-[11px] font-semibold',
                               active
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted text-[--text-subtle]',
@@ -662,8 +662,8 @@ export default function TaxPage() {
               {deductionsSummary.totalCount === 0 &&
                 capitalGainsData.totalGains === 0 &&
                 capitalGainsData.totalLosses === 0 && (
-                  <section className="rounded-md border border-border bg-card px-5 py-16 text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+                  <section className="rounded-lg border border-border/80 fintech-panel px-5 py-16 text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-muted/40">
                       <Calculator
                         className="h-5 w-5 text-[--text-subtle]"
                         strokeWidth={1.5}

@@ -32,7 +32,7 @@ function PriceTooltip({
   if (active && payload && payload.length && label) {
     const date = new Date(label);
     return (
-      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-lg p-3 shadow-xl">
+      <div className="bg-popover/95 backdrop-blur-sm border border-border/50 rounded-lg p-3 shadow-premium-lg">
         <p className="text-xs text-muted-foreground mb-1">
           {date.toLocaleDateString('en-AU', {
             weekday: 'short',

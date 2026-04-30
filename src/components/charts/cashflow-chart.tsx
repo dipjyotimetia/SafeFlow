@@ -46,7 +46,7 @@ function CustomTooltip({
 }) {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-popover border border-border rounded-sm p-3 animate-scale-in min-w-[180px]">
+      <div className="bg-popover border border-border/80 rounded-lg p-3 animate-scale-in min-w-[180px] shadow-premium-lg">
         <p className="eyebrow mb-2.5">{label}</p>
         <div className="space-y-1.5">
           {payload.map((entry) => (
@@ -115,6 +115,7 @@ export function CashflowChart({
     <ResponsiveContainer
       width="100%"
       height="100%"
+      minWidth={240}
       minHeight={200}
       {...accessibilityProps}
     >
@@ -175,7 +176,7 @@ export function CashflowChart({
         <Bar
           dataKey="income"
           fill={`url(#${gradients.income.id})`}
-          radius={[1, 1, 0, 0]}
+          radius={[4, 4, 0, 0]}
           isAnimationActive={animationConfig.isAnimationActive}
           animationDuration={animationConfig.animationDuration}
           animationEasing={animationConfig.animationEasing}
@@ -183,7 +184,7 @@ export function CashflowChart({
         <Bar
           dataKey="expenses"
           fill={`url(#${gradients.expense.id})`}
-          radius={[1, 1, 0, 0]}
+          radius={[4, 4, 0, 0]}
           isAnimationActive={animationConfig.isAnimationActive}
           animationDuration={animationConfig.animationDuration}
           animationEasing={animationConfig.animationEasing}
