@@ -1,28 +1,22 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { TrendingUp, TrendingDown, Minus, type LucideIcon } from "lucide-react";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+  type LucideIcon,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const metricCardVariants = cva(
-  "group relative overflow-hidden rounded-2xl border p-5 transition-all duration-300",
+  "card-trace group relative flex flex-col rounded-md border p-5 transition-colors duration-200 hover:border-border-strong",
   {
     variants: {
       variant: {
-        default:
-          "border-border/70 bg-card/90 shadow-premium hover:-translate-y-0.5 hover:shadow-premium-lg",
-        glass:
-          "glass border-border/70 shadow-premium hover:-translate-y-0.5 hover:shadow-premium-lg",
-        gradient:
-          "gradient-card border-border/70 shadow-premium hover:-translate-y-0.5 hover:shadow-premium-lg",
-        positive:
-          "border-success/30 bg-linear-to-b from-card to-success/8 shadow-premium hover:-translate-y-0.5 hover:shadow-premium-lg",
-        negative:
-          "border-destructive/25 bg-linear-to-b from-card to-destructive/8 shadow-premium hover:-translate-y-0.5 hover:shadow-premium-lg",
-        luxury:
-          "glass-luxury border-border/70 shadow-premium-lg hover:-translate-y-1",
-        floating:
-          "border-border/70 bg-card/90 shadow-premium-lg hover:-translate-y-1 animate-float-slow",
+        default: "border-border bg-card",
+        positive: "border-border bg-card",
+        negative: "border-border bg-card",
       },
     },
     defaultVariants: {
@@ -54,7 +48,14 @@ function MetricCard({
   ...props
 }: MetricCardProps) {
   const TrendIcon =
-    trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
+    trend === "up" ? ArrowUpRight : trend === "down" ? ArrowDownRight : Minus;
+
+  const valueColor =
+    variant === "positive"
+      ? "text-positive"
+      : variant === "negative"
+        ? "text-negative"
+        : "text-foreground";
 
   return (
     <div
@@ -62,60 +63,56 @@ function MetricCard({
       className={cn(metricCardVariants({ variant }), className)}
       {...props}
     >
-      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-transparent via-transparent to-primary/5" />
-
-      <div className="relative flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      <div className="flex items-center justify-between gap-3">
+        <span className="eyebrow">{title}</span>
         {Icon && (
-          <div
+          <Icon
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-xl",
-              variant === "positive" && "bg-success/15",
-              variant === "negative" && "bg-destructive/15",
-              variant !== "positive" && variant !== "negative" && "bg-primary/15",
+              "h-3.5 w-3.5",
+              variant === "positive" && "text-positive",
+              variant === "negative" && "text-negative",
+              variant !== "positive" &&
+                variant !== "negative" &&
+                "text-[--text-subtle]",
             )}
-          >
-            <Icon
-              className={cn(
-                "h-4 w-4",
-                variant === "positive" && "text-success",
-                variant === "negative" && "text-destructive",
-                variant !== "positive" && variant !== "negative" && "text-primary",
-              )}
-            />
-          </div>
+            strokeWidth={1.5}
+          />
         )}
       </div>
 
-      <div className="relative mt-3">
+      <div className="mt-4">
         <p
           key={`${title}-${value}`}
           className={cn(
-            "metric-value animate-number text-3xl font-semibold leading-tight tabular-nums",
-            variant === "positive" && "text-success",
-            variant === "negative" && "text-destructive",
+            "metric-value animate-wipe-in text-[34px] sm:text-[38px] tabular-nums",
+            valueColor,
           )}
         >
           {value}
         </p>
 
         {(trend || description) && (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2 animate-ticker">
             {trend && (
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                  trend === "up" && "bg-success/15 text-success",
-                  trend === "down" && "bg-destructive/15 text-destructive",
-                  trend === "neutral" && "bg-muted text-muted-foreground",
+                  "inline-flex items-center gap-1 rounded-[2px] border px-1.5 py-0.5 text-[10px] font-mono font-medium uppercase tracking-[0.1em]",
+                  trend === "up" &&
+                    "border-success/40 bg-success/10 text-success",
+                  trend === "down" &&
+                    "border-destructive/40 bg-destructive/10 text-destructive",
+                  trend === "neutral" &&
+                    "border-border bg-muted/40 text-muted-foreground",
                 )}
               >
-                <TrendIcon className="h-3 w-3" />
-                {trendValue ?? "Change"}
+                <TrendIcon className="h-3 w-3" strokeWidth={1.5} />
+                {trendValue ?? "—"}
               </span>
             )}
             {description && (
-              <span className="text-xs text-muted-foreground">{description}</span>
+              <span className="text-[10.5px] font-mono uppercase tracking-[0.14em] text-[--text-subtle]">
+                {description}
+              </span>
             )}
           </div>
         )}

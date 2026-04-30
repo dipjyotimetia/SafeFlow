@@ -921,6 +921,7 @@ export interface PropertyAssumptions {
 
   // Purchase Costs (optional overrides, cents)
   stampDutyOverride?: number;
+  lmiOverride?: number;
   legalFees?: number;
   buildingInspection?: number;
   pestInspection?: number;
@@ -958,6 +959,8 @@ export interface PropertyCalculatedResults {
   // Capital Required (cents)
   depositAmount: number;
   stampDuty: number;
+  transferFee: number;
+  mortgageRegistrationFee: number;
   legalFees: number;
   lmiAmount: number;
   otherCosts: number;
@@ -969,6 +972,9 @@ export interface PropertyCalculatedResults {
   lvr: number; // Loan-to-Value Ratio percentage
 
   // Interest Payments (cents)
+  monthlyLoanRepayment: number;
+  annualLoanRepayment: number;
+  annualPrincipalRepayment: number;
   monthlyInterestPayment: number;
   annualInterestPayment: number;
 

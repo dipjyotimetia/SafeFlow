@@ -3,44 +3,45 @@
  * Provides consistent styling, colors, and performance optimizations across all charts
  */
 
-// Chart Color Palettes
+// Chart Color Palettes — VAULT: acid accent + monochrome ramp.
+// Uses CSS custom properties so palette stays in sync with theme tokens.
 export const CHART_COLORS = {
   primary: {
-    emerald: "oklch(0.55 0.15 160)",
-    teal: "oklch(0.6 0.12 180)",
-    gold: "oklch(0.7 0.14 85)",
-    slate: "oklch(0.5 0.08 220)",
-    success: "oklch(0.65 0.18 145)",
-    cyan: "oklch(0.6 0.1 200)",
-    purple: "oklch(0.55 0.12 280)",
-    coral: "oklch(0.65 0.15 30)",
-    lime: "oklch(0.6 0.14 120)",
-    indigo: "oklch(0.5 0.1 260)",
+    emerald: "var(--primary)",
+    teal: "var(--chart-3)",
+    gold: "oklch(0.82 0.16 75)",
+    slate: "var(--chart-4)",
+    success: "var(--success)",
+    cyan: "var(--chart-3)",
+    purple: "var(--chart-5)",
+    coral: "var(--destructive)",
+    lime: "var(--primary)",
+    indigo: "var(--chart-2)",
   },
   category: [
-    "oklch(0.55 0.15 160)", // emerald primary
-    "oklch(0.6 0.12 180)", // teal
-    "oklch(0.7 0.14 85)", // gold accent
-    "oklch(0.5 0.08 220)", // slate blue
-    "oklch(0.65 0.18 145)", // success green
-    "oklch(0.6 0.1 200)", // cyan
-    "oklch(0.55 0.12 280)", // purple
-    "oklch(0.65 0.15 30)", // coral
-    "oklch(0.6 0.14 120)", // lime
-    "oklch(0.5 0.1 260)", // indigo
+    "var(--primary)", // acid accent — primary series
+    "oklch(0.7 0.005 240)", // mono 700
+    "oklch(0.55 0.005 240)", // mono 550
+    "oklch(0.4 0.005 240)", // mono 400
+    "oklch(0.82 0.003 240)", // mono 850
+    "oklch(0.62 0.005 240)", // mono 620
+    "oklch(0.48 0.005 240)", // mono 480
+    "oklch(0.75 0.003 240)", // mono 750
+    "oklch(0.58 0.005 240)", // mono 580
+    "oklch(0.42 0.005 240)", // mono 420
   ],
   semantic: {
-    positive: "oklch(0.65 0.18 145)", // green
-    negative: "oklch(0.65 0.2 25)", // red
-    neutral: "oklch(0.6 0.02 160)", // muted
-    warning: "oklch(0.7 0.14 85)", // amber
-    info: "oklch(0.6 0.12 220)", // blue
+    positive: "var(--success)",
+    negative: "var(--destructive)",
+    neutral: "oklch(0.55 0.005 240)",
+    warning: "var(--warning)",
+    info: "var(--primary)",
   },
   investment: {
-    etf: "oklch(0.55 0.15 160)", // emerald
-    stock: "oklch(0.6 0.12 220)", // blue
-    crypto: "oklch(0.65 0.18 45)", // orange
-    "managed-fund": "oklch(0.55 0.12 280)", // purple
+    etf: "var(--primary)", // acid (primary holding)
+    stock: "oklch(0.7 0.005 240)", // mono
+    crypto: "oklch(0.82 0.16 75)", // amber accent
+    "managed-fund": "oklch(0.5 0.005 240)", // mono dim
   },
 } as const;
 
@@ -74,8 +75,8 @@ export const CHART_RESPONSIVE = {
 export const CHART_DEFAULTS = {
   margin: { top: 10, right: 10, left: 10, bottom: 10 },
   grid: {
-    strokeDasharray: "3 3",
-    className: "stroke-muted",
+    strokeDasharray: "2 4",
+    className: "stroke-border",
     vertical: false,
   },
   axis: {
@@ -83,8 +84,10 @@ export const CHART_DEFAULTS = {
     tickLine: false,
     tickMargin: 8,
     tick: {
-      fontSize: 11,
-      fill: "hsl(var(--muted-foreground))",
+      fontSize: 10,
+      fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+      fill: "var(--text-subtle)",
+      letterSpacing: "0.08em",
     },
   },
 } as const;
@@ -95,29 +98,29 @@ export function createGradients(id: string) {
     income: {
       id: `incomeGradient-${id}`,
       stops: [
-        { offset: "0%", color: CHART_COLORS.semantic.positive, opacity: 1 },
-        { offset: "100%", color: "oklch(0.55 0.16 145)", opacity: 1 },
+        { offset: "0%", color: "var(--success)", opacity: 0.95 },
+        { offset: "100%", color: "var(--success)", opacity: 0.65 },
       ],
     },
     expense: {
       id: `expenseGradient-${id}`,
       stops: [
-        { offset: "0%", color: CHART_COLORS.semantic.negative, opacity: 1 },
-        { offset: "100%", color: "oklch(0.55 0.18 25)", opacity: 1 },
+        { offset: "0%", color: "var(--destructive)", opacity: 0.85 },
+        { offset: "100%", color: "var(--destructive)", opacity: 0.55 },
       ],
     },
     net: {
       id: `netGradient-${id}`,
       stops: [
-        { offset: "0%", color: "oklch(0.55 0.18 265)", opacity: 1 },
-        { offset: "100%", color: "oklch(0.60 0.16 280)", opacity: 1 },
+        { offset: "0%", color: "var(--primary)", opacity: 1 },
+        { offset: "100%", color: "var(--primary)", opacity: 0.85 },
       ],
     },
     area: {
       id: `areaGradient-${id}`,
       stops: [
-        { offset: "0%", color: CHART_COLORS.primary.emerald, opacity: 0.3 },
-        { offset: "100%", color: CHART_COLORS.primary.emerald, opacity: 0 },
+        { offset: "0%", color: "var(--primary)", opacity: 0.28 },
+        { offset: "100%", color: "var(--primary)", opacity: 0 },
       ],
     },
   };

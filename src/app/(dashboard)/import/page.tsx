@@ -362,13 +362,19 @@ export default function ImportPage() {
   return (
     <>
       <Header title="Import Statements" />
-      <div className="p-6 space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold">Import Statements</h2>
-          <p className="text-sm text-muted-foreground">
-            Upload PDF statements to automatically import transactions
-          </p>
-        </div>
+      <div className="pb-12">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
+          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+            <div className="p-6 md:p-8">
+              <span className="eyebrow">// Import statements</span>
+              <h1 className="mt-3 font-display text-3xl tracking-tight md:text-4xl">
+                PDF → transactions
+              </h1>
+              <p className="mt-2 text-[13px] text-muted-foreground">
+                Upload bank or super statements to automatically extract data.
+              </p>
+            </div>
+          </section>
 
         {/* Import Type Tabs */}
         <Tabs
@@ -1095,6 +1101,7 @@ export default function ImportPage() {
             </Card>
           </>
         )}
+        </div>
       </div>
     </>
   );

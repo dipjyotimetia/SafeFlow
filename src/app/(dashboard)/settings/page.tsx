@@ -173,19 +173,19 @@ export default function SettingsPage() {
   return (
     <>
       <Header title="Settings" />
-      <div className="pb-10">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:px-8">
-          <Card
-            variant="glass-luxury"
-            className="border-primary/15 animate-enter"
-          >
-            <CardHeader>
-              <CardTitle className="text-2xl">Workspace Preferences</CardTitle>
-              <CardDescription>
-                Configure appearance, AI, backup, and privacy controls.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+      <div className="pb-12">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
+          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+            <div className="p-6 md:p-8">
+              <span className="eyebrow">// Workspace preferences</span>
+              <h1 className="mt-3 font-display text-3xl tracking-tight md:text-4xl">
+                Configuration
+              </h1>
+              <p className="mt-2 max-w-prose text-[13px] text-muted-foreground">
+                Appearance, AI, backup, privacy.
+              </p>
+            </div>
+          </section>
 
           {/* Appearance */}
           <Card variant="premium">

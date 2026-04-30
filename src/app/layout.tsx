@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Plus_Jakarta_Sans, Sora } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
@@ -13,14 +13,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const soraDisplay = Sora({
+const instrumentSerif = Instrument_Serif({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
-  title: "SafeFlow AU - Privacy-First Family Finance",
+  title: "SafeFlow AU — Privacy-First Family Finance",
   description:
     "Track expenses, manage cashflow, and monitor investments with complete privacy. Your data stays on your device.",
   keywords: [
@@ -39,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         {/* S-1: Content Security Policy — mitigate XSS in this local-data app */}
         <meta
@@ -48,7 +49,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${plusJakartaSans.variable} ${geistMono.variable} ${soraDisplay.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}
       >
         {children}
         <Toaster richColors position="top-right" />

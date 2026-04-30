@@ -12,7 +12,6 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { InstitutionIcon } from '@/components/institution-icon';
-import { formatAUD } from '@/lib/utils/currency';
+import { formatAUD, splitAUD } from '@/lib/utils/currency';
 import { isKnownInstitution } from '@/lib/icons/institution-icons';
 import type { Account, AccountType } from '@/types';
 import { cn } from '@/lib/utils';
@@ -36,14 +35,14 @@ const accountIcons: Record<AccountType, typeof Building2> = {
   liability: FileText,
 };
 
-const accountColors: Record<AccountType, string> = {
-  bank: 'text-primary bg-primary/15',
-  credit: 'text-warning bg-warning/15',
-  cash: 'text-success bg-success/15',
-  investment: 'text-primary bg-primary/12',
-  crypto: 'text-warning bg-warning/15',
-  asset: 'text-primary bg-accent/30',
-  liability: 'text-destructive bg-destructive/12',
+const accountTone: Record<AccountType, string> = {
+  bank: 'text-primary',
+  credit: 'text-warning',
+  cash: 'text-success',
+  investment: 'text-primary',
+  crypto: 'text-warning',
+  asset: 'text-foreground',
+  liability: 'text-destructive',
 };
 
 interface AccountCardProps {
@@ -54,28 +53,37 @@ interface AccountCardProps {
 
 export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const Icon = accountIcons[account.type];
-  const colorClass = accountColors[account.type];
+  const tone = accountTone[account.type];
   const isNegative =
-    account.balance < 0 || account.type === 'liability' || account.type === 'credit';
+    account.balance < 0 ||
+    account.type === 'liability' ||
+    account.type === 'credit';
   const hasInstitutionIcon =
     account.institution && isKnownInstitution(account.institution);
 
+  const split = splitAUD(Math.abs(account.balance));
+
   return (
-    <Card variant="premium" className="group">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="flex min-w-0 items-center gap-3">
+    <div className="card-trace group relative flex flex-col rounded-md border border-border bg-card p-5 transition-colors hover:border-border-strong">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           {hasInstitutionIcon ? (
-            <InstitutionIcon institution={account.institution!} size="lg" />
+            <InstitutionIcon institution={account.institution!} size="md" />
           ) : (
-            <div className={cn('rounded-xl p-2.5', colorClass)}>
-              <Icon className="h-5 w-5" />
+            <div
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-[2px] border border-border bg-muted/40',
+                tone,
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" strokeWidth={1.5} />
             </div>
           )}
           <div className="min-w-0">
-            <CardTitle className="truncate text-base font-medium">{account.name}</CardTitle>
-            {account.institution && (
-              <p className="truncate text-xs text-muted-foreground">{account.institution}</p>
-            )}
+            <p className="eyebrow">{account.type.replace('-', ' ')}</p>
+            <p className="mt-1.5 truncate text-[14px] font-medium text-foreground">
+              {account.name}
+            </p>
           </div>
         </div>
 
@@ -83,45 +91,53 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-lg"
-              aria-label={`Open actions for account ${account.name}`}
+              size="icon-sm"
+              aria-label={`Open actions for ${account.name}`}
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-3.5 w-3.5" strokeWidth={1.5} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(account)}>
-              <Pencil className="mr-2 h-4 w-4" />
+              <Pencil className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
               Edit
             </DropdownMenuItem>
             <DropdownMenuItem
               variant="destructive"
               onClick={() => onDelete(account)}
             >
-              <Trash2 className="mr-2 h-4 w-4" />
+              <Trash2 className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </CardHeader>
+      </div>
 
-      <CardContent>
-        <div
+      <div className="mt-5">
+        <p
           className={cn(
-            'metric-value text-2xl font-semibold tabular-nums',
-            isNegative ? 'text-destructive' : 'text-foreground',
+            'metric-value animate-wipe-in tabular-nums text-[28px]',
+            isNegative ? 'text-negative' : 'text-foreground',
           )}
         >
-          {formatAUD(Math.abs(account.balance))}
-          {isNegative && account.balance !== 0 && (
-            <span className="ml-1 text-sm font-normal text-muted-foreground">owed</span>
+          <span>{split.whole}</span>
+          {split.cents && (
+            <span className="mono-num text-[14px] text-[--text-subtle]">
+              {split.cents}
+            </span>
           )}
-        </div>
-        <p className="mt-1 text-xs capitalize text-muted-foreground">
-          {account.type.replace('-', ' ')} account
         </p>
-      </CardContent>
-    </Card>
+        <div className="mt-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[--text-subtle]">
+          {isNegative && account.balance !== 0 ? (
+            <span className="rounded-[2px] border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-destructive">
+              Owed
+            </span>
+          ) : null}
+          <span>
+            {account.institution || account.type.replace('-', ' ')}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

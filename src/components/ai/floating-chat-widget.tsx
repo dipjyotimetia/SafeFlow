@@ -11,7 +11,6 @@ import { ConnectionStatus, StatusIndicator } from './connection-status';
 
 export function FloatingChatWidget() {
   const {
-    // State
     connectionStatus,
     connectionError,
     isModelReady,
@@ -22,7 +21,6 @@ export function FloatingChatWidget() {
     isPullingModel,
     pullProgress,
     pullStatus,
-    // Actions
     checkConnection,
     pullModel,
     sendMessage,
@@ -37,12 +35,10 @@ export function FloatingChatWidget() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isReady = connectionStatus === 'connected' && isModelReady;
 
-  // Check connection on mount
   useEffect(() => {
     checkConnection();
   }, [checkConnection]);
 
-  // Scroll to bottom function - React Compiler handles memoization
   const scrollToBottom = (smooth = true) => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({
@@ -52,82 +48,87 @@ export function FloatingChatWidget() {
     }
   };
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    // Use a small delay to ensure content is rendered
     const timer = setTimeout(() => scrollToBottom(true), 50);
     return () => clearTimeout(timer);
   }, [messages, isStreaming]);
 
-  // Floating button (when closed)
+  // Floating launcher (when closed)
   if (!isWidgetOpen) {
     return (
-      <Button
+      <button
         onClick={toggleWidget}
-        className={cn(
-          'fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50',
-          'bg-success hover:bg-success/90 text-white',
-          'transition-transform hover:scale-105'
-        )}
-      >
-        <Bot className="h-6 w-6" />
-        <StatusIndicator
-          status={connectionStatus}
-          isModelReady={isModelReady}
-          className="absolute -top-1 -right-1"
-        />
-      </Button>
-    );
-  }
-
-  // Minimized state
-  if (isWidgetMinimized) {
-    return (
-      <div
         className={cn(
           'fixed bottom-6 right-6 z-50',
-          'bg-background border rounded-full shadow-lg',
-          'flex items-center gap-2 px-4 py-2 cursor-pointer',
-          'hover:bg-muted transition-colors'
+          'flex h-11 items-center gap-2 rounded-sm border border-border bg-card px-3',
+          'transition-colors hover:border-border-strong hover:bg-muted/40',
         )}
-        onClick={toggleWidget}
+        aria-label="Open SafeFlow AI"
       >
-        <Bot className="h-5 w-5 text-success" />
-        <span className="text-sm font-medium">SafeFlow AI</span>
+        <Bot className="h-4 w-4 text-primary" strokeWidth={1.5} />
+        <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-foreground">
+          AI · Assist
+        </span>
+        <StatusIndicator
+          status={connectionStatus}
+          isModelReady={isModelReady}
+          className="ml-1"
+        />
+      </button>
+    );
+  }
+
+  // Minimized
+  if (isWidgetMinimized) {
+    return (
+      <button
+        onClick={toggleWidget}
+        className={cn(
+          'fixed bottom-6 right-6 z-50',
+          'flex items-center gap-2 rounded-sm border border-border bg-card px-3 py-2',
+          'cursor-pointer transition-colors hover:border-border-strong hover:bg-muted/40',
+        )}
+        aria-label="Restore SafeFlow AI"
+      >
+        <Bot className="h-4 w-4 text-primary" strokeWidth={1.5} />
+        <span className="font-mono text-[11px] uppercase tracking-[0.16em]">
+          SafeFlow AI
+        </span>
         <StatusIndicator
           status={connectionStatus}
           isModelReady={isModelReady}
         />
-      </div>
+      </button>
     );
   }
 
-  // Full chat panel
+  // Full panel
   return (
     <div
       className={cn(
         'fixed bottom-6 right-6 z-50',
-        'w-[400px] h-[600px] max-h-[80vh]',
-        'bg-background border rounded-lg shadow-2xl',
-        'flex flex-col overflow-hidden',
-        'animate-in slide-in-from-bottom-4 fade-in duration-200'
+        'h-[600px] max-h-[80vh] w-[400px]',
+        'flex flex-col overflow-hidden rounded-md border border-border bg-card',
+        'animate-in slide-in-from-bottom-2 fade-in duration-200',
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/50">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-success flex items-center justify-center">
-            <Bot className="h-4 w-4 text-white" />
+      <div className="flex items-center justify-between border-b border-border bg-surface-2 px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-[2px] border border-primary/40 bg-primary/10">
+            <Bot className="h-3.5 w-3.5 text-primary" strokeWidth={1.5} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold">SafeFlow AI</h3>
-            <div className="flex items-center gap-1">
+            <h3 className="font-display text-[15px] tracking-tight">
+              SafeFlow AI
+            </h3>
+            <div className="mt-0.5 flex items-center gap-1.5">
               <StatusIndicator
                 status={connectionStatus}
                 isModelReady={isModelReady}
               />
-              <span className="text-xs text-muted-foreground">
-                {isReady ? 'Ready' : 'Offline'}
+              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-[--text-subtle]">
+                {isReady ? 'READY' : 'OFFLINE'}
               </span>
             </div>
           </div>
@@ -141,7 +142,7 @@ export function FloatingChatWidget() {
               onClick={clearChat}
               title="Clear chat"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
             </Button>
           )}
           <Button
@@ -150,7 +151,7 @@ export function FloatingChatWidget() {
             onClick={minimizeWidget}
             title="Minimize"
           >
-            <Minus className="h-4 w-4" />
+            <Minus className="h-3.5 w-3.5" strokeWidth={1.5} />
           </Button>
           <Button
             variant="ghost"
@@ -158,7 +159,7 @@ export function FloatingChatWidget() {
             onClick={closeWidget}
             title="Close"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" strokeWidth={1.5} />
           </Button>
         </div>
       </div>
@@ -183,23 +184,34 @@ export function FloatingChatWidget() {
         className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth"
       >
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-full p-6 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-success/18 to-primary/20 shadow-sm">
-              <Sparkles className="h-8 w-8 text-success" />
+          <div className="flex min-h-full flex-col items-center justify-center p-6 text-center">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-primary/40 bg-primary/10">
+              <Sparkles
+                className="h-5 w-5 text-primary"
+                strokeWidth={1.5}
+              />
             </div>
-            <h4 className="font-semibold text-base mb-2">Welcome to SafeFlow AI</h4>
-            <p className="text-sm text-muted-foreground max-w-[280px] leading-relaxed">
-              Your personal finance assistant. Ask me about your spending,
-              budgets, taxes, or investments.
+            <h4 className="font-display text-lg tracking-tight">
+              Welcome to SafeFlow AI
+            </h4>
+            <p className="mt-2 max-w-[280px] text-[13px] leading-relaxed text-muted-foreground">
+              Your personal finance assistant. Ask about spending, budgets,
+              taxes, or investments.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <span className="text-xs bg-muted px-2 py-1 rounded-full">Spending analysis</span>
-              <span className="text-xs bg-muted px-2 py-1 rounded-full">Budget help</span>
-              <span className="text-xs bg-muted px-2 py-1 rounded-full">Tax tips</span>
+              <span className="rounded-[2px] border border-border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                Spending
+              </span>
+              <span className="rounded-[2px] border border-border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                Budgets
+              </span>
+              <span className="rounded-[2px] border border-border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                Tax tips
+              </span>
             </div>
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-border">
             {messages.map((message, index) => (
               <ChatMessage
                 key={message.id}
@@ -211,13 +223,11 @@ export function FloatingChatWidget() {
                 }
               />
             ))}
-            {/* Scroll anchor */}
             <div ref={messagesEndRef} className="h-px" />
           </div>
         )}
       </div>
 
-      {/* Input */}
       <ChatInput
         onSend={sendMessage}
         onStop={stopStreaming}

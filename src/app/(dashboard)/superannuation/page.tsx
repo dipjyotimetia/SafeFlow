@@ -172,37 +172,49 @@ export default function SuperannuationPage() {
   return (
     <>
       <Header title="Superannuation" />
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">Super Overview</h2>
-            <p className="text-sm text-muted-foreground">
-              Track your retirement savings
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Select value={selectedFY} onValueChange={setSelectedFY}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((fy) => (
-                  <SelectItem key={fy} value={fy}>
-                    FY {fy}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Account
-            </Button>
-          </div>
-        </div>
+      <div className="pb-12">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
+          {/* Hero */}
+          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+            <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
+              <div>
+                <span className="eyebrow">// Super overview</span>
+                <h1 className="mt-3 font-display text-3xl tracking-tight md:text-4xl">
+                  Track retirement savings
+                </h1>
+                <p className="mt-2 text-[13px] text-muted-foreground">
+                  FY {formatFinancialYear(selectedFY)} ·{' '}
+                  {summary.accountCount} fund
+                  {summary.accountCount !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Select value={selectedFY} onValueChange={setSelectedFY}>
+                  <SelectTrigger className="h-8 w-[130px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((fy) => (
+                      <SelectItem key={fy} value={fy}>
+                        FY {fy}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  Add Account
+                </Button>
+              </div>
+            </div>
+          </section>
 
         {isLoading ? (
-          <div className="text-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <div className="flex items-center justify-center py-16">
+            <Loader2
+              className="h-6 w-6 animate-spin text-primary"
+              strokeWidth={1.5}
+            />
           </div>
         ) : (
           <Tabs defaultValue="overview">
@@ -212,64 +224,55 @@ export default function SuperannuationPage() {
               <TabsTrigger value="transactions">Transactions</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-6">
-              {/* Summary Cards */}
-              <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-success">
-                      {formatAUD(summary.totalBalance)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {summary.accountCount} account{summary.accountCount !== 1 ? 's' : ''}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">YTD Contributions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {formatAUD(summary.ytdContributions)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatFinancialYear(summary.financialYear)}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">YTD Earnings</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className={cn(
-                      'text-2xl font-bold',
-                      summary.ytdEarnings >= 0 ? 'text-success' : 'text-destructive'
-                    )}>
-                      {summary.ytdEarnings >= 0 ? '+' : ''}{formatAUD(summary.ytdEarnings)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Investment returns</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">YTD Fees</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-destructive">
-                      -{formatAUD(summary.ytdFees)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Admin & insurance</p>
-                  </CardContent>
-                </Card>
-              </div>
+            <TabsContent value="overview" className="mt-5 space-y-5">
+              {/* Metric strip */}
+              <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+                <div className="card-trace relative p-5 transition-colors hover:bg-muted/30">
+                  <span className="eyebrow">Total Balance</span>
+                  <p className="mt-3 metric-value tabular-nums text-[26px] sm:text-[30px] text-positive">
+                    {formatAUD(summary.totalBalance)}
+                  </p>
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[--text-subtle]">
+                    {summary.accountCount} account
+                    {summary.accountCount !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="card-trace relative p-5 transition-colors hover:bg-muted/30">
+                  <span className="eyebrow">YTD Contributions</span>
+                  <p className="mt-3 metric-value tabular-nums text-[26px] sm:text-[30px]">
+                    {formatAUD(summary.ytdContributions)}
+                  </p>
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[--text-subtle]">
+                    FY {formatFinancialYear(summary.financialYear)}
+                  </p>
+                </div>
+                <div className="card-trace relative p-5 transition-colors hover:bg-muted/30">
+                  <span className="eyebrow">YTD Earnings</span>
+                  <p
+                    className={cn(
+                      'mt-3 metric-value tabular-nums text-[26px] sm:text-[30px]',
+                      summary.ytdEarnings >= 0
+                        ? 'text-positive'
+                        : 'text-negative',
+                    )}
+                  >
+                    {summary.ytdEarnings >= 0 ? '+' : ''}
+                    {formatAUD(summary.ytdEarnings)}
+                  </p>
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[--text-subtle]">
+                    Investment returns
+                  </p>
+                </div>
+                <div className="card-trace relative p-5 transition-colors hover:bg-muted/30">
+                  <span className="eyebrow">YTD Fees</span>
+                  <p className="mt-3 metric-value tabular-nums text-[26px] sm:text-[30px] text-negative">
+                    -{formatAUD(summary.ytdFees)}
+                  </p>
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[--text-subtle]">
+                    Admin · Insurance
+                  </p>
+                </div>
+              </section>
 
               {/* Accounts List */}
               <Card>
@@ -533,6 +536,7 @@ export default function SuperannuationPage() {
             </TabsContent>
           </Tabs>
         )}
+        </div>
       </div>
 
       {/* Add Account Dialog */}

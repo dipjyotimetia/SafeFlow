@@ -50,6 +50,7 @@ export function ModelResults({
   }
 
   const isEditable = !!assumptions && !!onAssumptionsChange;
+  const hasLmiOverride = assumptions?.lmiOverride !== undefined;
   const price = purchasePrice || assumptions?.purchasePrice || 0;
 
   // Update expense helper
@@ -168,6 +169,13 @@ export function ModelResults({
           <CardTitle className="text-sm font-medium">Capital Required</CardTitle>
         </CardHeader>
         <CardContent>
+          {results.lmiAmount > 0 && (
+            <p className="mb-4 text-xs text-muted-foreground">
+              {hasLmiOverride
+                ? "LMI is using the entered override, capitalised into the loan, and excluded from upfront capital required."
+                : "Estimated LMI is capitalised into the loan and excluded from upfront capital required."}
+            </p>
+          )}
           <Table>
             <TableBody>
               <TableRow>
@@ -183,6 +191,18 @@ export function ModelResults({
                 </TableCell>
               </TableRow>
               <TableRow>
+                <TableCell>Transfer Fee</TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatAUD(results.transferFee)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Mortgage Registration</TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatAUD(results.mortgageRegistrationFee)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
                 <TableCell>Legal Fees</TableCell>
                 <TableCell className="text-right font-medium">
                   {formatAUD(results.legalFees)}
@@ -192,7 +212,7 @@ export function ModelResults({
                 <TableRow>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      LMI
+                      {hasLmiOverride ? "LMI Override" : "Estimated LMI"}
                       <FormulaTooltip
                         formula={PropertyFormulas.lvr.formula}
                         detailedFormula={PropertyFormulas.lvr.getDetailed(
@@ -430,19 +450,23 @@ export function ModelResults({
                 />
               )}
 
-              {/* Interest Payments */}
-              {results.expensesBreakdown["interest-payments"] > 0 && (
+              {/* Loan Repayments */}
+              {results.expensesBreakdown["loan-repayments"] > 0 && (
                 <ExpenseRow
-                  label="Interest Payments"
-                  annualAmount={results.expensesBreakdown["interest-payments"]}
+                  label="Loan Repayments"
+                  annualAmount={results.expensesBreakdown["loan-repayments"]}
                   isEditable={false}
-                  formula="Based on loan amount × interest rate"
+                  formula={
+                    results.annualPrincipalRepayment > 0
+                      ? `Includes ${formatAUD(results.annualInterestPayment)} interest and ${formatAUD(results.annualPrincipalRepayment)} principal`
+                      : "Interest-only repayment based on loan amount × interest rate"
+                  }
                 />
               )}
 
               {/* Total */}
               <TableRow className="border-t-2 font-semibold">
-                <TableCell>Total Expenses</TableCell>
+                <TableCell>Total Operating Expenses</TableCell>
                 <TableCell className="text-right">
                   {formatAUD(Math.round(results.totalAnnualExpenses / 52))}
                 </TableCell>

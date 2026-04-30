@@ -43,51 +43,74 @@ export function Header({ title, className }: HeaderProps) {
   const getSyncIcon = () => {
     switch (syncStatus) {
       case "syncing":
-        return <RefreshCw className="h-4 w-4 animate-spin" />;
+        return <RefreshCw className="h-3 w-3 animate-spin" strokeWidth={1.5} />;
       case "synced":
-        return <Cloud className="h-4 w-4" />;
+        return <Cloud className="h-3 w-3" strokeWidth={1.5} />;
       case "error":
-        return <CloudOff className="h-4 w-4" />;
       case "offline":
-        return <CloudOff className="h-4 w-4" />;
+        return <CloudOff className="h-3 w-3" strokeWidth={1.5} />;
       default:
-        return <Cloud className="h-4 w-4" />;
+        return <Cloud className="h-3 w-3" strokeWidth={1.5} />;
     }
   };
 
-  const getSyncText = () => {
+  const syncLabel = (() => {
     switch (syncStatus) {
       case "syncing":
-        return "Syncing";
+        return "SYNCING";
       case "synced":
-        return "Synced";
+        return "SYNCED";
       case "error":
-        return "Sync error";
+        return "ERROR";
       case "offline":
-        return "Offline";
+        return "OFFLINE";
       default:
-        return isConnected ? "Not synced" : "Local only";
+        return isConnected ? "PENDING" : "LOCAL";
     }
-  };
+  })();
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 border-b border-border/60 px-5 py-3",
-        "glass-luxury supports-backdrop-filter:bg-background/70",
+        "sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center gap-3 md:gap-4">
+      {/* Ticker bar */}
+      <div className="flex items-center gap-5 overflow-x-auto border-b border-border px-5 py-1.5">
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[--text-subtle]">
+          <span className="live-dot" />
+          <span>FY · {formatFinancialYear(currentFY)}</span>
+        </div>
+        <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />
+        <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-[--text-subtle] sm:block">
+          {format(new Date(), "EEE · d MMM yyyy")}
+        </span>
+        <span aria-hidden className="hidden h-3 w-px bg-border md:block" />
+        <span
+          className={cn(
+            "hidden items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] md:flex",
+            syncStatus === "synced" && "text-primary",
+            syncStatus === "error" && "text-destructive",
+            syncStatus === "offline" && "text-warning",
+            (syncStatus === "syncing" || !syncStatus) && "text-[--text-subtle]",
+          )}
+        >
+          {getSyncIcon()} <span>SYNC · {syncLabel}</span>
+        </span>
+        <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.18em] text-[--text-subtle]">
+          AUD
+        </span>
+      </div>
+
+      {/* Main row */}
+      <div className="flex flex-wrap items-center gap-3 px-5 py-3 md:gap-4">
         <div className="min-w-0 flex-1 pl-10 md:pl-0">
           {title && (
-            <h1 className="animate-enter-fast truncate text-xl font-semibold tracking-tight md:text-2xl">
+            <h1 className="animate-enter-fast truncate font-display text-2xl tracking-tight md:text-[28px]">
               {title}
             </h1>
           )}
-          <p className="hidden text-xs text-muted-foreground sm:block">
-            {format(new Date(), "EEEE, d MMMM yyyy")}
-          </p>
         </div>
 
         {members.length > 0 && (
@@ -97,20 +120,20 @@ export function Header({ title, className }: HeaderProps) {
               setSelectedMemberId(value === "all" ? null : value)
             }
           >
-            <SelectTrigger className="h-9 w-[150px] border-border/70 bg-card/60 shadow-none sm:w-[190px]">
+            <SelectTrigger className="h-8 w-[160px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none sm:w-[190px]">
               <SelectValue>
                 {selectedMember ? (
                   <div className="flex items-center gap-2">
                     <span
-                      className="h-2.5 w-2.5 rounded-full"
+                      className="h-1.5 w-1.5 rounded-full"
                       style={{ backgroundColor: selectedMember.color }}
                     />
                     <span className="truncate">{selectedMember.name}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span>All Members</span>
+                    <Users className="h-3 w-3" strokeWidth={1.5} />
+                    <span>ALL · MEMBERS</span>
                   </div>
                 )}
               </SelectValue>
@@ -118,7 +141,7 @@ export function Header({ title, className }: HeaderProps) {
             <SelectContent>
               <SelectItem value="all">
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
+                  <Users className="h-3.5 w-3.5" strokeWidth={1.5} />
                   <span>All Members</span>
                 </div>
               </SelectItem>
@@ -126,7 +149,7 @@ export function Header({ title, className }: HeaderProps) {
                 <SelectItem key={member.id} value={member.id}>
                   <div className="flex items-center gap-2">
                     <span
-                      className="h-2.5 w-2.5 rounded-full"
+                      className="h-2 w-2 rounded-full"
                       style={{ backgroundColor: member.color }}
                     />
                     <span>{member.name}</span>
@@ -137,44 +160,29 @@ export function Header({ title, className }: HeaderProps) {
           </Select>
         )}
 
-        <div className="hidden items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-sm font-medium text-primary sm:flex">
-          <span className="h-1.5 w-1.5 animate-pulse-subtle rounded-full bg-primary" />
-          {formatFinancialYear(currentFY)}
-        </div>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "h-9 rounded-full border border-border/70 bg-card/70 px-3 text-xs",
-            syncStatus === "syncing" && "text-primary",
-            syncStatus === "synced" && "text-success",
-            syncStatus === "error" && "text-destructive",
-            syncStatus === "offline" && "text-warning",
-          )}
-        >
-          {getSyncIcon()}
-          <span className="hidden sm:inline">{getSyncText()}</span>
-        </Button>
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-full border border-border/70 bg-card/70"
+              variant="outline"
+              size="icon-sm"
               aria-label="Open user menu"
             >
-              <User className="h-4 w-4" />
+              <User className="h-3.5 w-3.5" strokeWidth={1.5} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-semibold">My Account</DropdownMenuLabel>
+            <DropdownMenuLabel className="font-medium">
+              My Account
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             {isConnected ? (
               <>
-                <DropdownMenuItem className="cursor-pointer">Profile</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">Sync Settings</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  Sync Settings
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
                   Disconnect
@@ -182,7 +190,7 @@ export function Header({ title, className }: HeaderProps) {
               </>
             ) : (
               <DropdownMenuItem className="cursor-pointer">
-                <Cloud className="mr-2 h-4 w-4" />
+                <Cloud className="mr-2 h-4 w-4" strokeWidth={1.5} />
                 Connect Cloud Sync
               </DropdownMenuItem>
             )}

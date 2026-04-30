@@ -10,12 +10,10 @@ import {
   FileUp,
   PiggyBank,
   Shield,
-  Sparkles,
   TrendingUp,
   Users,
   Wallet,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -152,89 +150,135 @@ export default function LearnMorePage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden pb-16">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-10%] top-[-12%] h-[26rem] w-[26rem] rounded-full bg-primary/14 blur-3xl" />
-        <div className="absolute right-[-12%] top-[16%] h-[28rem] w-[28rem] rounded-full bg-accent/25 blur-3xl" />
-      </div>
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-fade-bottom opacity-25" />
 
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-10 sm:px-6 lg:px-8">
-        <Reveal className="space-y-4">
-          <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-primary">
-            <Sparkles className="h-3.5 w-3.5" />
-            SafeFlow Guide
-          </p>
-          <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
-            How to use SafeFlow, end to end
-          </h1>
-          <p className="max-w-3xl text-base text-muted-foreground sm:text-lg">
-            Click any card below to open a detailed walkthrough. Includes full local AI chat setup.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/overview">
-              <Button variant="premium" className="gap-2">
-                Open Dashboard
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <a
-              href="https://github.com/dipjyotimetia/SafeFlow/blob/main/docs/USER_GUIDE.md"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Button variant="outline">Open Full User Guide (Repo)</Button>
-            </a>
+        <header className="flex items-center justify-between">
+          <Link href="/" className="group flex items-center gap-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-[2px] border border-primary bg-primary/10 text-primary">
+              <span className="font-mono text-[10.5px] font-semibold tracking-[0.06em]">
+                SF
+              </span>
+            </div>
+            <div className="leading-none">
+              <div className="font-display text-[19px] tracking-tight">
+                SafeFlow
+              </div>
+              <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.22em] text-[--text-subtle]">
+                AU · Finance OS
+              </div>
+            </div>
+          </Link>
+          <Link href="/overview">
+            <Button variant="outline" size="sm">
+              Open Dashboard
+            </Button>
+          </Link>
+        </header>
+
+        <Reveal>
+          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+            <div className="scan-line" aria-hidden />
+            <div className="p-8 md:p-10">
+              <span className="eyebrow">// SafeFlow guide</span>
+              <h1 className="mt-4 max-w-3xl font-display text-[clamp(36px,5.4vw,60px)] tracking-tight leading-[0.95] text-balance">
+                How to use SafeFlow,{' '}
+                <span className="italic text-primary">end to end.</span>
+              </h1>
+              <p className="mt-6 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
+                Click any card below to open a detailed walkthrough. Includes
+                full local AI chat setup.
+              </p>
+              <div className="mt-7 flex flex-wrap gap-2">
+                <Link href="/overview">
+                  <Button>
+                    Open Dashboard
+                    <ArrowRight
+                      className="ml-1 h-3.5 w-3.5"
+                      strokeWidth={1.5}
+                    />
+                  </Button>
+                </Link>
+                <a
+                  href="https://github.com/dipjyotimetia/SafeFlow/blob/main/docs/USER_GUIDE.md"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Button variant="outline">Open User Guide (Repo)</Button>
+                </a>
+              </div>
+            </div>
+          </section>
+        </Reveal>
+
+        <Reveal delayMs={70}>
+          <div className="mb-3 flex items-center gap-3">
+            <span className="eyebrow">Walkthroughs</span>
+            <span className="hairline-v h-3" aria-hidden />
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[--text-subtle]">
+              {guideCards.length} guides
+            </span>
+          </div>
+          <div className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-3 lg:divide-x">
+            {guideCards.map((step, i) => (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => setActiveGuide(step)}
+                className={`card-trace relative p-6 text-left transition-colors hover:bg-muted/30 ${
+                  i >= 3 ? 'border-t border-border lg:border-t' : ''
+                }`}
+                aria-label={`Open guide details for ${step.title}`}
+              >
+                <div className="flex items-center justify-between">
+                  <step.icon
+                    className="h-4 w-4 text-primary"
+                    strokeWidth={1.5}
+                  />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[--text-subtle]">
+                    0{i + 1}
+                  </span>
+                </div>
+                <h3 className="mt-5 font-display text-lg tracking-tight">
+                  {step.title}
+                </h3>
+                <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                  {step.description}
+                </p>
+                <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-primary">
+                  // Open details →
+                </p>
+              </button>
+            ))}
           </div>
         </Reveal>
 
-        <Reveal className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" delayMs={70}>
-          {guideCards.map((step) => (
-            <button
-              key={step.id}
-              type="button"
-              onClick={() => setActiveGuide(step)}
-              className="text-left"
-              aria-label={`Open guide details for ${step.title}`}
-            >
-              <Card
-                variant="premium"
-                className="h-full cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium-lg"
-              >
-                <CardHeader className="pb-2">
-                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
-                    <step.icon className="h-5 w-5" />
-                  </div>
-                  <CardTitle className="text-lg">{step.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm leading-6">
-                    {step.description}
-                  </CardDescription>
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-[0.08em] text-primary">
-                    Click for details
-                  </p>
-                </CardContent>
-              </Card>
-            </button>
-          ))}
-        </Reveal>
-
         <Reveal delayMs={90}>
-          <Card variant="glass-luxury" className="border-primary/15">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Shield className="h-5 w-5 text-primary" />
-              Privacy and data ownership
-            </CardTitle>
-            <CardDescription>
-              Your data stays local by default. Backups and sync are optional.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>1. Export backups regularly from Settings before major changes.</p>
-            <p>2. If using cloud sync, set a strong encryption password and store it safely.</p>
-            <p>3. Review imported transactions before saving to maintain clean data quality.</p>
-          </CardContent>
-          </Card>
+          <section className="card-trace overflow-hidden rounded-md border border-border bg-card">
+            <div className="flex items-center gap-3 border-b border-border px-5 py-3">
+              <Shield
+                className="h-3.5 w-3.5 text-primary"
+                strokeWidth={1.5}
+              />
+              <span className="eyebrow">Privacy & data ownership</span>
+            </div>
+            <div className="p-5 space-y-2.5 text-[13px] text-muted-foreground">
+              <p>
+                <span className="text-primary">// </span>
+                Export backups regularly from Settings before major changes.
+              </p>
+              <p>
+                <span className="text-primary">// </span>
+                If using cloud sync, set a strong encryption password and store
+                it safely.
+              </p>
+              <p>
+                <span className="text-primary">// </span>
+                Review imported transactions before saving to maintain clean
+                data quality.
+              </p>
+            </div>
+          </section>
         </Reveal>
       </main>
 
@@ -245,14 +289,18 @@ export default function LearnMorePage() {
             <DialogDescription>{activeGuide?.description}</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2">
+          <div className="divide-y divide-border rounded-[2px] border border-border">
             {activeGuide?.details.map((detail, index) => (
               <div
                 key={`${activeGuide.id}-${index}`}
-                className="rounded-lg border border-border/60 bg-card/60 px-3 py-2 text-sm"
+                className="flex items-start gap-3 px-3 py-2"
               >
-                <span className="mr-2 font-semibold text-primary">{index + 1}.</span>
-                <span className="text-muted-foreground">{detail}</span>
+                <span className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
+                  0{index + 1}
+                </span>
+                <span className="flex-1 text-[13px] leading-relaxed text-muted-foreground">
+                  {detail}
+                </span>
               </div>
             ))}
           </div>

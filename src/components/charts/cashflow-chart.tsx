@@ -46,9 +46,9 @@ function CustomTooltip({
 }) {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-popover/95 backdrop-blur-xl border border-border/40 rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] animate-scale-in">
-        <p className="font-semibold text-sm mb-3 text-foreground">{label}</p>
-        <div className="space-y-2">
+      <div className="bg-popover border border-border rounded-sm p-3 animate-scale-in min-w-[180px]">
+        <p className="eyebrow mb-2.5">{label}</p>
+        <div className="space-y-1.5">
           {payload.map((entry) => (
             <div
               key={entry.dataKey}
@@ -56,10 +56,10 @@ function CustomTooltip({
             >
               <div className="flex items-center gap-2">
                 <span
-                  className="w-2 h-2 rounded-full"
+                  className="w-1.5 h-1.5 rounded-[1px]"
                   style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-sm text-muted-foreground">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[--text-subtle]">
                   {entry.dataKey === "income"
                     ? "Income"
                     : entry.dataKey === "expenses"
@@ -68,8 +68,7 @@ function CustomTooltip({
                 </span>
               </div>
               <span
-                className="text-sm font-semibold tabular-nums font-display"
-                style={{ color: entry.color }}
+                className="font-mono text-[12px] tabular-nums text-foreground"
               >
                 {formatAUD(entry.value * 100)}
               </span>
@@ -164,48 +163,49 @@ export function CashflowChart({
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend
-          wrapperStyle={{ fontSize: "12px" }}
+          wrapperStyle={{
+            fontSize: "10px",
+            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+            textTransform: "uppercase",
+            letterSpacing: "0.14em",
+            color: "var(--text-subtle)",
+          }}
           formatter={formatLegendValue}
         />
         <Bar
           dataKey="income"
           fill={`url(#${gradients.income.id})`}
-          radius={[6, 6, 0, 0]}
+          radius={[1, 1, 0, 0]}
           isAnimationActive={animationConfig.isAnimationActive}
           animationDuration={animationConfig.animationDuration}
           animationEasing={animationConfig.animationEasing}
-          className="drop-shadow-sm"
         />
         <Bar
           dataKey="expenses"
           fill={`url(#${gradients.expense.id})`}
-          radius={[6, 6, 0, 0]}
+          radius={[1, 1, 0, 0]}
           isAnimationActive={animationConfig.isAnimationActive}
           animationDuration={animationConfig.animationDuration}
           animationEasing={animationConfig.animationEasing}
-          className="drop-shadow-sm"
         />
         <Line
           type="monotone"
           dataKey="net"
-          stroke={`url(#${gradients.net.id})`}
-          strokeWidth={3}
+          stroke="var(--primary)"
+          strokeWidth={1.5}
           dot={{
-            fill: "oklch(0.55 0.18 265)",
-            strokeWidth: 2,
-            r: 5,
-            stroke: "white",
-            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.1))",
+            fill: "var(--primary)",
+            strokeWidth: 0,
+            r: 2.5,
           }}
           activeDot={{
-            r: 8,
-            fill: "oklch(0.55 0.18 265)",
-            stroke: "white",
-            strokeWidth: 3,
-            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))",
+            r: 4,
+            fill: "var(--primary)",
+            stroke: "var(--background)",
+            strokeWidth: 2,
           }}
           isAnimationActive={animationConfig.isAnimationActive}
-          animationDuration={animationConfig.animationDuration + 200} // Slight delay for line animation
+          animationDuration={animationConfig.animationDuration + 200}
           animationEasing={animationConfig.animationEasing}
         />
       </ComposedChart>

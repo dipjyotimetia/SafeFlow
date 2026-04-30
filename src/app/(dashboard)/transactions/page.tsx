@@ -16,7 +16,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -34,11 +33,11 @@ import { formatAUD } from "@/lib/utils/currency";
 import { useFamilyStore } from "@/stores/family.store";
 import { useTransactionStore } from "@/stores/transaction.store";
 import type { Transaction, TransactionType } from "@/types";
-import { ArrowRightLeft, Filter, Plus, Users } from "lucide-react";
+import { ArrowRightLeft, Plus, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { MetricCard } from "@/components/ui/metric-card";
 import { SkeletonTable } from "@/components/ui/skeleton";
+import { StatCell } from "@/components/ui/stat-cell";
 
 export default function TransactionsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -49,7 +48,9 @@ export default function TransactionsPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [memberFilter, setMemberFilter] = useState<string>("all");
-  const [tableDensity, setTableDensity] = useState<'comfortable' | 'compact'>('comfortable');
+  const [tableDensity, setTableDensity] = useState<
+    "comfortable" | "compact"
+  >("compact");
 
   const { selectedMemberId: globalMemberId } = useFamilyStore();
   const { members } = useFamilyMembers({ activeOnly: true });
@@ -85,179 +86,215 @@ export default function TransactionsPage() {
 
   const handleFormClose = (open: boolean) => {
     setIsFormOpen(open);
-    if (!open) {
-      setEditingTransaction(null);
-    }
+    if (!open) setEditingTransaction(null);
   };
 
   return (
     <>
       <Header title="Transactions" />
-      <div className="pb-10">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:px-8">
-          <Card variant="glass-luxury" className="border-primary/15 animate-enter">
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="pb-12">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
+          {/* Hero */}
+          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+            <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
               <div>
-                <CardTitle className="text-2xl">All Transactions</CardTitle>
-                <CardDescription>
-                  Filter, inspect, and manage your financial activity.
-                </CardDescription>
+                <span className="eyebrow">// All transactions</span>
+                <h1 className="mt-3 font-display text-3xl tracking-tight md:text-4xl">
+                  Filter, inspect, manage
+                </h1>
+                <p className="mt-2 max-w-prose text-[13px] text-muted-foreground">
+                  {transactions.length} record
+                  {transactions.length !== 1 ? "s" : ""} matching current
+                  filters.
+                </p>
               </div>
-              <Button className="h-9 gap-2" onClick={() => setIsFormOpen(true)}>
-                <Plus className="h-4 w-4" />
+              <Button onClick={() => setIsFormOpen(true)}>
+                <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
                 Add Transaction
               </Button>
-            </CardHeader>
-          </Card>
+            </div>
+          </section>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <MetricCard
-              title="This Month Income"
+          {/* Metric strip */}
+          <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
+            <StatCell
+              label="Income · MTD"
               value={formatAUD(totals.income)}
-              variant="positive"
+              tone="positive"
+              delay={0.05}
             />
-            <MetricCard
-              title="This Month Expenses"
+            <StatCell
+              label="Expenses · MTD"
               value={formatAUD(totals.expenses)}
-              variant="negative"
+              tone="negative"
+              delay={0.1}
             />
-            <MetricCard
-              title="Net Cashflow"
+            <StatCell
+              label="Net · MTD"
               value={`${totals.net >= 0 ? "+" : ""}${formatAUD(totals.net)}`}
-              variant={totals.net >= 0 ? "positive" : "negative"}
+              tone={totals.net >= 0 ? "positive" : "negative"}
+              delay={0.15}
             />
-          </div>
+          </section>
 
-          <Card variant="premium">
-            <CardContent className="pt-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="mr-1 flex items-center gap-2 text-sm text-muted-foreground">
-                  <Filter className="h-4 w-4" />
-                  Filter
-                </div>
+          {/* Filters bar */}
+          <section className="rounded-md border border-border bg-card">
+            <div className="flex items-center gap-3 border-b border-border px-5 py-2.5">
+              <span className="eyebrow">Filters</span>
+              <span className="hairline-v h-3" aria-hidden />
+              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                {transactions.length} matched
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 p-4">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="h-8 w-[140px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="income">Income</SelectItem>
+                  <SelectItem value="expense">Expense</SelectItem>
+                  <SelectItem value="transfer">Transfer</SelectItem>
+                </SelectContent>
+              </Select>
 
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="All Types" />
+              <Select value={accountFilter} onValueChange={setAccountFilter}>
+                <SelectTrigger className="h-8 w-[180px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+                  <SelectValue placeholder="All Accounts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Accounts</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {members.length > 0 && (
+                <Select value={memberFilter} onValueChange={setMemberFilter}>
+                  <SelectTrigger className="h-8 w-[160px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none">
+                    <SelectValue>
+                      {memberFilter === "all" ? (
+                        <div className="flex items-center gap-2">
+                          <Users
+                            className="h-3 w-3"
+                            strokeWidth={1.5}
+                          />
+                          <span>All Members</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{
+                              backgroundColor:
+                                members.find((m) => m.id === memberFilter)
+                                  ?.color || "#6b7280",
+                            }}
+                          />
+                          <span>
+                            {
+                              members.find((m) => m.id === memberFilter)
+                                ?.name
+                            }
+                          </span>
+                        </div>
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="expense">Expense</SelectItem>
-                    <SelectItem value="transfer">Transfer</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={accountFilter} onValueChange={setAccountFilter}>
-                  <SelectTrigger className="w-[190px]">
-                    <SelectValue placeholder="All Accounts" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Accounts</SelectItem>
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
+                    <SelectItem value="all">All Members</SelectItem>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: member.color }}
+                          />
+                          <span>{member.name}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-
-                {members.length > 0 && (
-                  <Select value={memberFilter} onValueChange={setMemberFilter}>
-                    <SelectTrigger className="w-[170px]">
-                      <SelectValue>
-                        {memberFilter === "all" ? (
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            <span>All Members</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="h-2.5 w-2.5 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  members.find((m) => m.id === memberFilter)
-                                    ?.color || "#6b7280",
-                              }}
-                            />
-                            <span>
-                              {members.find((m) => m.id === memberFilter)?.name}
-                            </span>
-                          </div>
-                        )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          <span>All Members</span>
-                        </div>
-                      </SelectItem>
-                      {members.map((member) => (
-                        <SelectItem key={member.id} value={member.id}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="h-2.5 w-2.5 rounded-full"
-                              style={{ backgroundColor: member.color }}
-                            />
-                            <span>{member.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-
-                <Select
-                  value={tableDensity}
-                  onValueChange={(value) =>
-                    setTableDensity(value as 'comfortable' | 'compact')
-                  }
-                >
-                  <SelectTrigger className="w-[150px]" aria-label="Select table density">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="comfortable">Comfortable</SelectItem>
-                    <SelectItem value="compact">Compact</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card variant="premium">
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="p-4">
-                  <SkeletonTable rows={8} />
-                </div>
-              ) : transactions.length > 0 ? (
-                <TransactionList
-                  transactions={transactions}
-                  onEdit={handleEdit}
-                  onDelete={setDeletingTransaction}
-                  density={tableDensity}
-                />
-              ) : (
-                <div className="py-14 text-center text-muted-foreground">
-                  <div className="mx-auto mb-4 w-fit rounded-2xl bg-muted/70 p-4">
-                    <ArrowRightLeft className="h-10 w-10 opacity-45" />
-                  </div>
-                  <p className="font-medium text-foreground">No transactions found</p>
-                  <p className="mt-1 text-sm">
-                    Add a transaction or import a bank statement.
-                  </p>
-                  <Button className="mt-4" onClick={() => setIsFormOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Transaction
-                  </Button>
-                </div>
               )}
-            </CardContent>
-          </Card>
+
+              <span className="ml-auto" />
+
+              <Select
+                value={tableDensity}
+                onValueChange={(v) =>
+                  setTableDensity(v as "comfortable" | "compact")
+                }
+              >
+                <SelectTrigger
+                  className="h-8 w-[140px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none"
+                  aria-label="Select table density"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="comfortable">Comfortable</SelectItem>
+                  <SelectItem value="compact">Compact</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </section>
+
+          {/* Ledger */}
+          <section className="overflow-hidden rounded-md border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border px-5 py-2.5">
+              <div className="flex items-center gap-3">
+                <span className="eyebrow">Ledger</span>
+                <span className="hairline-v h-3" aria-hidden />
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                  Sorted · Newest
+                </span>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="p-4">
+                <SkeletonTable rows={8} />
+              </div>
+            ) : transactions.length > 0 ? (
+              <TransactionList
+                transactions={transactions}
+                onEdit={handleEdit}
+                onDelete={setDeletingTransaction}
+                density={tableDensity}
+              />
+            ) : (
+              <div className="px-5 py-16 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+                  <ArrowRightLeft
+                    className="h-5 w-5 text-[--text-subtle]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <p className="font-display text-lg tracking-tight">
+                  No transactions found
+                </p>
+                <p className="mx-auto mt-2 max-w-xs text-[13px] text-muted-foreground">
+                  Add a transaction or import a bank statement.
+                </p>
+                <Button
+                  className="mt-5"
+                  size="sm"
+                  onClick={() => setIsFormOpen(true)}
+                >
+                  <Plus
+                    className="mr-1.5 h-3.5 w-3.5"
+                    strokeWidth={1.5}
+                  />
+                  Add Transaction
+                </Button>
+              </div>
+            )}
+          </section>
         </div>
       </div>
 

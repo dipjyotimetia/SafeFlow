@@ -14,7 +14,11 @@
 import type { PropertyAssumptions, PropertyCalculatedResults } from "@/types";
 import { calculateStampDuty } from "./stamp-duty";
 import { calculateLMI, calculateLVR } from "./lmi";
-import { calculateInterestOnlyRepayment } from "./loan-calculator";
+import {
+  calculateInterestOnlyRepayment,
+  calculatePrincipalInterestRepayment,
+  generateAmortizationSchedule,
+} from "./loan-calculator";
 import {
   calculateGrossYield,
   calculateNetYield,
@@ -50,6 +54,14 @@ export interface CashflowBreakdown {
   taxableIncome: number; // Can be negative for negatively geared
   taxBenefit: number; // Positive means tax refund from negative gearing
   cashflowAfterTax: number;
+}
+
+interface LoanRepaymentBreakdown {
+  monthlyLoanRepayment: number;
+  annualLoanRepayment: number;
+  annualPrincipalRepayment: number;
+  monthlyInterestPayment: number;
+  annualInterestPayment: number;
 }
 
 /**
@@ -196,6 +208,74 @@ export function calculateCashflowBreakdown(
   };
 }
 
+function calculateLoanRepaymentBreakdown(
+  loanAmount: number,
+  interestRate: number,
+  loanType: PropertyAssumptions["loanType"],
+  loanTermYears: number
+): LoanRepaymentBreakdown {
+  if (loanAmount <= 0 || loanTermYears <= 0) {
+    return {
+      monthlyLoanRepayment: 0,
+      annualLoanRepayment: 0,
+      annualPrincipalRepayment: 0,
+      monthlyInterestPayment: 0,
+      annualInterestPayment: 0,
+    };
+  }
+
+  if (loanType === "interest-only") {
+    const annualInterestPayment = calculateInterestOnlyRepayment(
+      loanAmount,
+      interestRate,
+      "annually"
+    );
+
+    return {
+      monthlyLoanRepayment: Math.round(annualInterestPayment / 12),
+      annualLoanRepayment: annualInterestPayment,
+      annualPrincipalRepayment: 0,
+      monthlyInterestPayment: Math.round(annualInterestPayment / 12),
+      annualInterestPayment,
+    };
+  }
+
+  const loanTermMonths = loanTermYears * 12;
+  const monthlyLoanRepayment = calculatePrincipalInterestRepayment(
+    loanAmount,
+    interestRate,
+    loanTermMonths,
+    "monthly"
+  );
+  const annualLoanRepayment = calculatePrincipalInterestRepayment(
+    loanAmount,
+    interestRate,
+    loanTermMonths,
+    "annually"
+  );
+  const firstYearSchedule = generateAmortizationSchedule(
+    loanAmount,
+    interestRate,
+    loanTermMonths
+  ).slice(0, 12);
+  const annualInterestPayment = firstYearSchedule.reduce(
+    (sum, entry) => sum + entry.interest,
+    0
+  );
+  const annualPrincipalRepayment = firstYearSchedule.reduce(
+    (sum, entry) => sum + entry.principal,
+    0
+  );
+
+  return {
+    monthlyLoanRepayment,
+    annualLoanRepayment,
+    annualPrincipalRepayment,
+    monthlyInterestPayment: Math.round(annualInterestPayment / 12),
+    annualInterestPayment,
+  };
+}
+
 /**
  * Calculate complete property model from assumptions
  *
@@ -226,6 +306,7 @@ export function calculatePropertyModel(
     marginalTaxRate,
     estimatedDepreciationYear1,
     legalFees: legalFeesOverride,
+    lmiOverride,
     stampDutyOverride,
     buildingInspection,
     pestInspection,
@@ -243,18 +324,20 @@ export function calculatePropertyModel(
     isFirstHomeBuyer,
     true // Investment property
   );
-  const stampDuty = stampDutyOverride || stampDutyResult.stampDuty;
+  const stampDuty = stampDutyOverride ?? stampDutyResult.stampDuty;
+  const transferFee = stampDutyResult.transferFee;
+  const mortgageRegistrationFee = stampDutyResult.mortgageRegistration;
 
   // Calculate LMI
   const lmiResult = calculateLMI(purchasePrice, loanAmountPreLMI);
-  const lmiAmount = lmiResult.lmiAmount;
+  const lmiAmount = lmiOverride ?? lmiResult.lmiAmount;
   const loanAmountPostLMI = loanAmountPreLMI + lmiAmount; // LMI capitalized
 
   // Calculate LVR
   const lvr = calculateLVR(loanAmountPostLMI, purchasePrice);
 
-  // Legal fees (default estimate if not provided)
-  const legalFees = legalFeesOverride || Math.round(purchasePrice * 0.002); // ~0.2% default
+  // Legal fees are user-entered to avoid hidden purchase-cost assumptions
+  const legalFees = legalFeesOverride ?? 0;
 
   // Other purchase costs
   const otherCosts =
@@ -264,15 +347,25 @@ export function calculatePropertyModel(
 
   // Total capital required
   const totalCapitalRequired =
-    depositAmount + stampDuty + legalFees + lmiAmount + otherCosts;
+    depositAmount +
+    stampDuty +
+    transferFee +
+    mortgageRegistrationFee +
+    legalFees +
+    otherCosts;
 
-  // Calculate annual interest payments
-  const annualInterestPayment = calculateInterestOnlyRepayment(
+  const {
+    monthlyLoanRepayment,
+    annualLoanRepayment,
+    annualPrincipalRepayment,
+    monthlyInterestPayment,
+    annualInterestPayment,
+  } = calculateLoanRepaymentBreakdown(
     loanAmountPostLMI,
     interestRate,
-    "annually"
+    assumptions.loanType,
+    assumptions.loanTermYears
   );
-  const monthlyInterestPayment = Math.round(annualInterestPayment / 12);
 
   // Calculate annual rental income (low and high scenarios)
   const annualRentalIncomeLow = weeklyRentLow * 52;
@@ -330,7 +423,7 @@ export function calculatePropertyModel(
     maintenance: maintenanceAnnual || 0,
     "pool-maintenance": poolMaintenanceAnnual || 0,
     "bank-fees": bankFeesAnnual || 0,
-    "interest-payments": annualInterestPayment,
+    "loan-repayments": annualLoanRepayment,
   };
 
   // Yield calculations
@@ -351,11 +444,11 @@ export function calculatePropertyModel(
   const cashflowBeforeTaxAnnuallyLow =
     annualRentalIncomeAfterVacancyLow -
     totalAnnualExpensesLow -
-    annualInterestPayment;
+    annualLoanRepayment;
   const cashflowBeforeTaxAnnuallyHigh =
     annualRentalIncomeAfterVacancyHigh -
     totalAnnualExpensesHigh -
-    annualInterestPayment;
+    annualLoanRepayment;
 
   // Weekly and monthly cashflow before tax
   const cashflowBeforeTaxWeeklyLow = Math.round(
@@ -374,9 +467,17 @@ export function calculatePropertyModel(
   // Depreciation
   const estimatedDepreciation = estimatedDepreciationYear1 || 0;
 
-  // Taxable income (includes depreciation as deduction)
-  const taxableIncomeLow = cashflowBeforeTaxAnnuallyLow - estimatedDepreciation;
-  const taxableIncomeHigh = cashflowBeforeTaxAnnuallyHigh - estimatedDepreciation;
+  // Taxable income uses deductible interest only; principal repayments are not deductible
+  const taxableIncomeLow =
+    annualRentalIncomeAfterVacancyLow -
+    totalAnnualExpensesLow -
+    annualInterestPayment -
+    estimatedDepreciation;
+  const taxableIncomeHigh =
+    annualRentalIncomeAfterVacancyHigh -
+    totalAnnualExpensesHigh -
+    annualInterestPayment -
+    estimatedDepreciation;
 
   // Tax benefit/liability
   const estimatedTaxBenefitLow =
@@ -421,6 +522,8 @@ export function calculatePropertyModel(
     // Capital Required
     depositAmount,
     stampDuty,
+    transferFee,
+    mortgageRegistrationFee,
     legalFees,
     lmiAmount,
     otherCosts,
@@ -432,6 +535,9 @@ export function calculatePropertyModel(
     lvr,
 
     // Interest Payments
+    monthlyLoanRepayment,
+    annualLoanRepayment,
+    annualPrincipalRepayment,
     monthlyInterestPayment,
     annualInterestPayment,
 
@@ -510,6 +616,10 @@ export function createDefaultAssumptions(
     waterRatesAnnual: 120000, // $1,200
     buildingInsuranceAnnual: 150000, // $1,500
     landlordInsuranceAnnual: 45000, // $450
+    legalFees: 0,
+    buildingInspection: 0,
+    pestInspection: 0,
+    otherPurchaseCosts: 0,
     marginalTaxRate: 39, // 2025-26 rate for $135,001 – $190,000 (inc 2% Medicare levy)
   };
 }

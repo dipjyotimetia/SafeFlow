@@ -3,6 +3,8 @@ import {
   calculateCashflowBreakdown,
   calculateManagementFee,
   calculateNegativeGearingBenefit,
+  calculatePropertyModel,
+  createDefaultAssumptions,
 } from "../property-cashflow";
 
 describe("Property Cashflow Calculator", () => {
@@ -163,6 +165,65 @@ describe("Property Cashflow Calculator", () => {
 
       expect(result.totalOperatingExpenses).toBe(0);
       expect(result.cashflowBeforeTax).toBe(3_120_000);
+    });
+  });
+
+  describe("calculatePropertyModel", () => {
+    it("excludes capitalised LMI from upfront capital required", () => {
+      const assumptions = {
+        ...createDefaultAssumptions(80_000_000),
+        depositPercent: 10,
+        legalFees: 0,
+        buildingInspection: 0,
+        pestInspection: 0,
+        otherPurchaseCosts: 0,
+      };
+
+      const result = calculatePropertyModel(assumptions);
+
+      expect(result.lmiAmount).toBeGreaterThan(0);
+      expect(result.totalCapitalRequired).toBe(
+        result.depositAmount +
+          result.stampDuty +
+          result.transferFee +
+          result.mortgageRegistrationFee
+      );
+    });
+
+    it("uses an explicit LMI override when provided", () => {
+      const assumptions = {
+        ...createDefaultAssumptions(80_000_000),
+        depositPercent: 10,
+        lmiOverride: 123_456,
+      };
+
+      const result = calculatePropertyModel(assumptions);
+
+      expect(result.lmiAmount).toBe(123_456);
+      expect(result.loanAmountPostLMI).toBe(
+        result.loanAmountPreLMI + assumptions.lmiOverride
+      );
+    });
+
+    it("uses principal-and-interest repayments for cashflow while taxing interest only", () => {
+      const assumptions = {
+        ...createDefaultAssumptions(60_000_000),
+        loanType: "principal-interest" as const,
+        depositPercent: 20,
+        weeklyRentLow: 60_000,
+        weeklyRentHigh: 60_000,
+        estimatedDepreciationYear1: 0,
+      };
+
+      const result = calculatePropertyModel(assumptions);
+
+      expect(result.annualPrincipalRepayment).toBeGreaterThan(0);
+      expect(result.annualLoanRepayment).toBeGreaterThan(
+        result.annualInterestPayment
+      );
+      expect(result.taxableIncomeLow - result.cashflowBeforeTaxAnnuallyLow).toBe(
+        result.annualPrincipalRepayment
+      );
     });
   });
 });

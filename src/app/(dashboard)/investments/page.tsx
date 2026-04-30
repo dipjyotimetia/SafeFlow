@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Header } from '@/components/layout/header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MetricCard } from '@/components/ui/metric-card';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -73,6 +72,7 @@ import { TopMovers } from '@/components/investments/top-movers';
 import { TransactionForm } from '@/components/investments/transaction-form';
 import { EditHoldingDialog } from '@/components/investments/edit-holding-dialog';
 import { isDateStale, ONE_HOUR_MS } from '@/lib/utils/date';
+import { StatCell } from '@/components/ui/stat-cell';
 
 // Check if prices are stale (older than 1 hour)
 function isPriceStale(lastUpdate: Date | undefined): boolean {
@@ -216,15 +216,23 @@ export default function InvestmentsPage() {
   return (
     <>
       <Header title="Investments" />
-      <div className="pb-10">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:px-8">
-          <Card variant="glass-luxury" className="border-primary/15 animate-enter">
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="pb-12">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
+          {/* Hero */}
+          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+            <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
               <div>
-                <CardTitle className="text-2xl">Investment Portfolio</CardTitle>
-                <CardDescription>
-                  Track stocks, ETFs, crypto, and performance trends.
-                </CardDescription>
+                <span className="eyebrow">// Investment portfolio</span>
+                <h1 className="mt-3 font-display text-3xl tracking-tight md:text-4xl">
+                  Stocks, ETFs, crypto
+                </h1>
+                <p className="mt-2 max-w-prose text-[13px] text-muted-foreground">
+                  {summary.holdingCount} holding
+                  {summary.holdingCount !== 1 ? 's' : ''} ·{' '}
+                  {lastPriceRefresh
+                    ? `Updated ${lastPriceRefresh.toLocaleTimeString()}`
+                    : 'Prices not yet fetched'}
+                </p>
               </div>
               <div className="hidden gap-2 sm:flex">
                 <Button
@@ -233,41 +241,47 @@ export default function InvestmentsPage() {
                   disabled={isRefreshingPrices || holdings.length === 0}
                 >
                   {isRefreshingPrices ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2
+                      className="h-3.5 w-3.5 animate-spin"
+                      strokeWidth={1.5}
+                    />
                   ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.5} />
                   )}
-                  Refresh Prices
+                  Refresh
                 </Button>
                 <Button onClick={() => setIsAddDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
                   Add Holding
                 </Button>
               </div>
-            </CardHeader>
-          </Card>
+            </div>
+          </section>
 
-        {/* Portfolio Summary */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <MetricCard
-            title="Total Value"
-            value={formatAUD(summary.totalValue)}
-            description={`${summary.holdingCount} holding${summary.holdingCount !== 1 ? 's' : ''}`}
-            variant="default"
-          />
-          <MetricCard
-            title="Total Cost Basis"
-            value={formatAUD(summary.totalCostBasis)}
-            description="Amount invested"
-            variant="default"
-          />
-          <MetricCard
-            title="Unrealized Gain/Loss"
-            value={`${summary.totalGainLoss >= 0 ? '+' : ''}${formatAUD(summary.totalGainLoss)}`}
-            description={`${summary.gainLossPercent >= 0 ? '+' : ''}${summary.gainLossPercent.toFixed(2)}% return`}
-            variant={summary.totalGainLoss >= 0 ? 'positive' : 'negative'}
-          />
-        </div>
+          {/* Metric strip */}
+          <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
+            <StatCell
+              label="Total Value"
+              value={formatAUD(summary.totalValue)}
+              sublabel={`${summary.holdingCount} holdings`}
+              tone="neutral"
+              delay={0.05}
+            />
+            <StatCell
+              label="Cost Basis"
+              value={formatAUD(summary.totalCostBasis)}
+              sublabel="Amount invested"
+              tone="neutral"
+              delay={0.1}
+            />
+            <StatCell
+              label="Unrealized P&L"
+              value={`${summary.totalGainLoss >= 0 ? '+' : ''}${formatAUD(summary.totalGainLoss)}`}
+              sublabel={`${summary.gainLossPercent >= 0 ? '+' : ''}${summary.gainLossPercent.toFixed(2)}% return`}
+              tone={summary.totalGainLoss >= 0 ? 'positive' : 'negative'}
+              delay={0.15}
+            />
+          </section>
 
         <div className="flex gap-2 sm:hidden">
             <Button
@@ -301,53 +315,55 @@ export default function InvestmentsPage() {
           </div>
         )}
 
-        {/* Holdings Table */}
-        <Card variant="premium">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Holdings</CardTitle>
-                <CardDescription className="flex items-center gap-2">
-                  Your investment positions
-                  {lastPriceRefresh && (
-                    <span className="text-xs">
-                      (Last updated: {lastPriceRefresh.toLocaleTimeString()})
-                    </span>
-                  )}
-                  {hasStaleData && !isRefreshingPrices && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center gap-1 text-xs text-warning">
-                            <AlertCircle className="h-3 w-3" />
-                            Stale
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Some prices are over 1 hour old. Refresh to update.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </CardDescription>
-              </div>
-              <Select
-                value={tableDensity}
-                onValueChange={(value) =>
-                  setTableDensity(value as 'comfortable' | 'compact')
-                }
-              >
-                <SelectTrigger className="w-[150px]" aria-label="Select table density">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="comfortable">Comfortable</SelectItem>
-                  <SelectItem value="compact">Compact</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* Holdings Quote-board */}
+        <Card variant="default" className="card-trace overflow-hidden p-0">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3">
+            <div className="flex items-center gap-3">
+              <span className="eyebrow">Holdings</span>
+              <span className="hairline-v h-3" aria-hidden />
+              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                Quote-board
+              </span>
+              {hasStaleData && !isRefreshingPrices && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-warning">
+                        <AlertCircle
+                          className="h-3 w-3"
+                          strokeWidth={1.5}
+                        />
+                        Stale
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Some prices are over 1 hour old. Refresh to update.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
-          </CardHeader>
-          <CardContent>
+            <Select
+              value={tableDensity}
+              onValueChange={(value) =>
+                setTableDensity(value as 'comfortable' | 'compact')
+              }
+            >
+              <SelectTrigger
+                className="h-8 w-[130px] rounded-sm border border-border bg-transparent font-mono text-[11px] uppercase tracking-[0.1em] shadow-none"
+                aria-label="Select table density"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="comfortable">Comfortable</SelectItem>
+                <SelectItem value="compact">Compact</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <CardContent className="px-0">
             {isLoading ? (
               <div className="py-6">
                 <div className="space-y-2">
@@ -403,12 +419,18 @@ export default function InvestmentsPage() {
                       >
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {getTypeIcon(holding.type)}
+                            <span className="text-[--text-subtle]">
+                              {getTypeIcon(holding.type)}
+                            </span>
                             <div>
-                              <p className="font-medium">{holding.symbol}</p>
-                              <p className="text-xs text-muted-foreground">{holding.name}</p>
+                              <p className="font-mono text-[12px] font-medium tracking-wide">
+                                {holding.symbol}
+                              </p>
+                              <p className="truncate text-[11px] text-muted-foreground">
+                                {holding.name}
+                              </p>
                             </div>
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="outline">
                               {holding.type.toUpperCase()}
                             </Badge>
                           </div>
@@ -416,50 +438,64 @@ export default function InvestmentsPage() {
                         <TableCell className="text-center">
                           <PriceSparkline data={priceHistory} />
                         </TableCell>
-                        <TableCell className="text-right font-mono">
+                        <TableCell className="text-right font-mono text-[12px] tabular-nums">
                           {holding.units.toLocaleString(undefined, {
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 8,
                           })}
                         </TableCell>
-                        <TableCell className="text-right">
-                          {holding.currentPrice ? formatAUD(holding.currentPrice) : '-'}
+                        <TableCell className="text-right font-mono text-[12px] tabular-nums">
+                          {holding.currentPrice
+                            ? formatAUD(holding.currentPrice)
+                            : '—'}
                         </TableCell>
                         <TableCell className="text-right">
                           {holding.change24hPercent !== undefined ? (
                             <span
                               className={cn(
-                                'text-sm font-medium',
-                                holding.change24hPercent >= 0 ? 'text-success' : 'text-destructive'
+                                'font-mono text-[12px] tabular-nums font-medium',
+                                holding.change24hPercent >= 0
+                                  ? 'text-positive'
+                                  : 'text-negative',
                               )}
                             >
                               {holding.change24hPercent >= 0 ? '+' : ''}
                               {holding.change24hPercent.toFixed(2)}%
                             </span>
                           ) : (
-                            '-'
+                            '—'
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {holding.currentValue ? formatAUD(holding.currentValue) : '-'}
+                        <TableCell className="text-right font-mono text-[13px] tabular-nums font-medium">
+                          {holding.currentValue
+                            ? formatAUD(holding.currentValue)
+                            : '—'}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right font-mono text-[12px] tabular-nums text-[--text-subtle]">
                           {formatAUD(holding.costBasis)}
                         </TableCell>
                         <TableCell className="text-right">
                           <div
                             className={cn(
-                              'flex items-center justify-end gap-1',
-                              gainLoss >= 0 ? 'text-success' : 'text-destructive'
+                              'flex items-center justify-end gap-1 font-mono text-[12px] tabular-nums font-medium',
+                              gainLoss >= 0 ? 'text-positive' : 'text-negative',
                             )}
                           >
                             {gainLoss >= 0 ? (
-                              <TrendingUp className="h-4 w-4" />
+                              <TrendingUp
+                                className="h-3 w-3"
+                                strokeWidth={1.5}
+                              />
                             ) : (
-                              <TrendingDown className="h-4 w-4" />
+                              <TrendingDown
+                                className="h-3 w-3"
+                                strokeWidth={1.5}
+                              />
                             )}
                             <span>{formatAUD(Math.abs(gainLoss))}</span>
-                            <span className="text-xs">({gainLossPercent.toFixed(1)}%)</span>
+                            <span className="text-[10px] text-[--text-subtle]">
+                              ({gainLossPercent.toFixed(1)}%)
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -502,12 +538,25 @@ export default function InvestmentsPage() {
                 </TableBody>
               </Table>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <TrendingUp className="h-12 w-12 mx-auto mb-4" />
-                <p>No holdings yet</p>
-                <p className="text-sm mt-1">Add your first investment to get started</p>
-                <Button className="mt-4" onClick={() => setIsAddDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
+              <div className="px-5 py-16 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+                  <TrendingUp
+                    className="h-5 w-5 text-[--text-subtle]"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <p className="font-display text-lg tracking-tight">
+                  No holdings yet
+                </p>
+                <p className="mx-auto mt-2 max-w-xs text-[13px] text-muted-foreground">
+                  Add your first investment to get started.
+                </p>
+                <Button
+                  className="mt-5"
+                  size="sm"
+                  onClick={() => setIsAddDialogOpen(true)}
+                >
+                  <Plus className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.5} />
                   Add Holding
                 </Button>
               </div>

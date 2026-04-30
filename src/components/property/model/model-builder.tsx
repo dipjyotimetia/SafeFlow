@@ -13,6 +13,18 @@ import { usePropertyStore } from "@/stores/property.store";
 import { Save, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
+function normalizeLoanType(
+  assumptions: PropertyAssumptions
+): PropertyAssumptions {
+  return {
+    ...assumptions,
+    loanType:
+      assumptions.loanType === "interest-only"
+        ? "interest-only"
+        : "principal-interest",
+  };
+}
+
 interface ModelBuilderProps {
   initialAssumptions?: PropertyAssumptions;
   propertyId?: string;
@@ -27,7 +39,7 @@ export function ModelBuilder({
   onSave,
 }: ModelBuilderProps) {
   const [assumptions, setAssumptions] = useState<PropertyAssumptions>(
-    initialAssumptions || createDefaultAssumptions()
+    normalizeLoanType(initialAssumptions || createDefaultAssumptions())
   );
   const [isSaving, setIsSaving] = useState(false);
 
@@ -40,13 +52,13 @@ export function ModelBuilder({
 
   const handleAssumptionsChange = useCallback(
     (newAssumptions: PropertyAssumptions) => {
-      setAssumptions(newAssumptions);
+      setAssumptions(normalizeLoanType(newAssumptions));
     },
     []
   );
 
   const handleReset = useCallback(() => {
-    setAssumptions(createDefaultAssumptions());
+    setAssumptions(normalizeLoanType(createDefaultAssumptions()));
   }, []);
 
   const handleSave = useCallback(async () => {

@@ -4,21 +4,15 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "text-card-foreground flex flex-col gap-6 rounded-2xl border py-6 transition-all duration-300",
+  "text-card-foreground flex flex-col gap-6 rounded-md border py-6 transition-colors duration-200",
   {
     variants: {
       variant: {
-        default: "bg-card border-border/70 shadow-premium hover:shadow-premium-lg",
-        gradient: "gradient-card border-border/70 shadow-premium hover:shadow-premium-lg",
-        glass: "glass border-border/70 shadow-premium hover:shadow-premium-lg",
-        "glass-luxury": "glass-luxury border-border/70 shadow-premium-lg hover:-translate-y-0.5",
-        elevated: "bg-card border-border/70 shadow-premium-lg hover:-translate-y-0.5",
-        luxury:
-          "bg-linear-to-b from-card to-card/90 border-border/70 shadow-premium-lg hover:-translate-y-0.5",
-        premium:
-          "bg-linear-to-b from-card to-card/92 border-border/70 shadow-premium hover:shadow-premium-lg hover:-translate-y-0.5",
-        floating:
-          "bg-card border-border/70 shadow-premium-lg hover:shadow-[0_24px_50px_oklch(0.16_0.02_236_/_0.2)] hover:-translate-y-1 animate-float-slow",
+        default: "bg-card border-border",
+        surface: "bg-surface-2 border-border",
+        outline: "bg-transparent border-border",
+        // `premium` retained — settings page and a few others still use it.
+        premium: "bg-card border-border",
       },
     },
     defaultVariants: {
@@ -58,7 +52,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold tracking-tight", className)}
+      className={cn("leading-tight font-medium tracking-tight", className)}
       {...props}
     />
   );

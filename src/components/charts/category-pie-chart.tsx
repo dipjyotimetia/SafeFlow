@@ -46,32 +46,30 @@ function CustomTooltip({
   if (active && payload && payload.length) {
     const item = payload[0].payload;
     return (
-      <div className="bg-popover/95 backdrop-blur-xl border border-border/40 rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] min-w-[160px] animate-scale-in">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="bg-popover border border-border rounded-sm p-3 min-w-[180px] animate-scale-in">
+        <div className="flex items-center gap-2 mb-2.5">
           <span
-            className="h-3 w-3 rounded-full shadow-sm"
+            className="h-1.5 w-1.5 rounded-[1px]"
             style={{ backgroundColor: item.fill }}
           />
-          <p className="font-semibold text-sm">{item.categoryName}</p>
+          <p className="eyebrow">{item.categoryName}</p>
         </div>
-        <div className="space-y-1.5">
-          <p className="text-xl font-bold tabular-nums font-display">
-            {formatAUD(item.amount * 100)}
-          </p>
-          <div className="flex items-center gap-1.5">
-            <div className="h-1.5 rounded-full flex-1 bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${item.percentage}%`,
-                  backgroundColor: item.fill,
-                }}
-              />
-            </div>
-            <span className="text-sm text-muted-foreground font-medium">
-              {item.percentage.toFixed(1)}%
-            </span>
+        <p className="display-number text-2xl tabular-nums">
+          {formatAUD(item.amount * 100)}
+        </p>
+        <div className="mt-2.5 flex items-center gap-2">
+          <div className="h-1 flex-1 bg-muted overflow-hidden rounded-[1px]">
+            <div
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${item.percentage}%`,
+                backgroundColor: item.fill,
+              }}
+            />
           </div>
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[--text-subtle]">
+            {item.percentage.toFixed(1)}%
+          </span>
         </div>
       </div>
     );
@@ -116,7 +114,7 @@ export function CategoryPieChart({
       categoryId: "other",
       categoryName: "Other",
       amount: otherTotal / 100,
-      fill: "oklch(0.65 0.02 160)", // muted teal
+      fill: "oklch(0.45 0.005 240)", // mono dim
       percentage: total > 0 ? (otherTotal / total) * 100 : 0,
     });
   }
@@ -164,24 +162,17 @@ export function CategoryPieChart({
                 <Cell
                   key={`cell-${index}`}
                   fill={entry.fill}
+                  stroke="var(--background)"
+                  strokeWidth={1}
                   style={{
                     cursor: interactive ? "pointer" : "default",
-                    transition: "all 0.2s ease-out",
+                    transition: "opacity 0.18s ease-out",
                     opacity:
                       !interactive ||
                       activeIndex === null ||
                       activeIndex === index
                         ? 1
-                        : 0.5,
-                    transform:
-                      interactive && activeIndex === index
-                        ? "scale(1.05)"
-                        : "scale(1)",
-                    transformOrigin: "center",
-                    filter:
-                      interactive && activeIndex === index
-                        ? "drop-shadow(0 4px 6px rgba(0,0,0,0.15))"
-                        : "none",
+                        : 0.35,
                   }}
                 />
               ))}
@@ -189,13 +180,11 @@ export function CategoryPieChart({
             <Tooltip content={<CustomTooltip />} />
           </PieChart>
         </ResponsiveContainer>
-        {/* Center label showing total - positioned absolutely */}
+        {/* Center label showing total. */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center bg-card/80 backdrop-blur-sm rounded-full px-3 py-2 shadow-sm border border-border/20">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-              Total
-            </p>
-            <p className="text-base font-bold tabular-nums font-display">
+          <div className="text-center">
+            <p className="eyebrow">Total</p>
+            <p className="mt-1 display-number text-xl tabular-nums">
               {formatAUD(total)}
             </p>
           </div>
@@ -204,20 +193,16 @@ export function CategoryPieChart({
 
       {/* Custom legend with percentages */}
       {showLegend && (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs px-2 pt-3 max-h-[90px] overflow-y-auto">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 px-2 pt-3 max-h-[90px] overflow-y-auto">
           {chartData.map((entry, index) => (
             <div
               key={entry.categoryId}
-              className={`flex items-center justify-between gap-2 py-1 px-1.5 rounded-md transition-all duration-200 ${
+              className={`flex items-center justify-between gap-2 py-0.5 px-1 transition-opacity duration-150 ${
                 interactive ? "cursor-pointer" : ""
               } ${
                 !interactive || activeIndex === null || activeIndex === index
                   ? "opacity-100"
                   : "opacity-40"
-              } ${
-                interactive && activeIndex === index
-                  ? "bg-accent/50"
-                  : "hover:bg-accent/30"
               }`}
               onMouseEnter={
                 interactive ? () => setActiveIndex(index) : undefined
@@ -235,14 +220,14 @@ export function CategoryPieChart({
             >
               <div className="flex items-center gap-2 min-w-0">
                 <span
-                  className="h-2.5 w-2.5 rounded-full shrink-0 shadow-sm"
+                  className="h-1.5 w-1.5 rounded-[1px] shrink-0"
                   style={{ backgroundColor: entry.fill }}
                 />
-                <span className="text-muted-foreground truncate font-medium">
+                <span className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-[--text-subtle]">
                   {entry.categoryName}
                 </span>
               </div>
-              <span className="font-semibold text-foreground shrink-0 tabular-nums">
+              <span className="font-mono text-[11px] tabular-nums text-foreground shrink-0">
                 {entry.percentage.toFixed(0)}%
               </span>
             </div>

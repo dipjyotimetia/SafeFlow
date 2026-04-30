@@ -11,7 +11,6 @@ import {
   Landmark,
   Calculator,
   Settings,
-  Shield,
   Menu,
   X,
   PiggyBank,
@@ -19,10 +18,11 @@ import {
   Building2,
   Lock,
   Activity,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 const navSections = [
   {
@@ -63,64 +63,87 @@ const navSections = [
 export function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-
-  const activePath = useMemo(() => pathname ?? '', [pathname]);
+  const activePath = pathname ?? '';
 
   return (
     <>
       <Button
-        variant="glass"
+        variant="outline"
         size="icon"
-        className="fixed left-4 top-4 z-50 md:hidden shadow-premium"
+        className="fixed left-4 top-4 z-50 md:hidden"
         onClick={() => setIsOpen((open) => !open)}
         aria-label="Toggle navigation"
       >
-        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        {isOpen ? (
+          <X className="h-5 w-5" strokeWidth={1.5} />
+        ) : (
+          <Menu className="h-5 w-5" strokeWidth={1.5} />
+        )}
       </Button>
 
       {isOpen && (
         <button
           type="button"
           aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-background/85 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 h-screen w-72 border-r border-sidebar-border/70 bg-sidebar/95 backdrop-blur-xl transition-transform duration-300',
+          'fixed left-0 top-0 z-40 h-screen w-[240px] border-r border-border bg-sidebar transition-transform duration-300',
           'md:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
         <div className="flex h-full flex-col">
-          <div className="relative border-b border-sidebar-border/80 px-6 py-5">
-            <div className="absolute inset-0 bg-linear-to-r from-primary/12 via-transparent to-accent/20" />
-            <div className="relative flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-primary/80 text-primary-foreground shadow-[0_12px_26px_-14px_var(--primary)]">
-                <Shield className="h-5 w-5" />
+          {/* Brand */}
+          <div className="border-b border-border px-5 py-5">
+            <Link
+              href="/overview"
+              className="group flex items-center gap-3"
+              onClick={() => setIsOpen(false)}
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-[2px] border border-primary bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+                <span className="font-mono text-[10.5px] font-semibold tracking-[0.06em]">
+                  SF
+                </span>
               </div>
-              <div>
-                <h1 className="text-lg font-semibold tracking-tight">SafeFlow</h1>
-                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  AU Finance OS
-                </p>
+              <div className="leading-none">
+                <div className="font-display text-[19px] tracking-tight text-foreground">
+                  SafeFlow
+                </div>
+                <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.22em] text-[--text-subtle]">
+                  AU · Finance OS
+                </div>
               </div>
-            </div>
+            </Link>
           </div>
 
-          <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
+          {/* Status row */}
+          <div className="flex items-center justify-between border-b border-border px-5 py-2">
+            <div className="flex items-center gap-2">
+              <span className="live-dot" />
+              <span className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-[--text-subtle]">
+                Live
+              </span>
+            </div>
+            <span className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-[--text-subtle]">
+              v0.1
+            </span>
+          </div>
+
+          {/* Nav */}
+          <nav className="flex-1 overflow-y-auto px-2 py-4">
             {navSections.map((section, sectionIndex) => (
               <section
                 key={section.title}
-                className="animate-enter"
-                style={{ animationDelay: `${sectionIndex * 0.06}s` }}
+                className="mb-5 animate-enter-fast"
+                style={{ animationDelay: `${sectionIndex * 0.05}s` }}
               >
-                <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/85">
-                  {section.title}
-                </p>
-                <div className="space-y-1">
+                <p className="eyebrow mb-2 px-3">{section.title}</p>
+                <div>
                   {section.items.map((item) => {
                     const isActive =
                       activePath === item.href ||
@@ -132,31 +155,38 @@ export function Sidebar() {
                         href={item.href}
                         onClick={() => setIsOpen(false)}
                         className={cn(
-                          'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                          'group relative flex items-center gap-3 px-3 py-[7px] text-[13px] transition-colors duration-150',
                           isActive
-                            ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-premium'
-                            : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground',
+                            ? 'text-primary'
+                            : 'text-foreground/75 hover:bg-muted/40 hover:text-foreground',
                         )}
                       >
                         {isActive && (
-                          <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary-foreground/75" />
+                          <span
+                            aria-hidden
+                            className="absolute left-0 top-1 bottom-1 w-[2px] bg-primary animate-rail"
+                          />
                         )}
                         <span
                           className={cn(
-                            'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200',
-                            isActive
-                              ? 'bg-sidebar-primary-foreground/15'
-                              : 'bg-muted/60 group-hover:bg-sidebar-accent',
+                            'absolute left-0 top-1 bottom-1 w-[2px] bg-foreground/30 opacity-0 transition-opacity duration-150',
+                            !isActive && 'group-hover:opacity-100',
                           )}
-                        >
-                          <item.icon
-                            className={cn(
-                              'h-4 w-4 transition-transform duration-200',
-                              !isActive && 'group-hover:scale-110',
-                            )}
-                          />
+                          aria-hidden
+                        />
+                        <item.icon
+                          className="h-3.5 w-3.5 shrink-0"
+                          strokeWidth={1.5}
+                        />
+                        <span className="truncate font-medium">
+                          {item.title}
                         </span>
-                        <span className="truncate">{item.title}</span>
+                        {isActive && (
+                          <ChevronRight
+                            className="ml-auto h-3 w-3 opacity-60"
+                            strokeWidth={1.5}
+                          />
+                        )}
                       </Link>
                     );
                   })}
@@ -165,17 +195,16 @@ export function Sidebar() {
             ))}
           </nav>
 
-          <div className="border-t border-sidebar-border/80 p-4">
-            <div className="rounded-2xl border border-sidebar-border/70 bg-card/65 p-3 shadow-premium">
-              <p className="text-xs font-semibold text-foreground">Private Mode Active</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Data never leaves your device.
-              </p>
-              <div className="mt-2 flex items-center gap-1.5 text-[11px] text-success">
-                <Lock className="h-3 w-3" />
-                Local encrypted storage
-              </div>
+          {/* Footer */}
+          <div className="border-t border-border px-5 py-4">
+            <div className="flex items-center gap-2 font-mono text-[9.5px] uppercase tracking-[0.2em] text-[--text-subtle]">
+              <Lock className="h-3 w-3" strokeWidth={1.5} />
+              <span>Local · Encrypted</span>
             </div>
+            <div className="hairline mt-3" />
+            <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+              Your data never leaves this device.
+            </p>
           </div>
         </div>
       </aside>

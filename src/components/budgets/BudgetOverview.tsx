@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { Plus, Wallet } from 'lucide-react';
 import { BudgetCard } from './BudgetCard';
 import { BudgetFormDialog } from './BudgetFormDialog';
 import { useAllBudgetProgress } from '@/hooks/use-budgets';
@@ -21,12 +20,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MetricCard } from '@/components/ui/metric-card';
-import { SkeletonCard, SkeletonMetricCards } from '@/components/ui/skeleton';
+import { SkeletonCard } from '@/components/ui/skeleton';
+import { StatCell } from '@/components/ui/stat-cell';
+import { formatAUD } from '@/lib/utils/currency';
 
 export function BudgetOverview() {
   const { selectedMemberId } = useFamilyStore();
-  const { progress, isLoading } = useAllBudgetProgress(selectedMemberId ?? undefined);
+  const { progress, isLoading } = useAllBudgetProgress(
+    selectedMemberId ?? undefined,
+  );
   const { deleteBudget } = useBudgetStore();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,17 +36,12 @@ export function BudgetOverview() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [budgetToDelete, setBudgetToDelete] = useState<Budget | null>(null);
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-AU', {
-      style: 'currency',
-      currency: 'AUD',
-    }).format(cents / 100);
-  };
-
   const totalBudgeted = progress.reduce((sum, p) => sum + p.budget.amount, 0);
   const totalSpent = progress.reduce((sum, p) => sum + p.spent, 0);
   const totalRemaining = totalBudgeted - totalSpent;
   const overBudgetCount = progress.filter((p) => p.isOverBudget).length;
+  const usedPct =
+    totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0;
 
   const handleEdit = (budget: Budget) => {
     setEditingBudget(budget);
@@ -67,18 +64,20 @@ export function BudgetOverview() {
 
   const handleDialogClose = (open: boolean) => {
     setDialogOpen(open);
-    if (!open) {
-      setEditingBudget(null);
-    }
+    if (!open) setEditingBudget(null);
   };
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <SkeletonMetricCards count={4} className="md:grid-cols-2 xl:grid-cols-4" />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <SkeletonCard key={index} />
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-[110px]" />
+          ))}
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} />
           ))}
         </div>
       </div>
@@ -86,77 +85,89 @@ export function BudgetOverview() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          title="Total Budgeted"
-          value={formatCurrency(totalBudgeted)}
-          description={`${progress.length} active budget${progress.length !== 1 ? 's' : ''}`}
-          icon={Wallet}
-          variant="default"
+    <div className="space-y-5">
+      {/* Metric strip */}
+      <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+        <StatCell
+          label="Budgeted"
+          value={formatAUD(totalBudgeted)}
+          sublabel={`${progress.length} active`}
+          tone="neutral"
+          delay={0.05}
         />
-
-        <MetricCard
-          title="Total Spent"
-          value={formatCurrency(totalSpent)}
-          description={`${totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0}% of budget`}
-          icon={TrendingDown}
-          trend="down"
-          variant="default"
+        <StatCell
+          label="Spent"
+          value={formatAUD(totalSpent)}
+          sublabel={`${usedPct}% of budget`}
+          tone={usedPct > 100 ? 'negative' : 'neutral'}
+          delay={0.1}
         />
-
-        <MetricCard
-          title="Remaining"
-          value={formatCurrency(totalRemaining)}
-          description={totalRemaining >= 0 ? 'Under budget' : 'Over budget'}
-          icon={TrendingUp}
-          trend={totalRemaining >= 0 ? 'up' : 'down'}
-          variant={totalRemaining >= 0 ? 'positive' : 'negative'}
+        <StatCell
+          label="Remaining"
+          value={formatAUD(totalRemaining)}
+          sublabel={totalRemaining >= 0 ? 'Under budget' : 'Over budget'}
+          tone={totalRemaining >= 0 ? 'positive' : 'negative'}
+          delay={0.15}
         />
-
-        <MetricCard
-          title="Over Budget"
+        <StatCell
+          label="Over Budget"
           value={String(overBudgetCount)}
-          description={overBudgetCount === 0 ? 'All on track' : 'budgets exceeded'}
-          icon={TrendingDown}
-          variant={overBudgetCount > 0 ? 'negative' : 'positive'}
+          sublabel={overBudgetCount === 0 ? 'All on track' : 'exceeded'}
+          tone={overBudgetCount > 0 ? 'negative' : 'positive'}
+          delay={0.2}
         />
-      </div>
+      </section>
 
-      <Card variant="premium">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Your Budgets</CardTitle>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Budget
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {progress.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground">
-              <div className="mx-auto mb-4 w-fit rounded-2xl bg-muted/70 p-4">
-                <Wallet className="h-10 w-10 opacity-45" />
-              </div>
-              <p className="font-medium text-foreground">No budgets yet</p>
-              <p className="mt-1 text-sm">Create your first budget to start tracking spending.</p>
+      {/* Budgets grid */}
+      <section className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="eyebrow">Your budgets</span>
+          <span className="hairline-v h-3" aria-hidden />
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[--text-subtle]">
+            {progress.length} record{progress.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+          New Budget
+        </Button>
+      </section>
+
+      {progress.length === 0 ? (
+        <div className="rounded-md border border-border bg-card px-5 py-16 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+            <Wallet
+              className="h-5 w-5 text-[--text-subtle]"
+              strokeWidth={1.5}
+            />
+          </div>
+          <p className="font-display text-lg tracking-tight">
+            No budgets yet
+          </p>
+          <p className="mx-auto mt-2 max-w-xs text-[13px] text-muted-foreground">
+            Create your first budget to start tracking spending.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {progress.map((p, i) => (
+            <div
+              key={p.budget.id}
+              className="animate-enter-fast"
+              style={{ animationDelay: `${0.04 * i}s` }}
+            >
+              <BudgetCard
+                progress={p}
+                onEdit={() => handleEdit(p.budget)}
+                onDelete={() => {
+                  setBudgetToDelete(p.budget);
+                  setDeleteDialogOpen(true);
+                }}
+              />
             </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {progress.map((p) => (
-                <BudgetCard
-                  key={p.budget.id}
-                  progress={p}
-                  onEdit={() => handleEdit(p.budget)}
-                  onDelete={() => {
-                    setBudgetToDelete(p.budget);
-                    setDeleteDialogOpen(true);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      )}
 
       <BudgetFormDialog
         open={dialogOpen}
@@ -165,18 +176,24 @@ export function BudgetOverview() {
         defaultMemberId={selectedMemberId}
       />
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Budget</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &quot;{budgetToDelete?.name}&quot;? This action cannot
-              be undone.
+              Are you sure you want to delete &quot;{budgetToDelete?.name}
+              &quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

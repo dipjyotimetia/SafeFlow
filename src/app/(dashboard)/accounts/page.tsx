@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Header } from '@/components/layout/header';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -22,8 +21,8 @@ import { useFamilyStore } from '@/stores/family.store';
 import { formatAUD } from '@/lib/utils/currency';
 import type { Account } from '@/types';
 import { toast } from 'sonner';
-import { MetricCard } from '@/components/ui/metric-card';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { StatCell } from '@/components/ui/stat-cell';
 
 export default function AccountsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -55,51 +54,67 @@ export default function AccountsPage() {
 
   const handleFormClose = (open: boolean) => {
     setIsFormOpen(open);
-    if (!open) {
-      setEditingAccount(null);
-    }
+    if (!open) setEditingAccount(null);
   };
 
   return (
     <>
       <Header title="Accounts" />
-      <div className="pb-10">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:px-8">
-          <Card variant="glass-luxury" className="border-primary/15 animate-enter">
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="pb-12">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
+          {/* Hero */}
+          <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+            <div className="flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
               <div>
-                <CardTitle className="text-2xl">Your Accounts</CardTitle>
-                <CardDescription>
-                  Manage bank accounts, cards, investments, and liabilities.
-                </CardDescription>
+                <span className="eyebrow">// Your accounts</span>
+                <h1 className="mt-3 font-display text-3xl tracking-tight md:text-4xl">
+                  Bank, cards, investments, debt
+                </h1>
+                <p className="mt-2 max-w-prose text-[13px] text-muted-foreground">
+                  {accounts.length} account{accounts.length !== 1 ? 's' : ''}{' '}
+                  tracked locally.
+                </p>
               </div>
-              <Button className="h-9 gap-2" onClick={() => setIsFormOpen(true)}>
-                <Plus className="h-4 w-4" />
+              <Button onClick={() => setIsFormOpen(true)}>
+                <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
                 Add Account
               </Button>
-            </CardHeader>
-          </Card>
+            </div>
+          </section>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <MetricCard
-              title="Total Assets"
+          {/* Metric strip */}
+          <section className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
+            <StatCell
+              label="Total Assets"
               value={formatAUD(summary.totalAssets)}
-              description="All asset accounts"
-              variant="positive"
+              sublabel="All asset accounts"
+              tone="positive"
+              delay={0.05}
             />
-            <MetricCard
-              title="Total Liabilities"
+            <StatCell
+              label="Total Liabilities"
               value={formatAUD(summary.totalLiabilities)}
-              description="Debt and credit"
-              variant="negative"
+              sublabel="Debt and credit"
+              tone="negative"
+              delay={0.1}
             />
-            <MetricCard
-              title="Net Worth"
+            <StatCell
+              label="Net Worth"
               value={formatAUD(summary.netWorth)}
-              description="Assets minus liabilities"
-              variant={summary.netWorth >= 0 ? 'positive' : 'negative'}
+              sublabel="Assets − Liabilities"
+              tone={summary.netWorth >= 0 ? 'positive' : 'negative'}
+              delay={0.15}
             />
-          </div>
+          </section>
+
+          {/* Accounts grid */}
+          <section className="flex items-center gap-3 px-1">
+            <span className="eyebrow">Holdings</span>
+            <span className="hairline-v h-3" aria-hidden />
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[--text-subtle]">
+              {accounts.length} record{accounts.length !== 1 ? 's' : ''}
+            </span>
+          </section>
 
           {isLoading ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -108,32 +123,44 @@ export default function AccountsPage() {
               ))}
             </div>
           ) : accounts.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {accounts.map((account) => (
-                <AccountCard
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {accounts.map((account, i) => (
+                <div
                   key={account.id}
-                  account={account}
-                  onEdit={handleEdit}
-                  onDelete={setDeletingAccount}
-                />
+                  className="animate-enter-fast"
+                  style={{ animationDelay: `${0.04 * i}s` }}
+                >
+                  <AccountCard
+                    account={account}
+                    onEdit={handleEdit}
+                    onDelete={setDeletingAccount}
+                  />
+                </div>
               ))}
             </div>
           ) : (
-            <Card variant="premium">
-              <CardContent className="py-14">
-                <div className="text-center text-muted-foreground">
-                  <div className="mx-auto mb-4 w-fit rounded-2xl bg-muted/70 p-4">
-                    <Wallet className="h-10 w-10 opacity-45" />
-                  </div>
-                  <p className="font-medium text-foreground">No accounts yet</p>
-                  <p className="mt-1 text-sm">Add your first account to start tracking.</p>
-                  <Button className="mt-4" onClick={() => setIsFormOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Account
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="rounded-md border border-border bg-card px-5 py-16 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[2px] border border-border bg-muted/40">
+                <Wallet
+                  className="h-5 w-5 text-[--text-subtle]"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <p className="font-display text-lg tracking-tight">
+                No accounts yet
+              </p>
+              <p className="mx-auto mt-2 max-w-xs text-[13px] text-muted-foreground">
+                Add your first account to start tracking.
+              </p>
+              <Button
+                className="mt-5"
+                size="sm"
+                onClick={() => setIsFormOpen(true)}
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.5} />
+                Add Account
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -144,19 +171,25 @@ export default function AccountsPage() {
         account={editingAccount}
       />
 
-      <AlertDialog open={!!deletingAccount} onOpenChange={() => setDeletingAccount(null)}>
+      <AlertDialog
+        open={!!deletingAccount}
+        onOpenChange={() => setDeletingAccount(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Account</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <span className="block">
-                Are you sure you want to delete &quot;{deletingAccount?.name}&quot;?
+                Are you sure you want to delete &quot;{deletingAccount?.name}
+                &quot;?
               </span>
               <span className="block font-medium text-destructive">
-                All transactions associated with this account will be permanently deleted.
+                All transactions associated with this account will be
+                permanently deleted.
               </span>
               <span className="block">
-                This action cannot be undone and your transaction history will be lost.
+                This action cannot be undone and your transaction history will
+                be lost.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>

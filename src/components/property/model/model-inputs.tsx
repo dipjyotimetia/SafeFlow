@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { FinancialYear } from "@/domain/value-objects/financial-year";
 import type { PropertyAssumptions, AustralianState, PropertyType, LoanType } from "@/types";
 import { dollarsToCents, centsToDollars } from "@/lib/utils/currency";
 
@@ -42,8 +43,6 @@ const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
 const LOAN_TYPES: { value: LoanType; label: string }[] = [
   { value: "interest-only", label: "Interest Only" },
   { value: "principal-interest", label: "Principal + Interest" },
-  { value: "variable", label: "Variable" },
-  { value: "fixed", label: "Fixed" },
 ];
 
 // 2025-26 Marginal Tax Rates (ATO)
@@ -58,6 +57,8 @@ const MARGINAL_TAX_RATES: { value: number; label: string; income: string }[] = [
 ];
 
 export function ModelInputs({ assumptions, onChange }: ModelInputsProps) {
+  const currentFinancialYear = FinancialYear.current().value;
+
   const updateField = <K extends keyof PropertyAssumptions>(
     field: K,
     value: PropertyAssumptions[K]
@@ -71,6 +72,19 @@ export function ModelInputs({ assumptions, onChange }: ModelInputsProps) {
   ) => {
     const cents = dollarsToCents(parseFloat(dollars) || 0);
     updateField(field, cents);
+  };
+
+  const handleOptionalCurrencyChange = <K extends keyof PropertyAssumptions>(
+    field: K,
+    dollars: string
+  ) => {
+    if (dollars.trim() === "") {
+      updateField(field, undefined as PropertyAssumptions[K]);
+      return;
+    }
+
+    const cents = dollarsToCents(parseFloat(dollars) || 0);
+    updateField(field, cents as PropertyAssumptions[K]);
   };
 
   return (
@@ -146,6 +160,118 @@ export function ModelInputs({ assumptions, onChange }: ModelInputsProps) {
                   handleCurrencyChange("purchasePrice", e.target.value)
                 }
               />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Purchase Costs */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Purchase Costs</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Enter actual one-off costs so capital required is based on entered
+            figures rather than built-in estimates.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="lmiOverride">LMI Override (optional)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="lmiOverride"
+                  type="number"
+                  className="pl-7"
+                  value={
+                    assumptions.lmiOverride !== undefined
+                      ? centsToDollars(assumptions.lmiOverride)
+                      : ""
+                  }
+                  onChange={(e) =>
+                    handleOptionalCurrencyChange("lmiOverride", e.target.value)
+                  }
+                  placeholder="Use actual lender quote"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="legalFees">Legal / Conveyancing</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="legalFees"
+                  type="number"
+                  className="pl-7"
+                  value={centsToDollars(assumptions.legalFees || 0)}
+                  onChange={(e) =>
+                    handleCurrencyChange("legalFees", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="buildingInspection">Building Inspection</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="buildingInspection"
+                  type="number"
+                  className="pl-7"
+                  value={centsToDollars(assumptions.buildingInspection || 0)}
+                  onChange={(e) =>
+                    handleCurrencyChange("buildingInspection", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="pestInspection">Pest Inspection</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="pestInspection"
+                  type="number"
+                  className="pl-7"
+                  value={centsToDollars(assumptions.pestInspection || 0)}
+                  onChange={(e) =>
+                    handleCurrencyChange("pestInspection", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="otherPurchaseCosts">Other Purchase Costs</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="otherPurchaseCosts"
+                  type="number"
+                  className="pl-7"
+                  value={centsToDollars(assumptions.otherPurchaseCosts || 0)}
+                  onChange={(e) =>
+                    handleCurrencyChange("otherPurchaseCosts", e.target.value)
+                  }
+                />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -472,10 +598,12 @@ export function ModelInputs({ assumptions, onChange }: ModelInputsProps) {
         </CardContent>
       </Card>
 
-      {/* Tax (2025-26 FY) */}
+      {/* Tax */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Tax (2025-26 FY)</CardTitle>
+          <CardTitle className="text-sm font-medium">
+            Tax ({currentFinancialYear} FY)
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -501,7 +629,9 @@ export function ModelInputs({ assumptions, onChange }: ModelInputsProps) {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              ML = Medicare Levy (2%)
+              ML = Medicare Levy (2%). This model applies the selected marginal
+              rate and does not attempt to infer offsets or household-specific
+              levy reductions.
             </p>
           </div>
 

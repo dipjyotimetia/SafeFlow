@@ -5,24 +5,23 @@ import { cn } from "@/lib/utils";
 const typographyVariants = cva("", {
   variants: {
     variant: {
-      h1: "scroll-m-20 font-display text-4xl font-semibold tracking-tight lg:text-6xl",
-      h2: "scroll-m-20 font-display text-3xl font-semibold tracking-tight lg:text-4xl",
-      h3: "scroll-m-20 font-display text-2xl font-semibold tracking-tight",
-      h4: "scroll-m-20 text-xl font-semibold tracking-tight",
-      p: "leading-7 text-[0.98rem]",
-      lead: "text-lg text-muted-foreground/85 leading-7",
-      large: "text-lg font-semibold",
+      h1: "scroll-m-20 font-display text-4xl font-normal tracking-tight lg:text-5xl",
+      h2: "scroll-m-20 font-display text-3xl font-normal tracking-tight lg:text-4xl",
+      h3: "scroll-m-20 font-display text-2xl font-normal tracking-tight",
+      h4: "scroll-m-20 text-lg font-semibold tracking-tight",
+      p: "leading-7 text-[0.95rem]",
+      lead: "text-base text-muted-foreground leading-7",
+      large: "text-base font-semibold",
       small: "text-sm font-medium leading-none",
       muted: "text-sm text-muted-foreground",
+      eyebrow: "eyebrow",
     },
     gradient: {
       none: "",
-      primary:
-        "bg-linear-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent",
-      success:
-        "bg-linear-to-r from-success via-success/90 to-success/70 bg-clip-text text-transparent",
-      brand:
-        "bg-linear-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent",
+      // Back-compat — gradient utilities collapse to single colors.
+      primary: "text-foreground",
+      success: "text-success",
+      brand: "text-primary",
     },
   },
   defaultVariants: {
@@ -32,8 +31,7 @@ const typographyVariants = cva("", {
 });
 
 interface TypographyProps
-  extends
-    React.HTMLAttributes<HTMLElement>,
+  extends React.HTMLAttributes<HTMLElement>,
     VariantProps<typeof typographyVariants> {
   as?: React.ElementType;
 }
@@ -51,6 +49,7 @@ const DEFAULT_VARIANT_ELEMENT: Record<
   large: "div",
   small: "small",
   muted: "p",
+  eyebrow: "span",
 };
 
 function Typography({
@@ -71,7 +70,6 @@ function Typography({
   );
 }
 
-// Convenience components
 function TypographyH1({
   children,
   className,
@@ -80,8 +78,7 @@ function TypographyH1({
   return (
     <h1
       className={cn(
-        "scroll-m-20 font-display text-4xl font-semibold tracking-tight lg:text-6xl",
-        "bg-linear-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent",
+        "scroll-m-20 font-display text-4xl font-normal tracking-tight lg:text-5xl",
         className,
       )}
       {...props}
@@ -99,7 +96,7 @@ function TypographyH2({
   return (
     <h2
       className={cn(
-        "scroll-m-20 font-display text-3xl font-semibold tracking-tight lg:text-4xl",
+        "scroll-m-20 font-display text-3xl font-normal tracking-tight lg:text-4xl",
         className,
       )}
       {...props}
@@ -117,7 +114,7 @@ function TypographyH3({
   return (
     <h3
       className={cn(
-        "scroll-m-20 font-display text-2xl font-semibold tracking-tight",
+        "scroll-m-20 font-display text-2xl font-normal tracking-tight",
         className,
       )}
       {...props}
@@ -134,7 +131,7 @@ function TypographyLead({
 }: React.ComponentProps<"p">) {
   return (
     <p
-      className={cn("text-lg text-muted-foreground/85 leading-7", className)}
+      className={cn("text-base text-muted-foreground leading-7", className)}
       {...props}
     >
       {children}
@@ -148,7 +145,7 @@ function TypographyLarge({
   ...props
 }: React.ComponentProps<"div">) {
   return (
-    <div className={cn("text-lg font-semibold", className)} {...props}>
+    <div className={cn("text-base font-semibold", className)} {...props}>
       {children}
     </div>
   );

@@ -176,7 +176,7 @@ export function HoldingDetailDialog({ holding, open, onOpenChange }: HoldingDeta
                   {TIME_RANGES.map((range) => (
                     <Button
                       key={range}
-                      variant={timeRange === range ? 'secondary' : 'ghost'}
+                      variant={timeRange === range ? 'outline' : 'ghost'}
                       size="sm"
                       className="px-3 h-7 text-xs"
                       onClick={() => setTimeRange(range)}

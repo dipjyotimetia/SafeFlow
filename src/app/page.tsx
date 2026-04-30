@@ -1,15 +1,13 @@
 import Link from 'next/link';
 import {
-  Shield,
   Lock,
   Smartphone,
   ChevronRight,
-  Sparkles,
   Database,
   Wallet,
+  ArrowUpRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Reveal } from '@/components/ui/reveal';
 
 const features = [
@@ -17,128 +15,247 @@ const features = [
     icon: Lock,
     title: '100% Private',
     description:
-      'All finance data is stored locally with zero third-party tracking.',
+      'Finance data stays on your device with zero third-party tracking.',
   },
   {
     icon: Database,
     title: 'Local-First Engine',
     description:
-      'Fast offline performance with your own encrypted financial workspace.',
+      'Fast offline performance, encrypted at rest in your browser.',
   },
   {
     icon: Wallet,
     title: 'AU-Ready Toolkit',
     description:
-      'Purpose-built for Australian tax years, categories, and family planning.',
+      'Built for Australian tax years, categories, and family planning.',
   },
   {
     icon: Smartphone,
     title: 'Works Anywhere',
-    description:
-      'Use it on desktop and mobile with no internet dependency.',
+    description: 'Desktop and mobile, with no internet dependency.',
   },
+];
+
+const ledgerRows = [
+  { ticker: 'SAFEFLOW', label: 'Local DB', value: 'IDXDB · v0.1', tone: 'mute' },
+  { ticker: 'AUD · LIVE', label: 'Currency', value: 'AUD', tone: 'mute' },
+  { ticker: 'CRYPTO', label: 'Sync', value: 'AES-GCM 256', tone: 'accent' },
+  { ticker: 'DATA', label: 'Egress', value: 'NONE', tone: 'accent' },
 ];
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-8%] top-[-10%] h-[28rem] w-[28rem] rounded-full bg-primary/14 blur-3xl" />
-        <div className="absolute right-[-12%] top-[12%] h-[30rem] w-[30rem] rounded-full bg-accent/30 blur-3xl" />
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-fade-bottom opacity-25" />
 
-      <main className="relative mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 pb-16 pt-10 sm:px-6 lg:px-8 lg:pt-14">
+      <main className="relative mx-auto flex w-full max-w-[1180px] flex-col gap-14 px-5 pb-16 pt-8 sm:px-6 lg:pt-12">
+        {/* Top bar */}
         <header className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-premium">
-              <Shield className="h-4 w-4" />
+          <Link href="/" className="group flex items-center gap-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-[2px] border border-primary bg-primary/10 text-primary">
+              <span className="font-mono text-[10.5px] font-semibold tracking-[0.06em]">
+                SF
+              </span>
             </div>
-            <span className="text-sm font-semibold tracking-tight">SafeFlow AU</span>
-          </div>
-          <Link href="/overview">
-            <Button variant="outline" size="sm">
-              Open Dashboard
-            </Button>
+            <div className="leading-none">
+              <div className="font-display text-[19px] tracking-tight">
+                SafeFlow
+              </div>
+              <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.22em] text-[--text-subtle]">
+                AU · Finance OS
+              </div>
+            </div>
           </Link>
+          <div className="flex items-center gap-3">
+            <span className="hidden items-center gap-2 sm:flex">
+              <span className="live-dot" />
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[--text-subtle]">
+                Local · Online
+              </span>
+            </span>
+            <Link href="/overview">
+              <Button variant="outline" size="sm">
+                Open Dashboard
+                <ArrowUpRight
+                  className="ml-1 h-3.5 w-3.5"
+                  strokeWidth={1.5}
+                />
+              </Button>
+            </Link>
+          </div>
         </header>
 
-        <Reveal className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="animate-enter">
-            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              Privacy-first family finance
-            </p>
+        {/* Hero */}
+        <section className="card-trace relative overflow-hidden rounded-md border border-border bg-card animate-enter">
+          <div className="scan-line" aria-hidden />
 
-            <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Beautiful personal finance,
-              <span className="block text-primary">fully on your device.</span>
-            </h1>
+          <div className="grid gap-8 p-8 md:grid-cols-12 md:p-10 lg:p-14">
+            <div className="md:col-span-7">
+              <span className="eyebrow">// Privacy-first · Family finance</span>
 
-            <p className="mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-              Plan budgets, manage accounts, and track investments with a modern,
-              local-first experience built for Australian households.
-            </p>
+              <h1 className="mt-5 max-w-[14ch] font-display text-[clamp(40px,6.4vw,76px)] tracking-tight leading-[0.95] text-balance">
+                Beautiful personal finance,{' '}
+                <span className="italic text-primary">fully on your device.</span>
+              </h1>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/overview">
-                <Button size="lg" variant="premium" className="h-11 px-6">
-                  Get Started
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/learn-more">
-                <Button size="lg" variant="outline" className="h-11 px-6">
-                  Learn More
-                </Button>
-              </Link>
+              <p className="mt-6 max-w-[52ch] text-[15px] leading-relaxed text-muted-foreground">
+                Plan budgets, manage accounts, and track investments with a
+                modern, local-first experience built for Australian households.
+                Your data never leaves this device.
+              </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-2">
+                <Link href="/overview">
+                  <Button size="lg">
+                    Get Started
+                    <ChevronRight
+                      className="ml-1 h-4 w-4"
+                      strokeWidth={1.5}
+                    />
+                  </Button>
+                </Link>
+                <Link href="/learn-more">
+                  <Button size="lg" variant="outline">
+                    Learn More
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="mt-8 hairline" />
+
+              <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+                <Stat label="Egress" value="0 KB" />
+                <Stat label="Encryption" value="AES-256" />
+                <Stat label="Storage" value="Local" />
+                <Stat label="Tracking" value="None" />
+              </div>
+            </div>
+
+            <div className="md:col-span-5 md:border-l md:border-border md:pl-8">
+              <span className="eyebrow">// Manifest</span>
+              <div className="mt-4 hairline" />
+
+              <ul className="divide-y divide-border">
+                {ledgerRows.map((row, i) => (
+                  <li
+                    key={row.ticker}
+                    className="flex items-center justify-between gap-4 py-2.5 animate-enter-fast"
+                    style={{ animationDelay: `${0.1 + i * 0.06}s` }}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[--text-subtle] w-20">
+                        {row.ticker}
+                      </span>
+                      <span className="text-[13px] text-foreground/80 truncate">
+                        {row.label}
+                      </span>
+                    </div>
+                    <span
+                      className={
+                        row.tone === 'accent'
+                          ? 'font-mono text-[12px] uppercase tracking-[0.16em] text-primary'
+                          : 'font-mono text-[12px] uppercase tracking-[0.16em] text-foreground'
+                      }
+                    >
+                      {row.value}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="hairline mt-2" />
+
+              <p className="mt-5 font-mono text-[11px] leading-relaxed text-[--text-subtle]">
+                <span className="text-primary">// </span>
+                Your data. Your rules. No cloud lock-in. Export and control
+                everything.
+              </p>
             </div>
           </div>
+        </section>
 
-          <Card variant="glass-luxury" className="animate-enter overflow-hidden border-primary/15">
-            <CardContent className="space-y-4 p-6">
-              <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  SafeFlow Promise
-                </p>
-                <p className="mt-2 text-xl font-semibold">Your data. Your rules.</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  No cloud lock-in required. Export and control everything.
-                </p>
-              </div>
+        {/* Feature ledger */}
+        <section>
+          <div className="mb-5 flex items-center gap-3">
+            <span className="eyebrow">Capabilities</span>
+            <span className="hairline-v h-3" aria-hidden />
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[--text-subtle]">
+              Why SafeFlow
+            </span>
+          </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-border/70 bg-card/60 p-4">
-                  <p className="text-sm font-medium">Local storage</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Encrypted browser database</p>
-                </div>
-                <div className="rounded-xl border border-border/70 bg-card/60 p-4">
-                  <p className="text-sm font-medium">Family-ready</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Multi-member filtering</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Reveal>
+          <Reveal
+            className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-md border border-border bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4"
+            delayMs={80}
+          >
+            {features.map((feature, index) => (
+              <FeatureCell
+                key={feature.title}
+                index={index}
+                feature={feature}
+              />
+            ))}
+          </Reveal>
+        </section>
 
-        <Reveal className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" delayMs={80}>
-          {features.map((feature, index) => (
-            <Card
-              key={feature.title}
-              variant="premium"
-              className="animate-enter"
-              style={{ animationDelay: `${0.08 + index * 0.05}s` }}
-            >
-              <CardContent className="p-5">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
-                  <feature.icon className="h-5 w-5" />
-                </div>
-                <h3 className="text-base font-semibold">{feature.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{feature.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </Reveal>
+        {/* Footer ticker */}
+        <footer className="hairline-strong opacity-60" aria-hidden />
+        <div className="-mt-12 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[--text-subtle]">
+          <span>© SafeFlow · {new Date().getFullYear()}</span>
+          <div className="flex items-center gap-4">
+            <span>Build · 0.1</span>
+            <span className="hidden sm:inline">·</span>
+            <Link href="/learn-more" className="hover:text-foreground">
+              Learn More
+            </Link>
+          </div>
+        </div>
       </main>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[--text-subtle]">
+        {label}
+      </div>
+      <div className="mt-1 font-mono text-[14px] tabular-nums text-foreground">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function FeatureCell({
+  index,
+  feature,
+}: {
+  index: number;
+  feature: { icon: typeof Lock; title: string; description: string };
+}) {
+  const Icon = feature.icon;
+  return (
+    <div
+      className="card-trace relative p-6 transition-colors hover:bg-muted/30 animate-enter-fast"
+      style={{ animationDelay: `${0.06 + index * 0.05}s` }}
+    >
+      <div className="flex items-center justify-between">
+        <Icon
+          className="h-4 w-4 text-primary"
+          strokeWidth={1.5}
+        />
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[--text-subtle]">
+          0{index + 1}
+        </span>
+      </div>
+      <h3 className="mt-5 font-display text-xl tracking-tight">
+        {feature.title}
+      </h3>
+      <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+        {feature.description}
+      </p>
     </div>
   );
 }

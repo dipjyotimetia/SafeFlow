@@ -24,6 +24,25 @@ export function formatAUD(cents: number): string {
 }
 
 /**
+ * Split an AUD value into whole-dollars and cents portions for display
+ * (e.g., rendering cents in a smaller, muted typeface beside a hero number).
+ * Accepts either cents (number) or a pre-formatted AUD string.
+ * @returns { whole: '$1,234', cents: '.56' } — empty cents string if no decimal
+ */
+export function splitAUD(value: number | string): {
+  whole: string;
+  cents: string;
+} {
+  const formatted = typeof value === 'number' ? formatAUD(value) : value;
+  const dotIndex = formatted.lastIndexOf('.');
+  if (dotIndex < 0) return { whole: formatted, cents: '' };
+  return {
+    whole: formatted.slice(0, dotIndex),
+    cents: formatted.slice(dotIndex),
+  };
+}
+
+/**
  * Format cents to compact AUD string for large numbers
  * @param cents Amount in cents
  * @returns Formatted string like "$1.2M"

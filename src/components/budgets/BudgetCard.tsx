@@ -1,7 +1,5 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
@@ -12,6 +10,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { BudgetProgress } from '@/types';
+import { cn } from '@/lib/utils';
+import { formatAUD } from '@/lib/utils/currency';
 
 interface BudgetCardProps {
   progress: BudgetProgress;
@@ -22,87 +22,93 @@ interface BudgetCardProps {
 export function BudgetCard({ progress, onEdit, onDelete }: BudgetCardProps) {
   const { budget, spent, remaining, percentUsed, isOverBudget } = progress;
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-AU', {
-      style: 'currency',
-      currency: 'AUD',
-    }).format(cents / 100);
-  };
-
-  const getProgressColorClass = () => {
-    if (isOverBudget) return '[&>[data-slot=progress-indicator]]:bg-destructive';
-    if (percentUsed >= 90) return '[&>[data-slot=progress-indicator]]:bg-warning';
-    if (percentUsed >= 75) return '[&>[data-slot=progress-indicator]]:bg-warning/80';
-    return '[&>[data-slot=progress-indicator]]:bg-success';
-  };
+  const barColor = isOverBudget
+    ? 'bg-destructive'
+    : percentUsed >= 90
+      ? 'bg-warning'
+      : percentUsed >= 75
+        ? 'bg-warning/80'
+        : 'bg-primary';
 
   return (
-    <Card variant="premium" className="group">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{budget.name}</CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant={budget.period === 'monthly' ? 'default' : 'secondary'}>
-            {budget.period}
+    <div className="card-trace group relative flex flex-col rounded-md border border-border bg-card p-5 transition-colors hover:border-border-strong">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <span className="eyebrow">{budget.period}</span>
+          <p className="mt-1.5 truncate text-[14px] font-medium text-foreground">
+            {budget.name}
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          <Badge variant={isOverBudget ? 'destructive' : 'outline'}>
+            {Math.round(percentUsed)}%
           </Badge>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-lg"
+                size="icon-sm"
                 aria-label={`Open actions for budget ${budget.name}`}
               >
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreHorizontal
+                  className="h-3.5 w-3.5"
+                  strokeWidth={1.5}
+                />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {onEdit && (
                 <DropdownMenuItem onClick={onEdit}>
-                  <Pencil className="mr-2 h-4 w-4" />
+                  <Pencil
+                    className="mr-2 h-3.5 w-3.5"
+                    strokeWidth={1.5}
+                  />
                   Edit
                 </DropdownMenuItem>
               )}
               {onDelete && (
                 <DropdownMenuItem variant="destructive" onClick={onDelete}>
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <Trash2
+                    className="mr-2 h-3.5 w-3.5"
+                    strokeWidth={1.5}
+                  />
                   Delete
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              {formatCurrency(spent)} of {formatCurrency(budget.amount)}
-            </span>
-            <span className={isOverBudget ? 'font-semibold text-destructive' : 'text-muted-foreground'}>
-              {Math.round(percentUsed)}%
-            </span>
-          </div>
+      </div>
 
-          <Progress value={Math.min(percentUsed, 100)} className={`h-2.5 ${getProgressColorClass()}`} />
-
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">
-              {isOverBudget ? 'Over by' : 'Remaining'}
-            </span>
-            <span
-              className={
-                isOverBudget
-                  ? 'font-semibold text-destructive'
-                  : remaining < budget.amount * 0.1
-                    ? 'font-semibold text-warning'
-                    : 'font-semibold text-success'
-              }
-            >
-              {formatCurrency(Math.abs(remaining))}
-            </span>
-          </div>
+      <div className="mt-5">
+        <div className="flex items-baseline justify-between font-mono text-[12px] tabular-nums">
+          <span className="text-foreground">{formatAUD(spent)}</span>
+          <span className="text-[--text-subtle]">
+            / {formatAUD(budget.amount)}
+          </span>
         </div>
-      </CardContent>
-    </Card>
+        <div className="mt-2 h-1 overflow-hidden bg-muted rounded-[1px]">
+          <div
+            className={cn('h-full transition-all', barColor)}
+            style={{ width: `${Math.min(percentUsed, 100)}%` }}
+          />
+        </div>
+        <div className="mt-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.14em] text-[--text-subtle]">
+          <span>{isOverBudget ? 'Over by' : 'Remaining'}</span>
+          <span
+            className={cn(
+              'tabular-nums',
+              isOverBudget
+                ? 'text-destructive'
+                : remaining < budget.amount * 0.1
+                  ? 'text-warning'
+                  : 'text-positive',
+            )}
+          >
+            {formatAUD(Math.abs(remaining))}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
