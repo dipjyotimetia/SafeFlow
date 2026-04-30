@@ -107,3 +107,6 @@ export {
 } from "./use-property";
 
 export { useCashflowAnalysis } from "./use-cashflow-analysis";
+
+export { useTotalAssetAllocation } from "./use-total-allocation";
+export type { AssetAllocationSlice, TotalAllocationData } from "./use-total-allocation";

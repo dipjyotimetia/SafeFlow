@@ -22,7 +22,7 @@ import {
   ChevronRight,
   FileUp,
 } from "lucide-react";
-import { CashflowChart, CategoryPieChart } from "@/components/charts";
+import { CashflowChart, CategoryPieChart, TotalAssetAllocation } from "@/components/charts";
 import {
   useAccountsSummary,
   useMonthlyTotals,
@@ -31,6 +31,7 @@ import {
   useRecentTransactions,
   useCategories,
   useAccounts,
+  useTotalAssetAllocation,
 } from "@/hooks";
 import { formatAUD, splitAUD } from "@/lib/utils/currency";
 import {
@@ -132,6 +133,7 @@ export default function DashboardPage() {
     useRecentTransactions(5, memberId);
   const { categories } = useCategories();
   const { accounts } = useAccounts({ memberId });
+  const allocation = useTotalAssetAllocation();
 
   const categoryMap = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -314,6 +316,31 @@ export default function DashboardPage() {
                 />
               )}
             </ChartPanel>
+          </section>
+
+          {/* ASSET ALLOCATION */}
+          <section
+            className="card-trace fintech-panel overflow-hidden rounded-lg border border-border/80 animate-enter-fast"
+            style={{ animationDelay: "0.32s" }}
+          >
+            <div className="flex items-center justify-between border-b border-border/80 px-5 py-3">
+              <div className="flex items-center gap-3">
+                <span className="eyebrow">Asset Allocation</span>
+                <span className="hairline-v h-3" aria-hidden />
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[--text-subtle]">
+                  Full picture
+                </span>
+              </div>
+            </div>
+            <div className="h-[360px] p-4">
+              <TotalAssetAllocation
+                slices={allocation.slices}
+                totalAssets={allocation.totalAssets}
+                totalLiabilities={allocation.totalLiabilities}
+                netWorth={allocation.netWorth}
+                isLoading={allocation.isLoading}
+              />
+            </div>
           </section>
 
           {/* ACTIVITY LEDGER */}

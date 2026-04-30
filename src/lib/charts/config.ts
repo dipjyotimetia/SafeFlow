@@ -43,6 +43,13 @@ export const CHART_COLORS = {
     crypto: "oklch(0.82 0.16 75)", // amber accent
     "managed-fund": "oklch(0.5 0.005 240)", // mono dim
   },
+  allocation: {
+    cash: "var(--primary)", // acid accent — liquid assets
+    investments: "oklch(0.66 0.12 215)", // ocean blue
+    superannuation: "oklch(0.82 0.16 75)", // amber accent
+    property: "oklch(0.55 0.005 240)", // mono 550
+    other: "oklch(0.62 0.005 240)", // mono 620
+  },
 } as const;
 
 // Animation Configurations
