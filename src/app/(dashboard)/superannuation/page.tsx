@@ -61,7 +61,7 @@ import {
 } from '@/hooks';
 import { useSuperannuationStore } from '@/stores/superannuation.store';
 import { formatAUD, parseAUD } from '@/lib/utils/currency';
-import { getCurrentFinancialYear, formatFinancialYear } from '@/lib/utils/financial-year';
+import { FinancialYear } from '@/domain/value-objects/financial-year';
 import { cn } from '@/lib/utils';
 import type { SuperProvider, SuperannuationAccount, SuperTransactionType } from '@/types';
 import { toast } from 'sonner';
@@ -89,7 +89,7 @@ const TRANSACTION_TYPE_LABELS: Record<SuperTransactionType, string> = {
 };
 
 export default function SuperannuationPage() {
-  const [selectedFY, setSelectedFY] = useState(getCurrentFinancialYear());
+  const [selectedFY, setSelectedFY] = useState(FinancialYear.current().value);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newAccount, setNewAccount] = useState({
     provider: 'unisuper' as SuperProvider,
@@ -100,6 +100,8 @@ export default function SuperannuationPage() {
     employerName: '',
     totalBalance: '',
   });
+
+  const selectedFYLabel = FinancialYear.parse(selectedFY).format();
 
   const { accounts, isLoading: accountsLoading } = useSuperAccounts();
   const { summary, isLoading: summaryLoading } = useSuperSummary();
@@ -183,7 +185,7 @@ export default function SuperannuationPage() {
                   Track retirement savings
                 </h1>
                 <p className="mt-2 text-[13px] text-muted-foreground">
-                  FY {formatFinancialYear(selectedFY)} ·{' '}
+                  {selectedFYLabel} ·{' '}
                   {summary.accountCount} fund
                   {summary.accountCount !== 1 ? 's' : ''}
                 </p>
@@ -243,7 +245,7 @@ export default function SuperannuationPage() {
                     {formatAUD(summary.ytdContributions)}
                   </p>
                   <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[--text-subtle]">
-                    FY {formatFinancialYear(summary.financialYear)}
+                    {FinancialYear.parse(summary.financialYear).format()}
                   </p>
                 </div>
                 <div className="card-trace relative p-5 transition-colors hover:bg-muted/30">
@@ -452,7 +454,7 @@ export default function SuperannuationPage() {
               {/* Contribution Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Contribution Caps {formatFinancialYear(selectedFY)}</CardTitle>
+                  <CardTitle className="text-sm font-medium">Contribution Caps {selectedFYLabel}</CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <p>
@@ -464,7 +466,7 @@ export default function SuperannuationPage() {
                     Current usable cap {formatAUD(contributionSummary.nonConcessionalCap)} based on bring-forward eligibility.
                   </p>
                   <p>
-                    <strong>Super Guarantee:</strong> {contributionSummary.superGuaranteeRate || 12}% of ordinary time earnings for {formatFinancialYear(selectedFY)}.
+                    <strong>Super Guarantee:</strong> {contributionSummary.superGuaranteeRate}% of ordinary time earnings for {selectedFYLabel}.
                   </p>
                   <p>
                     <strong>Cap test balance (30 June prior year proxy):</strong>{' '}
@@ -483,7 +485,7 @@ export default function SuperannuationPage() {
                     Transaction History
                   </CardTitle>
                   <CardDescription>
-                    {formatFinancialYear(selectedFY)} transactions
+                    {selectedFYLabel} transactions
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -527,7 +529,7 @@ export default function SuperannuationPage() {
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
                       <Receipt className="h-12 w-12 mx-auto mb-4" />
-                      <p>No transactions for {formatFinancialYear(selectedFY)}</p>
+                      <p>No transactions for {selectedFYLabel}</p>
                       <p className="text-sm mt-1">Import a super statement to see transactions</p>
                     </div>
                   )}

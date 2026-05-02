@@ -15,7 +15,6 @@ export {
 
   // Transaction analysis (improved)
   analyzeTransaction,
-  determineTransactionSign,
   isLikelyTransfer,
   isLikelyCredit,
   isLikelyDebit,

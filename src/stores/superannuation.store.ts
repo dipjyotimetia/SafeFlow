@@ -9,7 +9,7 @@ import type {
   ImportSource,
 } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import { getFinancialYearForDate } from '@/lib/utils/financial-year';
+import { FinancialYear } from '@/domain/value-objects/financial-year';
 import {
   calculateBringForwardCap,
   calculateCarryForwardConcessional,
@@ -172,7 +172,7 @@ export const useSuperannuationStore = create<SuperannuationStore>(() => ({
   addTransaction: async (data) => {
     const id = uuidv4();
     const now = new Date();
-    const financialYear = getFinancialYearForDate(data.date);
+    const financialYear = FinancialYear.fromDate(data.date).value;
 
     // Determine if this is a concessional contribution
     const isConcessional = CONCESSIONAL_TYPES.includes(data.type);
@@ -223,7 +223,7 @@ export const useSuperannuationStore = create<SuperannuationStore>(() => ({
         continue;
       }
 
-      const financialYear = getFinancialYearForDate(t.date);
+      const financialYear = FinancialYear.fromDate(t.date).value;
       const isConcessional = CONCESSIONAL_TYPES.includes(t.type);
 
       toImport.push({
@@ -359,8 +359,10 @@ export const useSuperannuationStore = create<SuperannuationStore>(() => ({
       totalNonConcessional,
       concessionalCap,
       nonConcessionalCap,
-      concessionalRemaining: Math.max(0, concessionalCap - totalConcessional),
-      nonConcessionalRemaining: Math.max(0, nonConcessionalCap - totalNonConcessional),
+      // Negative values signal the user has exceeded the cap; the UI surfaces
+      // a warning when remaining < 0. Do not clamp.
+      concessionalRemaining: concessionalCap - totalConcessional,
+      nonConcessionalRemaining: nonConcessionalCap - totalNonConcessional,
       baseConcessionalCap: capConfig.concessionalCap,
       baseNonConcessionalCap: capConfig.nonConcessionalCap,
       carryForwardAvailable: carryForward.available,

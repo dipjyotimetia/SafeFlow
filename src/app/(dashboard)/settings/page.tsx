@@ -164,8 +164,8 @@ export default function SettingsPage() {
   };
 
   const handleTestConnection = async () => {
-    await checkConnection();
-    if (connectionStatus === "connected") {
+    const connected = await checkConnection();
+    if (connected) {
       toast.success("Connected to Ollama");
     }
   };

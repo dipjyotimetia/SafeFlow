@@ -3,7 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import type { SuperannuationAccount } from '@/types';
-import { getCurrentFinancialYear, getFinancialYearDates } from '@/lib/utils/financial-year';
+import { FinancialYear } from '@/domain/value-objects/financial-year';
 import {
   calculateBringForwardCap,
   calculateCarryForwardConcessional,
@@ -70,8 +70,8 @@ export function useSuperTransactions(accountId?: string, financialYear?: string)
 export function useSuperSummary() {
   const summary = useLiveQuery(async () => {
     const accounts = await db.superannuationAccounts.toArray();
-    const currentFY = getCurrentFinancialYear();
-    const { start, end } = getFinancialYearDates(currentFY);
+    const currentFY = FinancialYear.current();
+    const { startDate: start, endDate: end } = currentFY;
 
     // Get YTD transactions
     const allTransactions = await db.superTransactions.toArray();
@@ -123,7 +123,7 @@ export function useSuperSummary() {
       ytdContributions,
       ytdEarnings,
       ytdFees,
-      financialYear: currentFY,
+      financialYear: currentFY.value,
     };
   }, []);
 
@@ -136,7 +136,7 @@ export function useSuperSummary() {
       ytdContributions: 0,
       ytdEarnings: 0,
       ytdFees: 0,
-      financialYear: getCurrentFinancialYear(),
+      financialYear: FinancialYear.current().value,
     },
     isLoading: summary === undefined,
   };
@@ -232,8 +232,10 @@ export function useContributionSummary(financialYear: string) {
       totalNonConcessional,
       concessionalCap,
       nonConcessionalCap,
-      concessionalRemaining: Math.max(0, concessionalCap - totalConcessional),
-      nonConcessionalRemaining: Math.max(0, nonConcessionalCap - totalNonConcessional),
+      // Negative values signal the user has exceeded the cap; the UI surfaces
+      // a warning when remaining < 0. Do not clamp.
+      concessionalRemaining: concessionalCap - totalConcessional,
+      nonConcessionalRemaining: nonConcessionalCap - totalNonConcessional,
       baseConcessionalCap: capConfig.concessionalCap,
       baseNonConcessionalCap: capConfig.nonConcessionalCap,
       carryForwardAvailable: carryForward.available,
@@ -315,7 +317,7 @@ export function useSuperFinancialYears() {
     const transactions = await db.superTransactions.toArray();
 
     if (transactions.length === 0) {
-      return [getCurrentFinancialYear()];
+      return [FinancialYear.current().value];
     }
 
     const fySet = new Set<string>();
@@ -327,7 +329,7 @@ export function useSuperFinancialYears() {
   }, []);
 
   return {
-    years: years || [getCurrentFinancialYear()],
+    years: years || [FinancialYear.current().value],
     isLoading: years === undefined,
   };
 }

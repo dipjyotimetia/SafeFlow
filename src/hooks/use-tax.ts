@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import { getFinancialYearDates } from '@/lib/utils/financial-year';
+import { FinancialYear } from '@/domain/value-objects/financial-year';
 
 type AccountVisibilityInfo = {
   id: string;
@@ -67,7 +67,7 @@ function getVisibleHoldingIdsForMember(
  * Optimized to use indexed date query instead of loading all transactions
  */
 export function useDeductibleTransactions(financialYear: string, memberId?: string) {
-  const { start, end } = getFinancialYearDates(financialYear);
+  const { startDate: start, endDate: end } = FinancialYear.parse(financialYear);
 
   const transactions = useLiveQuery(async () => {
     const [fyTransactions, accounts] = await Promise.all([
@@ -97,7 +97,7 @@ export function useDeductibleTransactions(financialYear: string, memberId?: stri
  * Optimized to use indexed date query
  */
 export function useDeductionsSummary(financialYear: string, memberId?: string) {
-  const { start, end } = getFinancialYearDates(financialYear);
+  const { startDate: start, endDate: end } = FinancialYear.parse(financialYear);
 
   const summary = useLiveQuery(async () => {
     const [fyTransactions, categories, accounts] = await Promise.all([
@@ -168,7 +168,7 @@ export function useDeductionsSummary(financialYear: string, memberId?: string) {
  * Optimized to use indexed date query
  */
 export function useCapitalGains(financialYear: string, memberId?: string) {
-  const { start, end } = getFinancialYearDates(financialYear);
+  const { startDate: start, endDate: end } = FinancialYear.parse(financialYear);
 
   const data = useLiveQuery(async () => {
     const [investmentTransactions, holdings, accounts] = await Promise.all([
@@ -260,7 +260,7 @@ export function useCapitalGains(financialYear: string, memberId?: string) {
  * Optimized to use indexed date queries with parallel fetching
  */
 export function useIncomeSummary(financialYear: string, memberId?: string) {
-  const { start, end } = getFinancialYearDates(financialYear);
+  const { startDate: start, endDate: end } = FinancialYear.parse(financialYear);
 
   const summary = useLiveQuery(async () => {
     const [fyTransactions, fyInvestmentTrans, accounts, holdings] = await Promise.all([
@@ -333,7 +333,7 @@ export function useIncomeSummary(financialYear: string, memberId?: string) {
  * Shows breakdown by holding for tax reporting
  */
 export function useFrankingSummary(financialYear: string, memberId?: string) {
-  const { start, end } = getFinancialYearDates(financialYear);
+  const { startDate: start, endDate: end } = FinancialYear.parse(financialYear);
 
   const summary = useLiveQuery(async () => {
     const [fyInvestmentTrans, holdings, accounts] = await Promise.all([

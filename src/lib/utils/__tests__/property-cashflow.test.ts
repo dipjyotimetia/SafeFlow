@@ -205,7 +205,7 @@ describe("Property Cashflow Calculator", () => {
       );
     });
 
-    it("uses principal-and-interest repayments for cashflow while taxing interest only", () => {
+    it("splits cash position (P+I) from taxable cashflow (interest only)", () => {
       const assumptions = {
         ...createDefaultAssumptions(60_000_000),
         loanType: "principal-interest" as const,
@@ -221,8 +221,21 @@ describe("Property Cashflow Calculator", () => {
       expect(result.annualLoanRepayment).toBeGreaterThan(
         result.annualInterestPayment
       );
-      expect(result.taxableIncomeLow - result.cashflowBeforeTaxAnnuallyLow).toBe(
-        result.annualPrincipalRepayment
+
+      // Taxable cashflow (interest only) should differ from the cash
+      // position (P+I) by exactly the non-deductible principal portion of
+      // the loan repayment. (`annualLoanRepayment - annualInterestPayment`
+      // is the exact principal value used in both calcs; the separately
+      // accumulated `annualPrincipalRepayment` may differ by a few cents
+      // due to per-month rounding in the amortisation schedule.)
+      expect(
+        result.taxableCashflowBeforeTaxAnnuallyLow -
+          result.cashPositionBeforeTaxAnnuallyLow
+      ).toBe(result.annualLoanRepayment - result.annualInterestPayment);
+
+      // Without depreciation, taxable income equals taxable cashflow.
+      expect(result.taxableIncomeLow).toBe(
+        result.taxableCashflowBeforeTaxAnnuallyLow
       );
     });
   });

@@ -384,16 +384,6 @@ export function analyzeTransaction(
 }
 
 /**
- * Determine transaction sign based on keywords in text
- * Returns positive for credits, negative for debits
- * @deprecated Use analyzeTransaction instead for better type detection
- */
-export function determineTransactionSign(text: string, amount: Decimal): Decimal {
-  const result = analyzeTransaction(text, amount);
-  return result.signedAmount;
-}
-
-/**
  * Clean and truncate a transaction description
  */
 export function cleanDescription(text: string, maxLength = 200): string {

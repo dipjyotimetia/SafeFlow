@@ -996,13 +996,24 @@ export interface PropertyCalculatedResults {
   annualRentalIncomeAfterVacancyLow: number;
   annualRentalIncomeAfterVacancyHigh: number;
 
-  // Cashflow Before Tax (cents)
-  cashflowBeforeTaxWeeklyLow: number;
-  cashflowBeforeTaxWeeklyHigh: number;
-  cashflowBeforeTaxMonthlyLow: number;
-  cashflowBeforeTaxMonthlyHigh: number;
-  cashflowBeforeTaxAnnuallyLow: number;
-  cashflowBeforeTaxAnnuallyHigh: number;
+  // Cash Position Before Tax (cents) — actual cash impact, deducts the full
+  // P+I loan repayment (principal is not tax-deductible).
+  cashPositionBeforeTaxWeeklyLow: number;
+  cashPositionBeforeTaxWeeklyHigh: number;
+  cashPositionBeforeTaxMonthlyLow: number;
+  cashPositionBeforeTaxMonthlyHigh: number;
+  cashPositionBeforeTaxAnnuallyLow: number;
+  cashPositionBeforeTaxAnnuallyHigh: number;
+
+  // Taxable Cashflow Before Tax (cents) — cashflow used for tax modelling,
+  // deducts interest only (principal is not deductible). Will differ from the
+  // cash position by the principal portion of repayments on a P+I loan.
+  taxableCashflowBeforeTaxWeeklyLow: number;
+  taxableCashflowBeforeTaxWeeklyHigh: number;
+  taxableCashflowBeforeTaxMonthlyLow: number;
+  taxableCashflowBeforeTaxMonthlyHigh: number;
+  taxableCashflowBeforeTaxAnnuallyLow: number;
+  taxableCashflowBeforeTaxAnnuallyHigh: number;
 
   // Tax Impact (cents)
   estimatedDepreciation: number;

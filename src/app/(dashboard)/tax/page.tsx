@@ -20,10 +20,7 @@ import {
   Landmark,
   Banknote,
 } from 'lucide-react';
-import {
-  getCurrentFinancialYear,
-  formatFinancialYear,
-} from '@/lib/utils/financial-year';
+import { FinancialYear } from '@/domain/value-objects/financial-year';
 import { atoCategoryDescriptions } from '@/lib/db/seeds/categories.seed';
 import {
   useDeductionsSummary,
@@ -131,7 +128,7 @@ function Row({
 }
 
 export default function TaxPage() {
-  const [selectedFY, setSelectedFY] = useState(getCurrentFinancialYear());
+  const [selectedFY, setSelectedFY] = useState(FinancialYear.current().value);
   const { selectedMemberId } = useFamilyStore();
   const memberId = selectedMemberId ?? undefined;
 
@@ -230,7 +227,7 @@ export default function TaxPage() {
               <div>
                 <span className="eyebrow">// Tax overview</span>
                 <h1 className="mt-3 font-display text-3xl tracking-tight md:text-4xl">
-                  FY {formatFinancialYear(selectedFY)}
+                  {FinancialYear.parse(selectedFY).format()}
                 </h1>
                 <p className="mt-2 text-[13px] text-muted-foreground">
                   Australian Tax Year · Income, deductions, CGT, super.

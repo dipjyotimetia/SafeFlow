@@ -441,7 +441,7 @@ export function CGTCalculator({
                       Less: 50% CGT Discount
                     </span>
                     <span className="text-success">
-                      -{formatAUD(Math.round(result.adjustedCapitalGain / 2))}
+                      -{formatAUD(result.breakdown.discountAmount)}
                     </span>
                   </div>
                 )}

@@ -19,10 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  getCurrentFinancialYear,
-  formatFinancialYear,
-} from "@/lib/utils/financial-year";
+import { FinancialYear } from "@/domain/value-objects/financial-year";
 import { useSyncStore } from "@/stores/sync.store";
 import { useFamilyStore } from "@/stores/family.store";
 import { useFamilyMembers } from "@/hooks/use-family";
@@ -32,8 +29,13 @@ interface HeaderProps {
   className?: string;
 }
 
+// Evaluated at module load. The FY only changes once a year on 1 July; a
+// session that survives that boundary will need a refresh to pick up the
+// rollover anyway.
+const CURRENT_FY = FinancialYear.current();
+
 export function Header({ title, className }: HeaderProps) {
-  const currentFY = getCurrentFinancialYear();
+  const currentFY = CURRENT_FY;
   const { status: syncStatus, isConnected } = useSyncStore();
 
   const { members } = useFamilyMembers({ activeOnly: true });
@@ -80,7 +82,7 @@ export function Header({ title, className }: HeaderProps) {
       <div className="flex items-center gap-5 overflow-x-auto border-b border-border/70 px-5 py-2">
         <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[--text-subtle]">
           <span className="live-dot" />
-          <span>FY · {formatFinancialYear(currentFY)}</span>
+          <span>FY · {currentFY.format()}</span>
         </div>
         <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />
         <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-[--text-subtle] sm:block">

@@ -98,6 +98,8 @@ export function PriceSparkline({ data }: { data: PriceHistoryEntry[] }) {
  * Full price chart with axes and tooltips for detail view
  */
 export function PriceChart({ data, height = 200, showAxis = true, showTooltip = true }: PriceChartProps) {
+  const gradientId = `priceGradient-${useId()}`;
+
   if (data.length === 0) {
     return (
       <div
@@ -128,7 +130,7 @@ export function PriceChart({ data, height = 200, showAxis = true, showTooltip = 
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart accessibilityLayer data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
         <defs>
-          <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={strokeColor} stopOpacity={0.3} />
             <stop offset="100%" stopColor={strokeColor} stopOpacity={0.05} />
           </linearGradient>
@@ -160,14 +162,14 @@ export function PriceChart({ data, height = 200, showAxis = true, showTooltip = 
           dataKey="price"
           stroke={strokeColor}
           strokeWidth={2}
-          fill="url(#priceGradient)"
+          fill={`url(#${gradientId})`}
           isAnimationActive={true}
           animationDuration={500}
           dot={false}
           activeDot={{
             r: 4,
             fill: strokeColor,
-            stroke: 'white',
+            stroke: 'hsl(var(--background))',
             strokeWidth: 2,
           }}
         />

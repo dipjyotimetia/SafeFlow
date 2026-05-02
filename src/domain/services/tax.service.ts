@@ -14,13 +14,19 @@ import type { Transaction, InvestmentTransaction } from "@/types";
 /**
  * Australian resident individual tax brackets for 2024-25 and 2025-26.
  * Source: ATO resident tax rates (Stage 3 settings).
+ *
+ * `min` is the threshold (excess base) the marginal rate applies above.
+ * The bracket-matching loop selects the first bracket whose [min, max] range
+ * contains the income, so values exactly on a boundary fall into the lower
+ * bracket and one cent above lands in the next bracket — taxed on the excess
+ * over `min`.
  */
 export const TAX_BRACKETS_2024_25: TaxBracket[] = [
   { min: 0, max: 18200, rate: 0, baseTax: 0 },
-  { min: 18201, max: 45000, rate: 16, baseTax: 0 },
-  { min: 45001, max: 135000, rate: 30, baseTax: 4288 },
-  { min: 135001, max: 190000, rate: 37, baseTax: 31288 },
-  { min: 190001, max: Infinity, rate: 45, baseTax: 51638 },
+  { min: 18200, max: 45000, rate: 16, baseTax: 0 },
+  { min: 45000, max: 135000, rate: 30, baseTax: 4288 },
+  { min: 135000, max: 190000, rate: 37, baseTax: 31288 },
+  { min: 190000, max: Infinity, rate: 45, baseTax: 51638 },
 ];
 
 export const TAX_BRACKETS_2025_26: TaxBracket[] = [...TAX_BRACKETS_2024_25];
@@ -31,10 +37,10 @@ export const TAX_BRACKETS_2025_26: TaxBracket[] = [...TAX_BRACKETS_2024_25];
  */
 export const TAX_BRACKETS_2026_27: TaxBracket[] = [
   { min: 0, max: 18200, rate: 0, baseTax: 0 },
-  { min: 18201, max: 45000, rate: 15, baseTax: 0 },
-  { min: 45001, max: 135000, rate: 29, baseTax: 4020 },
-  { min: 135001, max: 190000, rate: 37, baseTax: 30120 },
-  { min: 190001, max: Infinity, rate: 45, baseTax: 50470 },
+  { min: 18200, max: 45000, rate: 15, baseTax: 0 },
+  { min: 45000, max: 135000, rate: 29, baseTax: 4020 },
+  { min: 135000, max: 190000, rate: 37, baseTax: 30120 },
+  { min: 190000, max: Infinity, rate: 45, baseTax: 50470 },
 ];
 
 /**
@@ -389,13 +395,12 @@ export function estimateTax(inputs: TaxEstimateInputs): TaxEstimate {
   // Medicare Levy Surcharge (if no private health)
   let mlsCents = 0;
   if (!hasPrivateHealth) {
-    const config = getTaxConfig(financialYear);
     const incomeForMLS = Math.max(0, mlsIncome ?? taxableIncome) / 100;
-    const thresholds = getMLSThresholdsAdjusted(
-      config,
+    const thresholds = getMLSThresholds({
+      financialYear,
       taxpayerType,
-      Math.max(0, dependentChildren)
-    );
+      dependentChildren,
+    });
 
     let mlsRate = 0;
     for (const threshold of thresholds) {

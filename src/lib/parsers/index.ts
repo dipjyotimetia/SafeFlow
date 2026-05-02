@@ -52,7 +52,6 @@ export {
   toCents,
   fromCents,
   Decimal,
-  determineTransactionSign,
   cleanDescription,
   extractStatementPeriod,
   normalizeDateToStatementPeriod,

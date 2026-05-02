@@ -85,16 +85,6 @@ export function parseAUD(value: string): number | null {
 }
 
 /**
- * Parse AUD string to cents, returning 0 for invalid input
- * @deprecated Use parseAUD() which returns null for invalid input
- * @param value Currency string like "$1,234.56" or "1234.56"
- * @returns Amount in cents, or 0 if parsing fails
- */
-export function parseAUDSafe(value: string): number {
-  return parseAUD(value) ?? 0;
-}
-
-/**
  * Convert dollars to cents
  * @param dollars Amount in dollars
  * @returns Amount in cents

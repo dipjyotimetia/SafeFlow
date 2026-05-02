@@ -1,8 +1,5 @@
 import { db } from "@/lib/db";
-import {
-  getCurrentFinancialYear,
-  getFinancialYearDates,
-} from "@/lib/utils/financial-year";
+import { FinancialYear } from "@/domain/value-objects/financial-year";
 import type { FinancialContext } from "@/types";
 
 /**
@@ -492,8 +489,8 @@ async function buildPortfolioSummary(memberId?: string): Promise<string | undefi
  * Build tax summary for current financial year
  */
 async function buildTaxSummary(memberId?: string): Promise<string | undefined> {
-  const fy = getCurrentFinancialYear();
-  const { start, end } = getFinancialYearDates(fy);
+  const fy = FinancialYear.current();
+  const { startDate: start, endDate: end } = fy;
 
   const [allTransactions, accounts] = await Promise.all([
     db.transactions
@@ -531,7 +528,7 @@ async function buildTaxSummary(memberId?: string): Promise<string | undefined> {
   }
 
   const lines: string[] = [];
-  lines.push(`Financial Year: ${fy}`);
+  lines.push(`Financial Year: ${fy.value}`);
   lines.push(`Total potential deductions: ${formatDollars(totalDeductions)}`);
 
   lines.push("\nBy ATO category:");

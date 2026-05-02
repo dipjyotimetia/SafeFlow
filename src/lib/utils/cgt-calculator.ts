@@ -101,7 +101,10 @@ export interface CGTBreakdown {
 
   // Adjustments
   div40Recapture: number;
-  div43NotIncluded: number; // Info only - Div 43 doesn't affect cost base for CGT
+  // Capital works deductions claimed under Division 43 reduce the CGT cost
+  // base on disposal per ITAA97 s110-45(2) for properties where Div 43 was
+  // (or could have been) claimed and construction commenced after 13 May 1997.
+  div43CostBaseReduction: number;
 
   // Gain calculation
   grossGain: number;
@@ -215,14 +218,19 @@ export function calculateCGT(inputs: CGTInputs): CGTResult {
   const discountPercent = isEligibleForDiscount ? CGT_DISCOUNT_RATE : 0;
 
   // Calculate cost base
-  // Cost base includes: purchase price, stamp duty, legal fees, and improvements
-  // Note: Division 43 (building) depreciation does NOT reduce cost base for CGT purposes
-  // Only Division 40 (plant & equipment) depreciation must be "recaptured"
+  // Includes: purchase price, stamp duty, legal fees, other purchase costs,
+  // and capital improvements.
+  // Subtracts: Division 43 capital-works deductions claimed (or claimable),
+  // per ITAA97 s110-45(2). This applies to construction expenditure on
+  // properties where building work commenced after 13 May 1997.
+  // Division 40 (plant & equipment) is handled separately via balancing
+  // adjustment / recapture below.
   const costBase = new Decimal(purchasePrice)
     .plus(stampDuty)
     .plus(legalFeesOnPurchase)
     .plus(otherPurchaseCosts)
-    .plus(capitalImprovements);
+    .plus(capitalImprovements)
+    .minus(division43Depreciation);
 
   // Calculate capital proceeds (sale price less selling costs)
   const sellingCosts = new Decimal(agentCommission)
@@ -312,7 +320,7 @@ export function calculateCGT(inputs: CGTInputs): CGTResult {
     otherSellingCosts,
     totalCostBase: costBase.round().toNumber(),
     div40Recapture: division40Depreciation,
-    div43NotIncluded: division43Depreciation,
+    div43CostBaseReduction: division43Depreciation,
     grossGain: grossCapitalGain.round().toNumber(),
     discountAmount: discountAmount.round().toNumber(),
     exemptionAmount: mainResidenceExemption.round().toNumber(),

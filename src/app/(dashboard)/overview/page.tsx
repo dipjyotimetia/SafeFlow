@@ -34,10 +34,7 @@ import {
   useTotalAssetAllocation,
 } from "@/hooks";
 import { formatAUD, splitAUD } from "@/lib/utils/currency";
-import {
-  getCurrentFinancialYear,
-  formatFinancialYear,
-} from "@/lib/utils/financial-year";
+import { FinancialYear } from "@/domain/value-objects/financial-year";
 import { cn } from "@/lib/utils";
 import { useFamilyStore } from "@/stores/family.store";
 import { StatCell } from "@/components/ui/stat-cell";
@@ -143,7 +140,7 @@ export default function DashboardPage() {
     () => new Map(accounts.map((a) => [a.id, a])),
     [accounts],
   );
-  const currentFY = getCurrentFinancialYear();
+  const currentFY = FinancialYear.current();
 
   const netWorthSplit = splitAUD(summary.netWorth);
   const netPositive = summary.netWorth >= 0;
@@ -207,7 +204,7 @@ export default function DashboardPage() {
                     {summary.accountCount !== 1 ? "S" : ""}
                   </span>
                   <span className="hairline-v h-3" aria-hidden />
-                  <span>FY · {formatFinancialYear(currentFY)}</span>
+                  <span>FY · {currentFY.format()}</span>
                 </div>
               </div>
 

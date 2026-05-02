@@ -1,6 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -561,50 +567,31 @@ export function ModelResults({
         </CardContent>
       </Card>
 
-      {/* Cashflow Before Tax */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Cashflow Before Tax</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead></TableHead>
-                <TableHead className="text-right">Weekly</TableHead>
-                <TableHead className="text-right">Monthly</TableHead>
-                <TableHead className="text-right">Annually</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>Lower Rent</TableCell>
-                <TableCell className="text-right">
-                  <CashflowValue amount={results.cashflowBeforeTaxWeeklyLow} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <CashflowValue amount={results.cashflowBeforeTaxMonthlyLow} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <CashflowValue amount={results.cashflowBeforeTaxAnnuallyLow} />
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Higher Rent</TableCell>
-                <TableCell className="text-right">
-                  <CashflowValue amount={results.cashflowBeforeTaxWeeklyHigh} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <CashflowValue amount={results.cashflowBeforeTaxMonthlyHigh} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <CashflowValue amount={results.cashflowBeforeTaxAnnuallyHigh} />
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <CashflowCard
+        title="Cash Position Before Tax"
+        description="Real cash flow including the principal portion of loan repayments."
+        series={{
+          weeklyLow: results.cashPositionBeforeTaxWeeklyLow,
+          weeklyHigh: results.cashPositionBeforeTaxWeeklyHigh,
+          monthlyLow: results.cashPositionBeforeTaxMonthlyLow,
+          monthlyHigh: results.cashPositionBeforeTaxMonthlyHigh,
+          annuallyLow: results.cashPositionBeforeTaxAnnuallyLow,
+          annuallyHigh: results.cashPositionBeforeTaxAnnuallyHigh,
+        }}
+      />
+
+      <CashflowCard
+        title="Taxable Cashflow Before Tax"
+        description="Tax-position view: interest only (principal is not deductible). Differs from cash position by the principal portion of repayments."
+        series={{
+          weeklyLow: results.taxableCashflowBeforeTaxWeeklyLow,
+          weeklyHigh: results.taxableCashflowBeforeTaxWeeklyHigh,
+          monthlyLow: results.taxableCashflowBeforeTaxMonthlyLow,
+          monthlyHigh: results.taxableCashflowBeforeTaxMonthlyHigh,
+          annuallyLow: results.taxableCashflowBeforeTaxAnnuallyLow,
+          annuallyHigh: results.taxableCashflowBeforeTaxAnnuallyHigh,
+        }}
+      />
 
       {/* Depreciation */}
       {results.estimatedDepreciation > 0 && (
@@ -937,6 +924,72 @@ function CashflowValue({
 
   return (
     <span className={`${colorClass} ${sizeClass}`}>{formatAUD(amount)}</span>
+  );
+}
+
+interface CashflowSeries {
+  weeklyLow: number;
+  weeklyHigh: number;
+  monthlyLow: number;
+  monthlyHigh: number;
+  annuallyLow: number;
+  annuallyHigh: number;
+}
+
+function CashflowCard({
+  title,
+  description,
+  series,
+}: {
+  title: string;
+  description: string;
+  series: CashflowSeries;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <CardDescription className="text-xs">{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead></TableHead>
+              <TableHead className="text-right">Weekly</TableHead>
+              <TableHead className="text-right">Monthly</TableHead>
+              <TableHead className="text-right">Annually</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>Lower Rent</TableCell>
+              <TableCell className="text-right">
+                <CashflowValue amount={series.weeklyLow} />
+              </TableCell>
+              <TableCell className="text-right">
+                <CashflowValue amount={series.monthlyLow} />
+              </TableCell>
+              <TableCell className="text-right">
+                <CashflowValue amount={series.annuallyLow} />
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Higher Rent</TableCell>
+              <TableCell className="text-right">
+                <CashflowValue amount={series.weeklyHigh} />
+              </TableCell>
+              <TableCell className="text-right">
+                <CashflowValue amount={series.monthlyHigh} />
+              </TableCell>
+              <TableCell className="text-right">
+                <CashflowValue amount={series.annuallyHigh} />
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
 

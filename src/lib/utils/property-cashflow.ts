@@ -440,28 +440,52 @@ export function calculatePropertyModel(
     purchasePrice
   );
 
-  // Cashflow before tax (annual)
-  const cashflowBeforeTaxAnnuallyLow =
+  // Cash position before tax (annual) — deducts full P+I (real cash impact).
+  const cashPositionBeforeTaxAnnuallyLow =
     annualRentalIncomeAfterVacancyLow -
     totalAnnualExpensesLow -
     annualLoanRepayment;
-  const cashflowBeforeTaxAnnuallyHigh =
+  const cashPositionBeforeTaxAnnuallyHigh =
     annualRentalIncomeAfterVacancyHigh -
     totalAnnualExpensesHigh -
     annualLoanRepayment;
 
-  // Weekly and monthly cashflow before tax
-  const cashflowBeforeTaxWeeklyLow = Math.round(
-    cashflowBeforeTaxAnnuallyLow / 52
+  const cashPositionBeforeTaxWeeklyLow = Math.round(
+    cashPositionBeforeTaxAnnuallyLow / 52
   );
-  const cashflowBeforeTaxWeeklyHigh = Math.round(
-    cashflowBeforeTaxAnnuallyHigh / 52
+  const cashPositionBeforeTaxWeeklyHigh = Math.round(
+    cashPositionBeforeTaxAnnuallyHigh / 52
   );
-  const cashflowBeforeTaxMonthlyLow = Math.round(
-    cashflowBeforeTaxAnnuallyLow / 12
+  const cashPositionBeforeTaxMonthlyLow = Math.round(
+    cashPositionBeforeTaxAnnuallyLow / 12
   );
-  const cashflowBeforeTaxMonthlyHigh = Math.round(
-    cashflowBeforeTaxAnnuallyHigh / 12
+  const cashPositionBeforeTaxMonthlyHigh = Math.round(
+    cashPositionBeforeTaxAnnuallyHigh / 12
+  );
+
+  // Taxable cashflow before tax (annual) — deducts interest only. Used for
+  // tax-position modelling; differs from cash position by the principal
+  // portion of repayments.
+  const taxableCashflowBeforeTaxAnnuallyLow =
+    annualRentalIncomeAfterVacancyLow -
+    totalAnnualExpensesLow -
+    annualInterestPayment;
+  const taxableCashflowBeforeTaxAnnuallyHigh =
+    annualRentalIncomeAfterVacancyHigh -
+    totalAnnualExpensesHigh -
+    annualInterestPayment;
+
+  const taxableCashflowBeforeTaxWeeklyLow = Math.round(
+    taxableCashflowBeforeTaxAnnuallyLow / 52
+  );
+  const taxableCashflowBeforeTaxWeeklyHigh = Math.round(
+    taxableCashflowBeforeTaxAnnuallyHigh / 52
+  );
+  const taxableCashflowBeforeTaxMonthlyLow = Math.round(
+    taxableCashflowBeforeTaxAnnuallyLow / 12
+  );
+  const taxableCashflowBeforeTaxMonthlyHigh = Math.round(
+    taxableCashflowBeforeTaxAnnuallyHigh / 12
   );
 
   // Depreciation
@@ -489,11 +513,12 @@ export function calculatePropertyModel(
       ? calculateNegativeGearingBenefit(taxableIncomeHigh, marginalTaxRate)
       : -Math.round((taxableIncomeHigh * marginalTaxRate) / 100);
 
-  // Cashflow after tax
+  // Cashflow after tax — built from the cash position (real money in/out)
+  // adjusted by the tax benefit/liability from the taxable position.
   const cashflowAfterTaxAnnuallyLow =
-    cashflowBeforeTaxAnnuallyLow + estimatedTaxBenefitLow;
+    cashPositionBeforeTaxAnnuallyLow + estimatedTaxBenefitLow;
   const cashflowAfterTaxAnnuallyHigh =
-    cashflowBeforeTaxAnnuallyHigh + estimatedTaxBenefitHigh;
+    cashPositionBeforeTaxAnnuallyHigh + estimatedTaxBenefitHigh;
 
   const cashflowAfterTaxWeeklyLow = Math.round(
     cashflowAfterTaxAnnuallyLow / 52
@@ -559,13 +584,21 @@ export function calculatePropertyModel(
     annualRentalIncomeAfterVacancyLow,
     annualRentalIncomeAfterVacancyHigh,
 
-    // Cashflow Before Tax
-    cashflowBeforeTaxWeeklyLow,
-    cashflowBeforeTaxWeeklyHigh,
-    cashflowBeforeTaxMonthlyLow,
-    cashflowBeforeTaxMonthlyHigh,
-    cashflowBeforeTaxAnnuallyLow,
-    cashflowBeforeTaxAnnuallyHigh,
+    // Cash Position Before Tax (real cash impact, P+I deducted)
+    cashPositionBeforeTaxWeeklyLow,
+    cashPositionBeforeTaxWeeklyHigh,
+    cashPositionBeforeTaxMonthlyLow,
+    cashPositionBeforeTaxMonthlyHigh,
+    cashPositionBeforeTaxAnnuallyLow,
+    cashPositionBeforeTaxAnnuallyHigh,
+
+    // Taxable Cashflow Before Tax (interest only, used for tax modelling)
+    taxableCashflowBeforeTaxWeeklyLow,
+    taxableCashflowBeforeTaxWeeklyHigh,
+    taxableCashflowBeforeTaxMonthlyLow,
+    taxableCashflowBeforeTaxMonthlyHigh,
+    taxableCashflowBeforeTaxAnnuallyLow,
+    taxableCashflowBeforeTaxAnnuallyHigh,
 
     // Tax Impact
     estimatedDepreciation,

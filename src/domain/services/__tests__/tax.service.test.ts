@@ -29,7 +29,8 @@ describe("Tax Service", () => {
     it("has correct top marginal rate", () => {
       const topBracket = TAX_BRACKETS_2024_25[TAX_BRACKETS_2024_25.length - 1];
       expect(topBracket.rate).toBe(45);
-      expect(topBracket.min).toBe(190001);
+      // `min` is the threshold (excess base) — 45% applies above $190,000.
+      expect(topBracket.min).toBe(190000);
     });
   });
 

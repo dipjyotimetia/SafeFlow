@@ -34,7 +34,7 @@ interface AIStore {
   settings: AISettings;
 
   // Connection actions
-  checkConnection: () => Promise<void>;
+  checkConnection: () => Promise<boolean>;
   pullModel: () => Promise<void>;
 
   // Chat actions
@@ -83,7 +83,6 @@ export const useAIStore = create<AIStore>()(
 
       settings: DEFAULT_SETTINGS,
 
-      // Check connection to Ollama
       checkConnection: async () => {
         const { settings } = get();
         set({ connectionStatus: "connecting", connectionError: null });
@@ -102,7 +101,7 @@ export const useAIStore = create<AIStore>()(
               connectionError: health.error || "Cannot connect to Ollama",
               isModelReady: false,
             });
-            return;
+            return false;
           }
 
           set({
@@ -111,6 +110,7 @@ export const useAIStore = create<AIStore>()(
             isModelReady: health.modelReady,
             availableModels: health.availableModels || [],
           });
+          return true;
         } catch (error) {
           set({
             connectionStatus: "error",
@@ -118,6 +118,7 @@ export const useAIStore = create<AIStore>()(
               error instanceof Error ? error.message : "Connection failed",
             isModelReady: false,
           });
+          return false;
         }
       },
 

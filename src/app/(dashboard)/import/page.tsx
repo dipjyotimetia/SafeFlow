@@ -47,12 +47,15 @@ import {
   Loader2,
 } from "lucide-react";
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { formatAUD } from "@/lib/utils/currency";
 
 type ImportStep = "upload" | "preview" | "complete";
 type ImportType = "bank" | "super";
 
 export default function ImportPage() {
+  const router = useRouter();
   const [importType, setImportType] = useState<ImportType>("bank");
   const [step, setStep] = useState<ImportStep>("upload");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -203,7 +206,9 @@ export default function ImportPage() {
   const availableSuperFunds = getAvailableSuperParsers();
 
   const handleSuperFileSelect = useCallback(
-    async (file: File) => {
+    // `fundOverride` lets the caller force-parse with a specific fund without
+    // waiting for the next render — avoids stale-closure bugs from setState.
+    async (file: File, fundOverride?: string) => {
       setSelectedFile(file);
       setSuperParsing(true);
       setSuperError(null);
@@ -233,9 +238,10 @@ export default function ImportPage() {
           fullText += pageText + "\n";
         }
 
+        const fund = fundOverride ?? selectedSuperFund;
         const result = parseSuperStatement(
           fullText,
-          selectedSuperFund === "auto" ? undefined : selectedSuperFund
+          fund === "auto" ? undefined : fund
         );
         setSuperParseResult(result);
       } catch (error) {
@@ -254,7 +260,7 @@ export default function ImportPage() {
     async (fund: string) => {
       setSelectedSuperFund(fund);
       if (selectedFile && importType === "super") {
-        await handleSuperFileSelect(selectedFile);
+        await handleSuperFileSelect(selectedFile, fund);
       }
     },
     [selectedFile, importType, handleSuperFileSelect]
@@ -725,11 +731,7 @@ export default function ImportPage() {
                             </span>
                           )}
                           <span className="block text-xs mt-1">
-                            Balance: $
-                            {(superParseResult.account.totalBalance / 100).toLocaleString(
-                              "en-AU",
-                              { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-                            )}
+                            Balance: {formatAUD(superParseResult.account.totalBalance)}
                           </span>
                           <span className="block text-xs">
                             {superParseResult.transactions.length}{" "}
@@ -923,20 +925,13 @@ export default function ImportPage() {
                   <div>
                     <p className="text-muted-foreground">Total Balance</p>
                     <p className="font-semibold text-lg">
-                      $
-                      {superParseResult.account.totalBalance.toLocaleString(
-                        "en-AU",
-                        { minimumFractionDigits: 2 }
-                      )}
+                      {formatAUD(superParseResult.account.totalBalance)}
                     </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Preserved</p>
                     <p className="font-medium">
-                      $
-                      {(
-                        superParseResult.account.preservedBalance ?? 0
-                      ).toLocaleString("en-AU", { minimumFractionDigits: 2 })}
+                      {formatAUD(superParseResult.account.preservedBalance ?? 0)}
                     </p>
                   </div>
                   <div>
@@ -944,10 +939,7 @@ export default function ImportPage() {
                       Restricted Non-Preserved
                     </p>
                     <p className="font-medium">
-                      $
-                      {(
-                        superParseResult.account.restrictedNonPreserved ?? 0
-                      ).toLocaleString("en-AU", { minimumFractionDigits: 2 })}
+                      {formatAUD(superParseResult.account.restrictedNonPreserved ?? 0)}
                     </p>
                   </div>
                   <div>
@@ -955,10 +947,7 @@ export default function ImportPage() {
                       Unrestricted Non-Preserved
                     </p>
                     <p className="font-medium">
-                      $
-                      {(
-                        superParseResult.account.unrestrictedNonPreserved ?? 0
-                      ).toLocaleString("en-AU", { minimumFractionDigits: 2 })}
+                      {formatAUD(superParseResult.account.unrestrictedNonPreserved ?? 0)}
                     </p>
                   </div>
                 </div>
@@ -1027,10 +1016,8 @@ export default function ImportPage() {
                                   : "text-destructive"
                               }`}
                             >
-                              {t.amount >= 0 ? "+" : ""}$
-                              {Math.abs(t.amount).toLocaleString("en-AU", {
-                                minimumFractionDigits: 2,
-                              })}
+                              {t.amount >= 0 ? "+" : "-"}
+                              {formatAUD(Math.abs(t.amount))}
                             </td>
                           </tr>
                         ))}
@@ -1085,10 +1072,11 @@ export default function ImportPage() {
                     </Button>
                     <Button
                       onClick={() =>
-                        (window.location.href =
+                        router.push(
                           importType === "bank"
                             ? "/transactions"
-                            : "/superannuation")
+                            : "/superannuation",
+                        )
                       }
                     >
                       {importType === "bank"
