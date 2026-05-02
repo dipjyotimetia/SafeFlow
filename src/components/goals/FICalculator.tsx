@@ -16,23 +16,28 @@ import {
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { calculateIncomeTax } from '@/domain/services/tax.service';
-import { calculateMonthsToTarget } from '@/lib/utils/projections';
+import { calculateIncomeTax, getMarginalTaxRate, MEDICARE_LEVY_RATE } from '@/domain/services/tax.service';
+import { FinancialYear } from '@/domain/value-objects/financial-year';
+import { calculateMonthsToTarget, calculateFutureValue } from '@/lib/utils/projections';
 import { formatAUD, formatAUDCompact } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
+
+// Concessional super contributions are taxed at 15% inside the fund.
+const SUPER_CONTRIBUTIONS_TAX_RATE = 15;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function buildProjection(
-  annualInvestDollars: number,
+  monthlyInvestDollars: number,
   years: number,
-  rate: number,
+  annualRate: number,
 ): { year: string; balance: number }[] {
   const data: { year: string; balance: number }[] = [];
-  let balance = 0;
   for (let y = 0; y <= years; y++) {
-    data.push({ year: `Y${y}`, balance: Math.round(balance) });
-    balance = balance * (1 + rate) + annualInvestDollars;
+    // calculateFutureValue operates in cents and compounds monthly,
+    // matching the ETA produced by calculateMonthsToTarget.
+    const balanceCents = calculateFutureValue(0, monthlyInvestDollars * 100, annualRate, y * 12);
+    data.push({ year: `Y${y}`, balance: Math.round(balanceCents / 100) });
   }
   return data;
 }
@@ -134,8 +139,11 @@ export function FICalculator() {
   const [returnRate, setReturnRate] = useState(7);
 
   // ── Derived values ──────────────────────────────────────────────────────────
-  const taxResult = calculateIncomeTax(grossIncome * 100, { financialYear: '2025-26' });
-  const annualNetDollars = grossIncome - taxResult.totalTax.toDollars();
+  // Salary sacrifice reduces taxable income (and the take-home pool).
+  const currentFY = FinancialYear.current().value;
+  const taxableIncomeDollars = Math.max(0, grossIncome - superExtra);
+  const taxResult = calculateIncomeTax(taxableIncomeDollars * 100, { financialYear: currentFY });
+  const annualNetDollars = taxableIncomeDollars - taxResult.totalTax.toDollars();
   const monthlyNet = Math.round(annualNetDollars / 12);
 
   const totalMonthlyExpenses = mortgage + school + groceries + transport + insurance + lifestyle;
@@ -151,7 +159,7 @@ export function FICalculator() {
   const annualInvest = monthlyInvest * 12;
   const months = calculateMonthsToTarget(0, retireTarget * 100, monthlyInvest * 100, returnRate / 100);
   const years = months === null ? 60 : Math.ceil(months / 12);
-  const projectionData = buildProjection(annualInvest, Math.min(years + 5, 35), returnRate / 100);
+  const projectionData = buildProjection(monthlyInvest, Math.min(years + 5, 35), returnRate / 100);
 
   const effectiveTaxRate = taxResult.effectiveRate;
   const incomeStatus =
@@ -162,7 +170,7 @@ export function FICalculator() {
     'Comfortable Basics';
 
   const healthScore =
-    monthlyDiscretionary > 0 && investPct >= 20 ? 'Strong' :
+    monthlyDiscretionary > 0 && investPctActual >= 20 ? 'Strong' :
     monthlyDiscretionary > 0 ? 'Moderate' :
     'Under Pressure';
 
@@ -205,8 +213,14 @@ export function FICalculator() {
     {
       title: grossIncome >= 450000 ? 'Structure Now' : 'Super Focus',
       desc: grossIncome >= 450000
-        ? 'Consider trusts & company structures. Max concessional super ($27,500/yr).'
-        : `Extra super can reduce your taxable income by ${formatAUD(superExtra * 100)}/yr.`,
+        ? 'Consider trusts & company structures. Max concessional super ($30,000/yr).'
+        : (() => {
+            // Net saving per $ sacrificed = (marginal + medicare − super contributions tax)
+            const marginalRate = getMarginalTaxRate(grossIncome * 100, { financialYear: currentFY });
+            const netSavingRate = Math.max(0, marginalRate + MEDICARE_LEVY_RATE - SUPER_CONTRIBUTIONS_TAX_RATE);
+            const taxSaved = (superExtra * netSavingRate) / 100;
+            return `Extra super saves ~${formatAUD(taxSaved * 100)}/yr in tax at your ${marginalRate}% marginal rate.`;
+          })(),
       textColor: 'text-[#38bdf8]',
       borderBg: 'border-[#38bdf8]/20 bg-[#38bdf8]/5',
     },
@@ -222,7 +236,7 @@ export function FICalculator() {
           {incomeStatus}
         </Badge>
         <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.1em]">
-          2025-26 · Family of 4
+          FY {currentFY} · Household
         </span>
       </div>
 
@@ -236,7 +250,7 @@ export function FICalculator() {
             </CardHeader>
             <CardContent className="px-5 pb-5 space-y-5">
               <SliderRow label="Gross Household Income (Annual)" value={grossIncome} min={150000} max={600000} step={5000} onChange={setGrossIncome} />
-              <SliderRow label="Extra Super Contributions (Annual)" value={superExtra} min={0} max={27500} step={500} onChange={setSuperExtra} valueColor="text-[#6c8ebf]" />
+              <SliderRow label="Extra Super Contributions (Annual)" value={superExtra} min={0} max={30000} step={500} onChange={setSuperExtra} valueColor="text-[#6c8ebf]" />
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="rounded-lg bg-muted/30 px-4 py-3">
                   <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Annual Net</p>
