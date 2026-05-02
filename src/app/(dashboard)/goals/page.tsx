@@ -11,6 +11,7 @@ import {
   Calculator,
   Landmark,
   Loader2,
+  BarChart3,
 } from "lucide-react";
 import { useAllGoalProgress } from "@/hooks";
 import { useFamilyStore } from "@/stores/family.store";
@@ -20,6 +21,7 @@ import {
   ProjectionChart,
   RetirementCalculator,
   CompoundInterestCalculator,
+  FICalculator,
 } from "@/components/goals";
 import type { Goal } from "@/types";
 
@@ -97,6 +99,13 @@ export default function GoalsPage() {
                     strokeWidth={1.5}
                   />
                   Calculator
+                </TabsTrigger>
+                <TabsTrigger value="fi-planner" className="gap-2">
+                  <BarChart3
+                    className="h-3.5 w-3.5"
+                    strokeWidth={1.5}
+                  />
+                  FI Planner
                 </TabsTrigger>
               </TabsList>
 
@@ -245,6 +254,21 @@ export default function GoalsPage() {
                 </p>
               </section>
               <CompoundInterestCalculator />
+            </TabsContent>
+
+            <TabsContent value="fi-planner" className="mt-5 space-y-5">
+              <section className="card-trace overflow-hidden rounded-lg border border-border/80 fintech-panel">
+                <div className="border-b border-border px-5 py-3">
+                  <span className="eyebrow">Australian Household · Financial Independence Planner</span>
+                </div>
+                <p className="px-5 py-4 text-[13px] text-muted-foreground">
+                  Model your household income, expenses, and investment allocation
+                  to project your path to financial independence. Includes
+                  Australian tax calculations, expense breakdown, and wealth
+                  projection charts.
+                </p>
+              </section>
+              <FICalculator />
             </TabsContent>
           </Tabs>
         </div>
